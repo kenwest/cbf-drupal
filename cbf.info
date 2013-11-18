@@ -1,0 +1,6 @@
+name = CBF Drupal Hooks
+description = Implements hooks for the Drupal implementation at the City Bible Forum
+package = City Bible Forum
+files[] = cbf.module
+core = 7.x
+version = 1.1
