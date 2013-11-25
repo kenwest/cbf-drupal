@@ -31,7 +31,7 @@
   <tbody>
     <tr>
       <td colspan="2">
-        <a href="http://citybibleforum.org" style="color: #FFFFFF; text-decoration: none; font-weight: bold; font-size: 15pt;">City Bible Forum</a> 
+        <a href="http://citybibleforum.org" style="color: #FFFFFF; text-decoration: none; font-weight: bold; font-size: 15pt;">City Bible Forum</a>
       </td>
     </tr>
     <tr>
