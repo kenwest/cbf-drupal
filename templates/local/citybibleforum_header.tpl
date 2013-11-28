@@ -2,6 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <title>City Bible Forum</title>
+{literal}
   <style type="text/css">
 body {
 text-align: left;
@@ -28,6 +29,7 @@ p {
 margin: 0 0 10px 0;
 }
   </style>
+{/literal}
 </head>
 
 <body style="margin: 0;">
