@@ -192,10 +192,10 @@ function cbf_civicrm_civicrm_validate( $formName, &$fields, &$files, &$form ) {
  * The Purchaser Address details are cleared, since the Billing Address is not captured.
  */
 function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawParams, &$cookedParams ) {
-    if ($paymentObj instanceof CRM_Core_Payment_eWAY) {
+    $credit_card_holder = CRM_Utils_Array::value( 'credit_card_holder', $rawParams );
+	if ( $paymentObj instanceof CRM_Core_Payment_eWAY ) {
 
         // Set credit card holder
-        $credit_card_holder = CRM_Utils_Array::value( 'credit_card_holder', $rawParams );
         if ( $credit_card_holder ) {
             $cookedParams->CardHolderName($credit_card_holder);
         }
@@ -203,6 +203,13 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawPara
         // Clear address information
         $cookedParams->PurchaserAddress('');
         $cookedParams->PurchaserPostalCode('');
+    }
+	else if ( $paymentObj instanceof org_civicrm_ewayrecurring ) {
+
+        // Set credit card holder
+        if ( $credit_card_holder ) {
+            $cookedParams['CCNameOnCard'] = $credit_card_holder;
+        }
     }
     return;
 }
