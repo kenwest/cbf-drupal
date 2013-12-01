@@ -1,0 +1,7 @@
+name = CBF CiviCRM Hooks
+description = Implements hooks for the CiviCRM implementation at the City Bible Forum
+dependencies[] = civicrm
+package = CiviCRM
+files[] = cbf_civicrm.module
+core = 7.x
+version = 4.4

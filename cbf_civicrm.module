@@ -1,0 +1,231 @@
+<?php
+
+/*
+ *  This hook is called when an email is about to be sent by CiviCRM.
+ *  It ensures the email contains no relative links.
+ *  It adds the closing tags for the BODY and HTML elements, as these are
+ *  left off so CiviMail can add a tracking token to the email.
+ */
+function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
+    /*
+     *  Change relative URLs to absolute.
+     */
+    $htmlMessage = CRM_Utils_Array::value( 'html', $params );
+    if ( $htmlMessage ) {
+        /*
+         *  Links:  Relative URLs start with a '/' and occur in the HREF attribute of an A element
+         *  Images: Relative URLs start with a '/' and occur in the SRC attribute of an IMG element
+         *  The '/' is replaced by the CiviCRM User Framework Base URL, which terminates with a '/'
+         */
+        $config = CRM_Core_Config::singleton( );
+        $htmlMessage = str_replace(' href="//', ' href="http://', $htmlMessage);
+        $htmlMessage = str_replace(' src="//',  ' src="http://',  $htmlMessage);
+        $htmlMessage = str_replace(' href="/',  ' href="'.$config->userFrameworkBaseURL, $htmlMessage);
+        $htmlMessage = str_replace(' src="/',   ' src="'.$config->userFrameworkBaseURL,  $htmlMessage);
+        /*
+         * Look for the closing tag for the BODY element, and add it if needed
+         */
+        if (stripos($htmlMessage, '</body>') == false) {
+            $htmlMessage .= '</body></html>';
+        }
+        $params['html'] = $htmlMessage;
+//        drupal_set_message(
+//            'HTML message scanned to convert relative URLs into absolute URLs.',
+//            'status',
+//            FALSE
+//        );
+    }
+}
+
+/*
+ * This hook is called when a form is being built by CiviCRM.
+ * It adds the Credit Card Holder to credit card payment forms, and makes the holder
+ * field available on confirmation and thank-you pages. This doesn't work for the
+ * event forms since they protect their _param variables.
+ * It makes the Billing Name and Address not-required, as these are not presented
+ * on CBF payment forms.
+ */
+function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
+    switch ( $formName ) {
+
+        case 'CRM_Contribute_Form_Contribution':
+        case 'CRM_Contribute_Form_Contribution_Main':
+        case 'CRM_Event_Form_Participant':
+        case 'CRM_Event_Form_Registration_Register':
+
+            // Add a form element for the credit card holder
+            // It is required if the credit card number is required
+            if ( $form->elementExists('credit_card_number') && 
+                !$form->elementExists('credit_card_holder') ) {
+                $form->add (
+                    'text', 
+                    'credit_card_holder', 
+                    ts('Card Holder'),
+                    array (
+                        'size' => 20, 
+                        'maxlength' => 30, 
+                        'autocomplete' => 'off' ), 
+                    $form->isElementRequired('credit_card_number'),
+                    null);
+            }
+
+            // Assume the person's first and last name are being captured via a profile
+            // Make the address optional so donors have less data to supply
+            if (isset($form->_bltID)) {
+                $bltID = $form->_bltID;
+                $unnecessaryFields = array(
+                                         "billing_first_name",
+                                         "billing_last_name",
+                                         "billing_street_address-{$bltID}",
+                                         "billing_city-{$bltID}",
+                                         "billing_postal_code-{$bltID}",
+                                         "billing_state_province_id-{$bltID}",
+                                         "billing_country_id-{$bltID}"
+                                     );
+                $form->_required = array_diff($form->_required, $unnecessaryFields);
+                foreach ($unnecessaryFields as $field) {
+                    if ( isset($form->_paymentFields[$field]) ) {
+                        $form->_paymentFields[$field]['is_required'] = false;
+                    }
+                }
+            }
+            break;
+
+        case 'CRM_Contribute_Form_Contribution_Confirm':
+        case 'CRM_Contribute_Form_Contribution_ThankYou':
+        case 'CRM_Event_Form_Registration_Confirm':
+        case 'CRM_Event_Form_Registration_ThankYou':
+
+            // Set the Credit Card Holder in the Smarty template
+            // Clear the Address in the Smarty template
+            $tpl = $form->getTemplate();
+            $tpl_credit_card_number = $tpl->get_template_vars('credit_card_number'); 
+            if ( isset($tpl_credit_card_number) ) {
+                if ( isset($form->_params['credit_card_holder']) ) {
+                    $form->assign( 'credit_card_holder', $form->_params['credit_card_holder'] );
+                } else if ( isset($form->_params[0]) && 
+                            isset($form->_params[0]['credit_card_holder']) ) {
+                    $form->assign( 'credit_card_holder', $form->_params[0]['credit_card_holder'] );
+                }
+            }
+            $form->assign( 'address', '' );
+            break;
+
+        case 'CRM_Mailing_Form_Settings':
+
+            // For CiviMails, make the visibility of the mail content 'Public' by default
+            $form->setDefaults(array('visibility' => 'Public Pages'));
+            break;
+    }
+    return;
+}
+
+/*
+ * This function is called when a form is being validated by CiviCRM.
+ * In cases where the Credit Card Holder field is not-required, it is mandatory if the
+ * Credit Card Number has been entered.
+ */
+function cbf_civicrm_civicrm_validate( $formName, &$fields, &$files, &$form ) {
+    $errors = array( );
+    switch ( $formName ) {
+
+        case 'CRM_Contribute_Form_Contribution':
+        case 'CRM_Contribute_Form_Contribution_Main':
+        case 'CRM_Event_Form_Participant':
+        case 'CRM_Event_Form_Registration_Register':
+            
+            // The credit card holder is required for CC transactions
+            // Assume that a credit card payment is being made if the CC number is supplied
+            // This test is only required if the Card Holder field exists and is not a required field
+            if ( $form->elementExists('credit_card_holder') &&
+                !$form->isElementRequired('credit_card_holder') ) {
+                $credit_card_number = CRM_Utils_Array::value( 'credit_card_number', $fields );
+                $credit_card_holder = CRM_Utils_Array::value( 'credit_card_holder', $fields );
+                if ( $credit_card_number && ! $credit_card_holder ) {
+                    $errors['credit_card_holder']
+                        = ts( 'Card Holder is required if Card Number is supplied' );
+                }
+            }
+            break;
+
+        case 'CRM_Contact_Import_Form_DataSource':
+
+            // The dedupe rule is needed, except when 'No Duplicate Checking' is selected
+            $onDuplicate = CRM_Utils_Array::value( 'onDuplicate', $fields );
+            foreach ($form->getElement('onDuplicate')->getElements() as $duplicateOption ) {
+            	if ( $duplicateOption->getValue() == $onDuplicate ) {
+            		break; // We've found the option that's been selected
+            	}
+            }
+            if ( $duplicateOption->getText() <> 'No Duplicate Checking' ) {
+                if ( CRM_Utils_Array::value( 'dedupe', $fields ) == '' ) {
+                    $errors['dedupe']
+                        = ts( 'Dedupe rule must be set, unless there is no duplicate checking' );
+                }
+            }
+            break;
+    }
+    return $errors;
+}
+
+/*
+ * This function is called after a form has been processed by CiviCRM.
+ * It was hoped to add the Credit Card Holder field to the Smarty template, but this
+ * function gets called too late. This affects off-line contributions and event 
+ * registrations - the Credit Card Holder and Billing Address are removed from the
+ * System Workflow Message Templates in these cases.
+ */
+//function cbf_civicrm_civicrm_postProcess($formName, &$form) {
+//    switch ( $formName ) {
+//
+//        case 'CRM_Contribute_Form_Contribution':
+//        case 'CRM_Event_Form_Participant':
+//            cbf_add_creditCardHolder_to_tpl($form); // TOO LATE !!
+//            break;
+//    }
+//    return;
+//}
+
+/*
+ * This function is called before CiviCRM passes payment details to a Payment Processor.
+ * The Credit Card Holder is captured.
+ * The Purchaser Address details are cleared, since the Billing Address is not captured.
+ */
+function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawParams, &$cookedParams ) {
+    $credit_card_holder = CRM_Utils_Array::value( 'credit_card_holder', $rawParams );
+	if ( $paymentObj instanceof CRM_Core_Payment_eWAY ) {
+
+        // Set credit card holder
+        if ( $credit_card_holder ) {
+            $cookedParams->CardHolderName($credit_card_holder);
+        }
+
+        // Clear address information
+        $cookedParams->PurchaserAddress('');
+        $cookedParams->PurchaserPostalCode('');
+    }
+	else if ( $paymentObj instanceof org_civicrm_ewayrecurring ) {
+
+        // Set credit card holder
+        if ( $credit_card_holder ) {
+            $cookedParams['CCNameOnCard'] = $credit_card_holder;
+        }
+        $cookedParams['Address']  = 'Level 3, 13-15 Bridge St';
+        $cookedParams['Suburb']   = 'Sydney';
+        $cookedParams['State']    = 'NSW';
+        $cookedParams['PostCode'] = '2000';
+    }
+    return;
+}
+
+function cbf_civicrm_civicrm_tokens( &$tokens ) {
+	$tokens['cbf'] = array( 'cbf.hostname' );
+}
+
+function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
+    $config = CRM_Core_Config::singleton( );
+    $hostname = preg_replace('!^https?://([^/]+)/$!i', '$1', $config->userFrameworkBaseURL);
+	foreach ($details as $id => $detail) {
+		$details[$id]['cbf.hostname'] = $hostname;
+	};
+}

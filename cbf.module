@@ -1,0 +1,288 @@
+<?php
+
+/*
+ * This hook is called at the beginning of a Drupal page request.
+ */
+function cbf_init() {
+    if (arg(0) == 'node' && arg(1) == 'add') {
+        switch (arg(2)) {
+            case 'story':
+            case 'blog':
+            case 'episode':
+            case 'event':
+            case 'activity':
+                /*
+                 * "How to display summary field on node edit form by default?"
+                 * http://drupal.org/node/1395422#comment-6450618
+                 */
+                $script = 'jQuery(document).ready(function(){
+                    jQuery(".link-edit-summary").click();
+                    jQuery("#twitter-toggle").attr("checked", false);
+                });';
+                drupal_add_js($script, 'inline');
+                break;
+        }
+    }
+    return array();
+}
+
+/*
+ * This function is called by CCK Computed Field to compute the value of Field Sort Date.
+ * The value is set to the timestamp of the start date for the Field Event Date.
+ * If the event is a repeating event then find the first date in the future.
+ */
+function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+	$current_time = strtotime('now');
+	$timestamp = 0;
+	foreach ($entity->field_event_date[LANGUAGE_NONE] as $event_occurrence) {
+		$utc_sort_time = new DateObject(
+                                $event_occurrence['value'],
+                                'UTC' );
+		$utc_sort_time_string = date_format_date(
+                                $utc_sort_time,
+                                'custom',
+                                'Y-m-d H:i:s O');
+		$timestamp = strtotime( $utc_sort_time_string );
+		if ($timestamp > $current_time) {
+			break;
+		}
+	}
+	$entity_field[0]['value'] = $timestamp;
+}
+
+/*
+ * This function is called by CCK Computed Field to generate the display text of Field Sort Date.
+ * It returns a string of the form '2011-10-22 22:41:25 +1100'.
+ */
+function computed_field_field_sort_order_display($field, $entity_field_item) {
+    $utc_sort_time = new DateObject(
+                         $entity_field_item['value'],
+                         'UTC' );
+    return date_format_date($utc_sort_time, 'custom', 'Y-m-d H:i:s O');
+}
+
+/*
+ * This function is called by CCK Computed Field to compute the value of Field Date Text.
+ * 
+ * If all occurrences of the event are in the past, this field is the empty string.
+ * Else, show the first future occurrence, along with every other occurrence in the
+ *  7 days after that occurrence. 
+ * If the first future occurrence is in the next 7 days, show just the weekday, else
+ *  show the weekday and date.
+ * If there are previous repeats of this event, prefix the date with 'Next on '.
+ * If there are no previous repeats, and there are subsequent repeats that are not listed,
+ * prefix the date with 'Starts on '.
+ * Show the start time, unless it is midnight.
+ */
+function computed_field_field_date_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+	$current_time = strtotime('now');
+	$next_week    = strtotime('now +1 week');
+	$timestamp    = 0;
+	$upperlimit   = 0;
+	$previous     = 0;
+//	$this_week    = 0;
+	$subsequent   = 0;
+	$date_text    = '';
+	$time_text    = '';
+	foreach ($entity->field_event_date[LANGUAGE_NONE] as $event_occurrence) {
+		$utc_sort_time = new DateObject(
+		                        $event_occurrence['value'],
+		                        'UTC' );
+		$utc_sort_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));                        
+		$utc_sort_time_string = date_format_date(
+		                        $utc_sort_time,
+		                        'custom',
+		                        'Y-m-d H:i:s O');
+		$timestamp = strtotime( $utc_sort_time_string );
+
+		if ($time_text == '') {
+			$time_text = date_format_date(
+					$utc_sort_time,
+					'custom',
+					'g.ia');
+
+			if ($time_text != '12.00am') {
+				$utc_end_time = new DateObject(
+				                        $event_occurrence['value2'],
+				                        'UTC' );
+				$utc_end_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));                        
+				$time_text .= '-' . date_format_date(
+				                        $utc_end_time,
+				                        'custom',
+				                        'g.ia');
+			}
+		}
+
+		if ($timestamp <= $current_time) {
+			$previous++;
+		} else {
+			if ($upperlimit == 0) {
+				$upperlimit = $timestamp + ($next_week - $current_time);
+			} else if ($timestamp >= $upperlimit) {
+				$subsequent++;
+				continue;
+			}
+
+//			if ($timestamp <= $next_week || $this_week > 0) {
+//				$this_week++;
+//				$this_date_text = date_format_date(
+//				                $utc_sort_time,
+//				                'custom',
+//				                'l');
+//			} else {
+				$this_date_text = date_format_date(
+				                $utc_sort_time,
+				                'custom',
+				                'D M jS');
+//			}
+			if ($date_text == '') {
+				$date_text = $this_date_text;
+			} else {
+				$date_text .= ', ' . $this_date_text;
+			}
+		}
+	}
+
+	if ($date_text == '') {
+		$entity_field[0]['value'] = '';
+	} else {
+		if ($previous > 0) {
+			$date_text = 'Next on ' . $date_text;
+		} else if ($subsequent > 0) {
+			$date_text = 'Starts on ' . $date_text;
+		}
+		if ($time_text == '12.00am') {
+			$entity_field[0]['value'] = $date_text;
+		} else {
+			$entity_field[0]['value'] = $date_text . ', ' . $time_text;
+		}
+	}
+}
+
+/*
+ * This function is called by CCK Computed Field to generate the display text of Field Date Text.
+ */
+function computed_field_field_date_text_display($field, $entity_field_item) {
+    return $entity_field_item['value'];
+}
+
+/*
+ * This function is called by CCK Computed Field to compute the value of Field Is Audio.
+ */
+function computed_field_field_is_audio_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+    if (count($entity->field_content[LANGUAGE_NONE]) > 0) {
+    	$entity_field[0]['value'] = 1;
+    } else {
+    	$entity_field[0]['value'] = 0;
+    }
+}
+
+/*
+ * This function is called by CCK Computed Field to generate the display text of Field Is Audio.
+ */
+function computed_field_field_is_audio_display($field, $entity_field_item, $entity_lang, $langcode) {
+    if ($entity_field_item['value'] != 0) {
+    	return 'Yes';
+    } else {
+    	return 'No';
+    }
+}
+
+/*
+ * This function is called by CCK Computed Field to compute the value of Field Is Video.
+ */
+function computed_field_field_is_video_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+    if (count($entity->field_video[LANGUAGE_NONE]) > 0) {
+    	$entity_field[0]['value'] = 1;
+    } else {
+    	$entity_field[0]['value'] = 0;
+    }
+}
+
+/*
+ * This function is called by CCK Computed Field to generate the display text of Field Is Video.
+ */
+function computed_field_field_is_video_display($field, $entity_field_item, $entity_lang, $langcode) {
+    if ($entity_field_item['value'] != 0) {
+    	return 'Yes';
+    } else {
+    	return 'No';
+    }
+}
+
+/*
+ * This function is called by CCK Computed Field to compute the value of Field Is Text.
+ */
+function computed_field_field_is_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+    if (count($entity->field_attachment[LANGUAGE_NONE]) > 0) {
+    	$entity_field[0]['value'] = 1;
+    } else {
+    	$entity_field[0]['value'] = 0;
+    }
+}
+
+/*
+ * This function is called by CCK Computed Field to generate the display text of Field Is Text.
+ */
+function computed_field_field_is_text_display($field, $entity_field_item, $entity_lang, $langcode) {
+    if ($entity_field_item['value'] != 0) {
+    	return 'Yes';
+    } else {
+    	return 'No';
+    }
+}
+
+/*
+ * This function is called by cron to update the Field Sort Order and Field Date Text.
+ * It processes all nodes that have a Field Sort Order with a value between the last time the cron was called,
+ * and 1 week from now. 
+ * The Date Text field changes as follows...
+ *    - if the event is more than 1 week away, the text is weekday day month
+ *    - if the event is less than 1 week away, the text is weekday
+ *    - if the event is in the past, the text is empty
+ * These nodes are simply opened and saved.
+ * The cron time is updated.
+ */
+function cbf_cron() {
+	$current_time = strtotime('now');
+	$next_week    = strtotime('now +1 week');
+	$last_run     = variable_get('cbf_cron_last_run', 0);
+
+	if ($last_run == 0) {
+		$query = new EntityFieldQuery();
+		$result = $query->entityCondition('entity_type', 'node')
+				->fieldCondition('field_sort_order', 'value', array($last_run), '>')
+				->execute();
+		if (isset($result['node'])) {
+			$nodes = entity_load('node', array_keys($result['node']));
+			foreach ($nodes as $node) {
+				node_save($node);
+			}
+		}
+	} else {
+		/* Clear the date text for past events */
+		$query = new EntityFieldQuery();
+		$result = $query->entityCondition('entity_type', 'node')
+				->fieldCondition('field_sort_order', 'value', array($last_run, $current_time), 'BETWEEN')
+				->execute();
+		if (isset($result['node'])) {
+			$nodes = entity_load('node', array_keys($result['node']));
+			foreach ($nodes as $node) {
+				node_save($node);
+			}
+		}
+		/* For events that are 1 week out, change the display */
+		$query = new EntityFieldQuery();
+		$result = $query->entityCondition('entity_type', 'node')
+				->fieldCondition('field_sort_order', 'value', array($last_run + ($next_week - $current_time), $next_week), 'BETWEEN')
+				->execute();
+		if (isset($result['node'])) {
+			$nodes = entity_load('node', array_keys($result['node']));
+			foreach ($nodes as $node) {
+				node_save($node);
+			}
+		}
+	}
+
+	variable_set('cbf_cron_last_run', $current_time);
+}
