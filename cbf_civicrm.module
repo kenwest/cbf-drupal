@@ -192,30 +192,32 @@ function cbf_civicrm_civicrm_validate( $formName, &$fields, &$files, &$form ) {
  * The Purchaser Address details are cleared, since the Billing Address is not captured.
  */
 function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawParams, &$cookedParams ) {
+    $is_recur           = CRM_Utils_Array::value( 'is_recur',           $rawParams );
     $credit_card_holder = CRM_Utils_Array::value( 'credit_card_holder', $rawParams );
-	if ( $paymentObj instanceof CRM_Core_Payment_eWAY ) {
-
-        // Set credit card holder
-        if ( $credit_card_holder ) {
-            $cookedParams->CardHolderName($credit_card_holder);
+    if ( isset($is_recur) && $is_recur ) {
+    	if ( $paymentObj instanceof org_civicrm_ewayrecurring ) {
+    	    // Set credit card holder
+    	    if ( $credit_card_holder ) {
+    	        $cookedParams['CCNameOnCard'] = $credit_card_holder;
+    	    }
+    	    // Set address
+    	    $cookedParams['Address']  = 'Level 3, 13-15 Bridge St';
+    	    $cookedParams['Suburb']   = 'Sydney';
+    	    $cookedParams['State']    = 'NSW';
+    	    $cookedParams['PostCode'] = '2000';
+    	}
+    } else {
+        if ( $paymentObj instanceof CRM_Core_Payment_eWAY  ||
+             $paymentObj instanceof org_civicrm_ewayrecurring ) {
+            // Set credit card holder
+            if ( $credit_card_holder ) {
+                $cookedParams->CardHolderName($credit_card_holder);
+            }
+            // Clear address information
+            $cookedParams->PurchaserAddress('');
+            $cookedParams->PurchaserPostalCode('');
         }
-
-        // Clear address information
-        $cookedParams->PurchaserAddress('');
-        $cookedParams->PurchaserPostalCode('');
     }
-	else if ( $paymentObj instanceof org_civicrm_ewayrecurring ) {
-
-        // Set credit card holder
-        if ( $credit_card_holder ) {
-            $cookedParams['CCNameOnCard'] = $credit_card_holder;
-        }
-        $cookedParams['Address']  = 'Level 3, 13-15 Bridge St';
-        $cookedParams['Suburb']   = 'Sydney';
-        $cookedParams['State']    = 'NSW';
-        $cookedParams['PostCode'] = '2000';
-    }
-    return;
 }
 
 function cbf_civicrm_civicrm_tokens( &$tokens ) {
