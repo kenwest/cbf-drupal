@@ -63,6 +63,9 @@ function computed_field_field_sort_order_display($field, $entity_field_item) {
 
 /*
  * This function is called by CCK Computed Field to compute the value of Field Date Text.
+ *
+ * If the entity contains an Episode Date, the text is empty for future dates. Otherwise
+ * it is the date.
  * 
  * If all occurrences of the event are in the past, this field is the empty string.
  * Else, show the first future occurrence, along with every other occurrence in the
@@ -82,8 +85,37 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 	$previous     = 0;
 //	$this_week    = 0;
 	$subsequent   = 0;
+	$date_future  = 'D M jS';
+	$date_past    = 'M jS, Y';
+	$time_format  = 'g.ia';
+	$midnight     = '12.00am';
 	$date_text    = '';
 	$time_text    = '';
+
+	// Calculate the date text from the (non-repeating) Episode Date
+	foreach ($entity->field_episode_date[LANGUAGE_NONE] as $episode) {
+		$utc_sort_time = new DateObject(
+		                        $episode['value'],
+		                        'UTC' );
+		$utc_sort_time->setTimezone(new DateTimeZone($episode['timezone']));                        
+		$utc_sort_time_string = date_format_date(
+		                        $utc_sort_time,
+		                        'custom',
+		                        'Y-m-d H:i:s O');
+		$timestamp = strtotime( $utc_sort_time_string );
+
+		if ($timestamp <= $current_time) {
+			$date_text = date_format_date(
+			                    $utc_sort_time,
+			                    'custom',
+			                    $date_past);
+			$time_text = $midnight;
+		}
+
+		break;
+	}
+
+	// Calculate the date text from the (perhaps-repeating) Event Date
 	foreach ($entity->field_event_date[LANGUAGE_NONE] as $event_occurrence) {
 		$utc_sort_time = new DateObject(
 		                        $event_occurrence['value'],
@@ -99,9 +131,9 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 			$time_text = date_format_date(
 					$utc_sort_time,
 					'custom',
-					'g.ia');
+					$time_format);
 
-			if ($time_text != '12.00am') {
+			if ($time_text != $midnight) {
 				$utc_end_time = new DateObject(
 				                        $event_occurrence['value2'],
 				                        'UTC' );
@@ -109,7 +141,7 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 				$time_text .= '-' . date_format_date(
 				                        $utc_end_time,
 				                        'custom',
-				                        'g.ia');
+				                        $time_format);
 			}
 		}
 
@@ -133,7 +165,7 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 				$this_date_text = date_format_date(
 				                $utc_sort_time,
 				                'custom',
-				                'D M jS');
+				                $date_future);
 //			}
 			if ($date_text == '') {
 				$date_text = $this_date_text;
@@ -151,7 +183,7 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 		} else if ($subsequent > 0) {
 			$date_text = 'Starts on ' . $date_text;
 		}
-		if ($time_text == '12.00am') {
+		if ($time_text == $midnight) {
 			$entity_field[0]['value'] = $date_text;
 		} else {
 			$entity_field[0]['value'] = $date_text . ', ' . $time_text;
@@ -233,13 +265,18 @@ function computed_field_field_is_text_display($field, $entity_field_item, $entit
 }
 
 /*
- * This function is called by cron to update the Field Sort Order and Field Date Text.
- * It processes all nodes that have a Field Sort Order with a value between the last time the cron was called,
- * and 1 week from now. 
+ * This function is called by cron to update the Field Sort Order and Field Date Text:
+ *   field_sort_order   - process all nodes that have a Field Sort Order with a value
+ *                        between the last time the cron was called and 1 week from now. 
+ *   field_episode_date - process all nodes that have a Field Episode Date with a value
+ *                        between the last time the cron was called and now. 
  * The Date Text field changes as follows...
- *    - if the event is more than 1 week away, the text is weekday day month
- *    - if the event is less than 1 week away, the text is weekday
- *    - if the event is in the past, the text is empty
+ *    - For events...
+ *        - if the event is more than 1 week away, the text is weekday day month
+ *        - // if the event is less than 1 week away, the text is weekday //
+ *        - if the event is in the past, the text is empty
+ *    - For episodes, news, blogs...
+ *        - if
  * These nodes are simply opened and saved.
  * The cron time is updated.
  */
@@ -271,6 +308,7 @@ function cbf_cron() {
 				node_save($node);
 			}
 		}
+
 		/* For events that are 1 week out, change the display */
 		$query = new EntityFieldQuery();
 		$result = $query->entityCondition('entity_type', 'node')
@@ -280,6 +318,33 @@ function cbf_cron() {
 			$nodes = entity_load('node', array_keys($result['node']));
 			foreach ($nodes as $node) {
 				node_save($node);
+			}
+		}
+
+		/* Set the date text for past episodes */
+		$last_run_formatted = format_date($last_run, 'custom', DATE_FORMAT_ISO);
+		$current_time_formatted = format_date($current_time, 'custom', DATE_FORMAT_ISO);
+		$query = new EntityFieldQuery();
+		$result = $query->entityCondition('entity_type', 'node')
+				->fieldCondition(
+						'field_episode_date',
+						'value',
+						array(
+								'1970-01-01T00:00:00', // NORMAL: $last_run_formatted,
+								$current_time_formatted),
+						'BETWEEN')
+				->execute();
+		if (isset($result['node'])) {
+			$nodes = entity_load('node', array_keys($result['node']));
+			$i = 0; // LOAD
+			foreach ($nodes as $node) {
+				if (!isset($node->field_date_text['und'][0]['value'])) { // LOAD
+					if ($i++ == 55) { // LOAD
+						break; // LOAD
+					} // LOAD
+					node_save($node); // LOAD
+				} // LOAD
+				// NORMAL: node_save($node);
 			}
 		}
 	}
