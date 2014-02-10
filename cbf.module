@@ -330,7 +330,7 @@ function cbf_cron() {
 						'field_episode_date',
 						'value',
 						array(
-								'1970-01-01T00:00:00', // NORMAL: $last_run_formatted,
+								$last_run_formatted,
 								$current_time_formatted),
 						'BETWEEN')
 				->execute();
@@ -338,13 +338,7 @@ function cbf_cron() {
 			$nodes = entity_load('node', array_keys($result['node']));
 			$i = 0; // LOAD
 			foreach ($nodes as $node) {
-				if (!isset($node->field_date_text['und'][0]['value'])) { // LOAD
-					if ($i++ == 55) { // LOAD
-						break; // LOAD
-					} // LOAD
-					node_save($node); // LOAD
-				} // LOAD
-				// NORMAL: node_save($node);
+				node_save($node);
 			}
 		}
 	}
