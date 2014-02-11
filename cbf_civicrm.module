@@ -23,6 +23,10 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         $htmlMessage = str_replace(' href="/',  ' href="'.$config->userFrameworkBaseURL, $htmlMessage);
         $htmlMessage = str_replace(' src="/',   ' src="'.$config->userFrameworkBaseURL,  $htmlMessage);
         /*
+         *  Remove empty paragraphs inserted by CKeditor
+         */
+        $htmlMessage = preg_replace('!<p>(\r\n\t)*&nbsp;</p>!i', '', $htmlMessage);
+        /*
          * Look for the closing tag for the BODY element, and add it if needed
          */
         if (stripos($htmlMessage, '</body>') == false) {
