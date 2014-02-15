@@ -96,8 +96,7 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 	foreach ($entity->field_episode_date[LANGUAGE_NONE] as $episode) {
 		$utc_sort_time = new DateObject(
 		                        $episode['value'],
-		                        'UTC' );
-		$utc_sort_time->setTimezone(new DateTimeZone($episode['timezone']));                        
+		                        $episode['timezone'] );                        
 		$utc_sort_time_string = date_format_date(
 		                        $utc_sort_time,
 		                        'custom',
@@ -264,6 +263,37 @@ function computed_field_field_is_text_display($field, $entity_field_item, $entit
     }
 }
 
+function cbf_field_attach_presave($entity_type, $entity)
+{
+	if ($entity_type == 'node') {
+		$html_fields = array('body','field_short_form');
+		$attributes = array('summary','value');
+		foreach ($html_fields as $html_field) {
+			if (isset($entity->$html_field)) {
+				$field = $entity->$html_field;
+				$languages = array_keys($field);
+				foreach ($languages as $language) {
+					$instances = count($field[$language]);
+					for ($instance = 0; $instance < $instances; $instance++) {
+						foreach ($attributes as $attribute) {
+							if (isset($field[$language][$instance][$attribute])) {
+								/*
+								 *  Remove empty paragraphs inserted by CKeditor
+								*/
+								$field[$language][$instance][$attribute]
+										= preg_replace(
+												'!<p>(\r\n\t)*&nbsp;</p>!i',
+												'',
+												$field[$language][$instance][$attribute]);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 /*
  * This function is called by cron to update the Field Sort Order and Field Date Text:
  *   field_sort_order   - process all nodes that have a Field Sort Order with a value
@@ -321,7 +351,11 @@ function cbf_cron() {
 			}
 		}
 
-		/* Set the date text for past episodes */
+		/*
+		 * Set the date text for past episodes. Note that the 'field_episode_date'
+		 * field has 'value' attribute in the DATE_FORMAT_ISO format. The timezone
+		 * is the system default.
+		 */
 		$last_run_formatted = format_date($last_run, 'custom', DATE_FORMAT_ISO);
 		$current_time_formatted = format_date($current_time, 'custom', DATE_FORMAT_ISO);
 		$query = new EntityFieldQuery();
@@ -336,7 +370,6 @@ function cbf_cron() {
 				->execute();
 		if (isset($result['node'])) {
 			$nodes = entity_load('node', array_keys($result['node']));
-			$i = 0; // LOAD
 			foreach ($nodes as $node) {
 				node_save($node);
 			}
