@@ -270,7 +270,7 @@ function cbf_field_attach_presave($entity_type, $entity)
 		$attributes = array('summary','value');
 		foreach ($html_fields as $html_field) {
 			if (isset($entity->$html_field)) {
-				$field = $entity->$html_field;
+				$field = & $entity->$html_field;
 				$languages = array_keys($field);
 				foreach ($languages as $language) {
 					$instances = count($field[$language]);
