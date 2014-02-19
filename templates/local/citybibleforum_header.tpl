@@ -3,6 +3,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <title>City Bible Forum</title>
+  {literal}
   <style type="text/css">
     .ReadMsgBody {
       width: 100%;
@@ -35,6 +36,7 @@
       body[yahoo] .center {text-align: center!important;}
     }
   </style>
+  {/literal}
 </head>
 <body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" yahoo="fix" style="font-family: 'Open Sans',Arial,Helvetica,sans-serif;">
 <table width="100%" border="0" cellpadding="0" cellspacing="0" align="center">
