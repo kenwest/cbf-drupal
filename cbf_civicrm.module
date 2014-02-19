@@ -27,6 +27,13 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
          */
         $htmlMessage = preg_replace('!<p>(\r\n\t)*&nbsp;</p>!i', '', $htmlMessage);
         /*
+         * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes an issue
+         * for responsive email templates when the email is viewed in Outlook. As these images have
+         * a CSS style setting their width or max-width to 280px, we reinsert the HTML attribute on
+         * images that match that pattern.
+         */
+        $htmlMessage = preg_replace('!<img ([^w/>][^>]+width: 280px[^>]+)/>!i', '<img width="280" $1/>', $htmlMessage);
+        /*
          * Look for the closing tag for the BODY element, and add it if needed
          */
         if (stripos($htmlMessage, '</body>') == false) {
