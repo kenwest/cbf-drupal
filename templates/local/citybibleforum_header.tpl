@@ -1,58 +1,84 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <title>City Bible Forum</title>
-{literal}
   <style type="text/css">
-body {
-text-align: left;
-vertical-align: top;
-font-size: 11pt;
-font-family: Verdana,Arial,Helvetica,sans-serif;
-}
-h1 {
-font-family: Arial,Helvetica,sans-serif;
-font-weight: bold;
-font-size: 15pt;
-line-height: 24pt;
-}
-h2 {
-font-family: Arial,Helvetica,sans-serif;
-font-weight: bold;
-font-size: 11pt;
-line-height: 18pt;
-}
-td {
-vertical-align: top;
-}
-p {
-margin: 0 0 10px 0;
-}
+    .ReadMsgBody {
+      width: 100%;
+      background-color: #ffffff;
+    }
+    .ExternalClass {
+      width: 100%;
+      background-color: #ffffff;
+    }
+    body {
+      width: 100%;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      font-family: "Open Sans",Arial,Helvetica,sans-serif;
+    }
+    table {
+      border-collapse: collapse;
+    }
+    table.MsoNormalTable {
+      font-family: "Open Sans",Arial,Helvetica,sans-serif;
+    }
+    @media only screen and (max-width: 640px) {
+      body[yahoo] .deviceWidth {width:440px!important; padding:0;}
+      body[yahoo] .center {text-align: center!important;}
+    }
+    @media only screen and (max-width: 479px) {
+      body[yahoo] .deviceWidth {width:280px!important; padding:0;}
+      body[yahoo] .center {text-align: center!important;}
+    }
   </style>
-{/literal}
 </head>
+<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" yahoo="fix" style="font-family: 'Open Sans',Arial,Helvetica,sans-serif;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" align="center">
+  <tr>
+    <td width="100%" valign="top" bgcolor="#ffffff" style="padding-top:20px">
+      <table width="580" border="0" cellpadding="0" cellspacing="0" align="center" class="deviceWidth" style="margin-bottom: 15px;">
+        <tr>
+          <td width="100%" bgcolor="#ffffff">
+            <table border="0" cellpadding="0" cellspacing="0" align="left" class="deviceWidth">
+              <tr>
+                <td style="padding: 0;">
+                  <a href="http://citybibleforum.org"><img src="http://citybibleforum.org/sites/all/themes/cbootf/logo-email-signature.jpg" alt="City Bible Forum" border="0" /></a>
+                </td>
+              </tr>
+            </table>
+            <table border="0" cellpadding="0" cellspacing="0" align="right" class="deviceWidth">
+              <tr>
+                <td class="center" style="font-size: 11px; color: #333333; font-weight: light; text-align: right; font-family: 'Open Sans',Arial,Helvetica,sans-serif; line-height: 20px; vertical-align: middle; padding: 0;">
+                  <a href="http://citybibleforum.org/city/sydney" style="text-decoration: none; color: #333333;">Sydney</a>
+                  &nbsp;&nbsp;
+                  <a href="http://citybibleforum.org/city/melbourne" style="text-decoration: none; color: #333333;">Melbourne</a>
+                  &nbsp;&nbsp;
+                  <a href="http://citybibleforum.org/city/brisbane" style="text-decoration: none; color: #333333;">Brisbane</a>
+                  &nbsp;&nbsp;
+                  <a href="http://citybibleforum.org/city/perth" style="text-decoration: none; color: #333333;">Perth</a>
+                  &nbsp;&nbsp;
+                  <a href="http://citybibleforum.org/city/adelaide" style="text-decoration: none; color: #333333;">Adelaide</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      <table width="580"  class="deviceWidth" border="0" cellpadding="0" cellspacing="0" align="center" bgcolor="#ffffff">
+        <tr>
+          <td style="font-size: 16px; color: #ffffff; font-weight: bold; text-align: left; font-family: 'Open Sans',Arial,Helvetica,sans-serif; line-height: 24px; vertical-align: top; padding: 15px; border-radius: 4px;" bgcolor="#1e9dd8">
+            <p style="margin: 0;">
+              {$title}
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="height: 15px; font-size: 8px;">
+            &nbsp;
+          </td>
+        </tr>
 
-<body style="margin: 0;">
-<table width="100%" border="0" cellpadding="0" cellspacing="0" style="text-align: left; vertical-align: top; font-size: 11pt; font-family: Verdana,Arial,Helvetica,sans-serif; background-color: #FFFFFF;">
-<tbody>
-<tr>
-<td>
-
-<center>
-<table width="720" border="0" cellpadding="0" cellspacing="0" style="text-align: left; vertical-align: top; font-size: 11pt; font-family: Verdana,Arial,Helvetica,sans-serif; background-color: #FFFFFF;">
-<tbody>
-<tr>
-<td style="vertical-align: top;">
-
-<table width="600" border="0" cellpadding="0" cellspacing="0" style="text-align: left; vertical-align: top; font-size: 11pt; font-family: Verdana,Arial,Helvetica,sans-serif; background-color: #FFFFFF;">
-<tbody>
-<tr>
-<td height="40" style="color: #FFFFFF; background-color: #ACACAC;">
-&nbsp;
-</td>
-</tr>
-<tr>
-<td height="20" style="color: #FFFFFF; background-color: #FFFFFF;">
-&nbsp;
-</td>
-</tr>
