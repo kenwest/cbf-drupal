@@ -206,17 +206,26 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawPara
     $is_recur           = CRM_Utils_Array::value( 'is_recur',           $rawParams );
     $credit_card_holder = CRM_Utils_Array::value( 'credit_card_holder', $rawParams );
     if ( isset($is_recur) && $is_recur ) {
-    	if ( $paymentObj instanceof org_civicrm_ewayrecurring  ||
-             $paymentObj instanceof com_chrischinchilla_ewayrecurring ) {
+        if ( $paymentObj instanceof org_civicrm_ewayrecurring ) {
     	    // Set credit card holder
     	    if ( $credit_card_holder ) {
     	        $cookedParams['CCNameOnCard'] = $credit_card_holder;
     	    }
     	    // Set address
-    	    $cookedParams['Address']  = 'Level 3, 13-15 Bridge St';
+    	    $cookedParams['Address']  = 'c/o Level 3, 13-15 Bridge St';
     	    $cookedParams['Suburb']   = 'Sydney';
     	    $cookedParams['State']    = 'NSW';
     	    $cookedParams['PostCode'] = '2000';
+    	} else if ( $paymentObj instanceof com_chrischinchilla_ewayrecurring ) {
+    	    // Set credit card holder
+    	    if ( $credit_card_holder ) {
+    	        $cookedParams['man:CCNameOnCard'] = $credit_card_holder;
+    	    }
+    	    // Set address
+    	    $cookedParams['man:Address']  = 'c/o Level 3, 13-15 Bridge St';
+    	    $cookedParams['man:Suburb']   = 'Sydney';
+    	    $cookedParams['man:State']    = 'NSW';
+    	    $cookedParams['man:PostCode'] = '2000';
     	}
     } else {
         if ( $paymentObj instanceof CRM_Core_Payment_eWAY  ||
