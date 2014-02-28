@@ -1,0 +1,14 @@
+--- CRM/Core/Session.php	2014-02-28 17:58:18.128813697 +1100
++++ ../cbf/patches/CRM/Core/Session.php	2014-02-28 19:55:26.014398608 +1100
+@@ -119,7 +119,10 @@
+         }
+         $config =& CRM_Core_Config::singleton();
+         if ($config->userSystem->is_drupal && function_exists('drupal_session_start')) {
+-          drupal_session_start();
++          if ($GLOBALS['lazy_session'] != true) {
++            drupal_session_start();
++          }
++          $_SESSION = array();
+         }
+         else {
+           session_start();
