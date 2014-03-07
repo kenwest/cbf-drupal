@@ -35,14 +35,14 @@ function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $
 	$current_time = strtotime('now');
 	$timestamp = 0;
 	foreach ($entity->field_event_date[LANGUAGE_NONE] as $event_occurrence) {
-		$utc_sort_time = new DateObject(
+		$utc_start_time = new DateObject(
                                 $event_occurrence['value'],
                                 'UTC' );
-		$utc_sort_time_string = date_format_date(
-                                $utc_sort_time,
+		$utc_start_time_string = date_format_date(
+                                $utc_start_time,
                                 'custom',
                                 'Y-m-d H:i:s O');
-		$timestamp = strtotime( $utc_sort_time_string );
+		$timestamp = strtotime( $utc_start_time_string );
 		if ($timestamp > $current_time) {
 			break;
 		}
@@ -55,10 +55,10 @@ function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $
  * It returns a string of the form '2011-10-22 22:41:25 +1100'.
  */
 function computed_field_field_sort_order_display($field, $entity_field_item) {
-    $utc_sort_time = new DateObject(
+    $utc_start_time = new DateObject(
                          $entity_field_item['value'],
                          'UTC' );
-    return date_format_date($utc_sort_time, 'custom', 'Y-m-d H:i:s O');
+    return date_format_date($utc_start_time, 'custom', 'Y-m-d H:i:s O');
 }
 
 /*
@@ -80,10 +80,10 @@ function computed_field_field_sort_order_display($field, $entity_field_item) {
 function computed_field_field_date_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
 	$current_time = strtotime('now');
 	$next_week    = strtotime('now +1 week');
-	$timestamp    = 0;
+	$startstamp   = 0;
+	$endstamp     = 0;
 	$upperlimit   = 0;
 	$previous     = 0;
-//	$this_week    = 0;
 	$subsequent   = 0;
 	$date_future  = 'D M jS';
 	$date_past    = 'M jS, Y';
@@ -94,18 +94,18 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 
 	// Calculate the date text from the (non-repeating) Episode Date
 	foreach ($entity->field_episode_date[LANGUAGE_NONE] as $episode) {
-		$utc_sort_time = new DateObject(
+		$local_start_time = new DateObject(
 		                        $episode['value'],
 		                        $episode['timezone'] );                        
-		$utc_sort_time_string = date_format_date(
-		                        $utc_sort_time,
+		$local_start_time_string = date_format_date(
+		                        $local_start_time,
 		                        'custom',
 		                        'Y-m-d H:i:s O');
-		$timestamp = strtotime( $utc_sort_time_string );
+		$startstamp = strtotime( $local_start_time_string );
 
-		if ($timestamp <= $current_time) {
+		if ($startstamp <= $current_time) {
 			$date_text = date_format_date(
-			                    $utc_sort_time,
+			                    $local_start_time,
 			                    'custom',
 			                    $date_past);
 			$time_text = $midnight;
@@ -116,56 +116,68 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 
 	// Calculate the date text from the (perhaps-repeating) Event Date
 	foreach ($entity->field_event_date[LANGUAGE_NONE] as $event_occurrence) {
-		$utc_sort_time = new DateObject(
+		$utc_start_time = new DateObject(
 		                        $event_occurrence['value'],
 		                        'UTC' );
-		$utc_sort_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));                        
-		$utc_sort_time_string = date_format_date(
-		                        $utc_sort_time,
+		$utc_start_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));                        
+		$utc_start_time_string = date_format_date(
+		                        $utc_start_time,
 		                        'custom',
 		                        'Y-m-d H:i:s O');
-		$timestamp = strtotime( $utc_sort_time_string );
+		$startstamp = strtotime( $utc_start_time_string );
+
+		$utc_end_time = new DateObject(
+		                        $event_occurrence['value2'],
+		                        'UTC' );
+		$utc_end_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));                        
+		$utc_end_time_string = date_format_date(
+		                        $utc_end_time,
+		                        'custom',
+		                        'Y-m-d H:i:s O');
+		$endstamp = strtotime( $utc_end_time_string );
 
 		if ($time_text == '') {
 			$time_text = date_format_date(
-					$utc_sort_time,
+					$utc_start_time,
 					'custom',
 					$time_format);
 
 			if ($time_text != $midnight) {
-				$utc_end_time = new DateObject(
-				                        $event_occurrence['value2'],
-				                        'UTC' );
-				$utc_end_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));                        
 				$time_text .= '-' . date_format_date(
 				                        $utc_end_time,
 				                        'custom',
 				                        $time_format);
 			}
+
+			$time_text = str_replace('.00', '', $time_text);
 		}
 
-		if ($timestamp <= $current_time) {
+		if ($upperlimit == 0 && $endstamp > $current_time) {
+			$upperlimit = $startstamp + ($next_week - $current_time);
+		}
+		
+		if ($endstamp <= $current_time) {
 			$previous++;
+		} else if ($startstamp >= $upperlimit) {
+			$subsequent++;
 		} else {
-			if ($upperlimit == 0) {
-				$upperlimit = $timestamp + ($next_week - $current_time);
-			} else if ($timestamp >= $upperlimit) {
-				$subsequent++;
-				continue;
+			$start_date_text = date_format_date(
+			                $utc_start_time,
+			                'custom',
+			                $date_future);
+
+			$end_date_text = date_format_date(
+			                $utc_end_time,
+			                'custom',
+			                $date_future);
+
+			if ($start_date_text == $end_date_text) {
+				$this_date_text = $start_date_text;
+			} else {
+				$this_date_text = $start_date_text . ' to ' . $end_date_text;
+				$time_text = $midnight;
 			}
 
-//			if ($timestamp <= $next_week || $this_week > 0) {
-//				$this_week++;
-//				$this_date_text = date_format_date(
-//				                $utc_sort_time,
-//				                'custom',
-//				                'l');
-//			} else {
-				$this_date_text = date_format_date(
-				                $utc_sort_time,
-				                'custom',
-				                $date_future);
-//			}
 			if ($date_text == '') {
 				$date_text = $this_date_text;
 			} else {
