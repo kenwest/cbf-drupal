@@ -312,7 +312,7 @@ abstract class CRM_Core_Payment {
 
   function subscriptionURL($entityID = NULL, $entity = NULL, $action = 'cancel') {
     // Set URL
-  	switch ($action) {
+    switch ($action) {
       case 'cancel' :
         $url = 'civicrm/contribute/unsubscribe';
         break;
@@ -339,15 +339,15 @@ abstract class CRM_Core_Payment {
     // Find related Contact
     if ($entityID) {
       switch ($entity) {
-      	case 'membership' :
-      	  $contactID = CRM_Core_DAO::getFieldValue("CRM_Member_DAO_Membership", $entityID, "contact_id");
-      	  $entityArg = 'mid';
-      	  break;
+        case 'membership' :
+          $contactID = CRM_Core_DAO::getFieldValue("CRM_Member_DAO_Membership", $entityID, "contact_id");
+          $entityArg = 'mid';
+          break;
 
-      	case 'contribution' :
-      	  $contactID = CRM_Core_DAO::getFieldValue("CRM_Contribute_DAO_Contribution", $entityID, "contact_id");
-      	  $entityArg = 'coid';
-      	  break;
+        case 'contribution' :
+          $contactID = CRM_Core_DAO::getFieldValue("CRM_Contribute_DAO_Contribution", $entityID, "contact_id");
+          $entityArg = 'coid';
+          break;
 
         case 'recur' :
           $sql = "
@@ -358,7 +358,7 @@ INNER JOIN civicrm_contribution con ON ( con.contribution_recur_id = rec.id )
   GROUP BY rec.id";
           $contactID = CRM_Core_DAO::singleValueQuery($sql, array(1 => array($entityID, 'Integer')));
           $entityArg = 'crid';
-      	  break;
+          break;
       }
     }
 
@@ -366,7 +366,7 @@ INNER JOIN civicrm_contribution con ON ( con.contribution_recur_id = rec.id )
     if ($entityArg != '') {
       // Add checksum argument
       if ($contactID != 0 && $userId != $contactID) {
-      	$checksumValue = '&cs=' . CRM_Contact_BAO_Contact_Utils::generateChecksum($contactID, NULL, 'inf');
+        $checksumValue = '&cs=' . CRM_Contact_BAO_Contact_Utils::generateChecksum($contactID, NULL, 'inf');
       }
       return CRM_Utils_System::url($url, "reset=1&{$entityArg}={$entityID}{$checksumValue}", TRUE, NULL, FALSE, TRUE);
     }
