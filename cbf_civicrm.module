@@ -264,9 +264,9 @@ function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
  */
 function cbf_civicrm_fatal_error_handler(&$vars) {
 	if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-		$vars['ip'] = $_SERVER['HTTP_X_FORWARDED_FOR'];
+		$vars['ip'] = $_SERVER['HTTP_X_FORWARDED_PROTO'] . '://' . $_SERVER['HTTP_X_HOST'] . $_SERVER['HTTP_X_FORWARDED_FOR'];
 	} else {
-		$vars['ip'] = $_SERVER['REMOTE_ADDR'];
+		$vars['ip'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REMOTE_ADDR'];
 	}
 	$vars['uri'] = $_SERVER['REQUEST_URI'];
 	return false;
