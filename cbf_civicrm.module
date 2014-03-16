@@ -257,3 +257,13 @@ function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
 		$details['cbf.hostname'] = $hostname;
 	}
 }
+
+/*
+ * Add extra variables to help with debugging, then return false so
+ * the standard error handling continues.
+ */
+function cbf_civicrm_fatal_error_handler(&$vars) {
+	$vars['ip']  = $_SERVER['REMOTE_ADDR'];
+	$vars['uri'] = $_SERVER['REQUEST_URI'];
+	return false;
+}
