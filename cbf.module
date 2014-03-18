@@ -27,31 +27,42 @@ function cbf_init() {
 }
 
 /*
- * This function is called by CCK Computed Field to compute the value of Field Sort Date.
+ * This function is called by CCK Computed Field to compute the value of Field Sort Order.
  * The value is set to the timestamp of the start date for the Field Event Date.
- * If the event is a repeating event then find the first date in the future.
+ * If the event is a repeating event then apply this logic to the first date in the future.
  */
 function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-	$current_time = strtotime('now');
-	$timestamp = 0;
-	foreach ($entity->field_event_date[LANGUAGE_NONE] as $event_occurrence) {
-		$utc_start_time = new DateObject(
+    $current_time = strtotime('now');
+    $timestamp = 0;
+    foreach ($entity->field_event_date[LANGUAGE_NONE] as $event_occurrence) {
+        $utc_start_time = new DateObject(
                                 $event_occurrence['value'],
                                 'UTC' );
-		$utc_start_time_string = date_format_date(
+        $utc_start_time_string = date_format_date(
                                 $utc_start_time,
                                 'custom',
-                                'Y-m-d H:i:s O');
-		$timestamp = strtotime( $utc_start_time_string );
-		if ($timestamp > $current_time) {
-			break;
-		}
-	}
-	$entity_field[0]['value'] = $timestamp;
+                               'Y-m-d H:i:s O');
+        $timestamp = strtotime( $utc_start_time_string );
+
+        $utc_end_time = new DateObject(
+                                $event_occurrence['value2'],
+                                'UTC' );
+        $utc_end_time_string = date_format_date(
+                                $utc_end_time,
+        		                'custom',
+        		                'Y-m-d H:i:s O');
+        $endstamp = strtotime( $utc_end_time_string );
+
+        if ($endstamp > $current_time) {
+            break;
+        }
+    }
+
+    $entity_field[0]['value'] = $timestamp;
 }
 
 /*
- * This function is called by CCK Computed Field to generate the display text of Field Sort Date.
+ * This function is called by CCK Computed Field to generate the display text of Field Sort Order.
  * It returns a string of the form '2011-10-22 22:41:25 +1100'.
  */
 function computed_field_field_sort_order_display($field, $entity_field_item) {
@@ -59,6 +70,43 @@ function computed_field_field_sort_order_display($field, $entity_field_item) {
                          $entity_field_item['value'],
                          'UTC' );
     return date_format_date($utc_start_time, 'custom', 'Y-m-d H:i:s O');
+}
+
+/*
+ * This function is called by CCK Computed Field to compute the value of Field Next Action.
+ * The value is set to the timestamp of the end date for the Field Event Date.
+ * If the event is a repeating event then apply this logic to the first date in the future.
+ */
+function computed_field_field_next_action_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+    $current_time = strtotime('now');
+    $timestamp = 0;
+    foreach ($entity->field_event_date[LANGUAGE_NONE] as $event_occurrence) {
+        $utc_end_time = new DateObject(
+                                $event_occurrence['value2'],
+                                'UTC' );
+        $utc_end_time_string = date_format_date(
+                                $utc_end_time,
+                                'custom',
+                               'Y-m-d H:i:s O');
+        $timestamp = strtotime( $utc_end_time_string );
+
+        if ($timestamp > $current_time) {
+            break;
+        }
+    }
+
+    $entity_field[0]['value'] = $timestamp;
+}
+
+/*
+ * This function is called by CCK Computed Field to generate the display text of Field Next Action.
+ * It returns a string of the form '2011-10-22 22:41:25 +1100'.
+ */
+function computed_field_field_next_action_display($field, $entity_field_item) {
+    $utc_end_time = new DateObject(
+                         $entity_field_item['value'],
+                         'UTC' );
+    return date_format_date($utc_end_time, 'custom', 'Y-m-d H:i:s O');
 }
 
 /*
@@ -330,7 +378,7 @@ function cbf_cron() {
 	if ($last_run == 0) {
 		$query = new EntityFieldQuery();
 		$result = $query->entityCondition('entity_type', 'node')
-				->fieldCondition('field_sort_order', 'value', array($last_run), '>')
+				->fieldCondition('field_next_action', 'value', array($last_run), '>')
 				->execute();
 		if (isset($result['node'])) {
 			$nodes = entity_load('node', array_keys($result['node']));
@@ -342,7 +390,7 @@ function cbf_cron() {
 		/* Clear the date text for past events */
 		$query = new EntityFieldQuery();
 		$result = $query->entityCondition('entity_type', 'node')
-				->fieldCondition('field_sort_order', 'value', array($last_run, $current_time), 'BETWEEN')
+				->fieldCondition('field_next_action', 'value', array($last_run, $current_time), 'BETWEEN')
 				->execute();
 		if (isset($result['node'])) {
 			$nodes = entity_load('node', array_keys($result['node']));
@@ -351,17 +399,17 @@ function cbf_cron() {
 			}
 		}
 
-		/* For events that are 1 week out, change the display */
+		/* For events that are 1 week out, change the display
 		$query = new EntityFieldQuery();
 		$result = $query->entityCondition('entity_type', 'node')
-				->fieldCondition('field_sort_order', 'value', array($last_run + ($next_week - $current_time), $next_week), 'BETWEEN')
+				->fieldCondition('field_next_action', 'value', array($last_run + ($next_week - $current_time), $next_week), 'BETWEEN')
 				->execute();
 		if (isset($result['node'])) {
 			$nodes = entity_load('node', array_keys($result['node']));
 			foreach ($nodes as $node) {
 				node_save($node);
 			}
-		}
+		} */
 
 		/*
 		 * Set the date text for past episodes. Note that the 'field_episode_date'
