@@ -163,7 +163,6 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 			break;
 		}
 	}
-	
 
 	// Calculate the date text from the (perhaps-repeating) Event Date
 	if ( isset($entity->field_event_date[LANGUAGE_NONE]) ) {
