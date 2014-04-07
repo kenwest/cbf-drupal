@@ -270,5 +270,6 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
 		$vars['ip']  = $_SERVER['REMOTE_ADDR'];
 		$vars['url'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
 	}
+	$vars['ip-details'] = json_decode(file_get_contents("http://ipinfo.io/" . $vars['ip'] . "/json"));
 	return false;
 }
