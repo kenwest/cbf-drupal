@@ -1,0 +1,65 @@
+--- /data/Download/CiviCRM/civicrm-4.4.4-drupal/packages/HTML/QuickForm/ckeditor.php	2014-02-07 14:28:23.000000000 +1100
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php	2014-05-23 10:18:06.983698828 +1000
+@@ -74,7 +74,26 @@
+                         CKEDITOR.remove(CKEDITOR.instances['{$elementId}']);
+                     }
+                     if ( cj('#{$elementId}').val( ) == '' ) cj('#{$elementId}').val('&nbsp;');
+-                    CKEDITOR.replace( '{$elementId}' );
++                    CKEDITOR.replace( '{$elementId}',
++                    {
++                       scayt_autoStartup         : true,
++                       scayt_sLang               : 'en_GB',
++                       forcePasteAsPlainText     : true,
++                       toolbar : [
++                          ['Source'],
++                          ['Cut','Copy','PasteText','-','SpellChecker', 'Scayt'],
++                          ['Undo','Redo','Find','Replace','-','SelectAll','RemoveFormat'],
++                          ['Image','Table','HorizontalRule','SpecialChar'],
++                          '/',
++                          ['Bold','Italic','Underline','Strike','-','Subscript','Superscript'],
++                          ['NumberedList','BulletedList','-','Outdent','Indent','Blockquote'],
++                          ['JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock'],
++                          ['Link','Unlink','Anchor','Linkit','LinkToNode', 'LinkToMenu'],
++                          '/',
++                          ['TextColor','BGColor'],
++                          ['Maximize', 'ShowBlocks']
++                       ],
++                    } );
+                     var editor = CKEDITOR.instances['{$elementId}'];
+                     if ( editor ) {
+                         editor.on( 'key', function( evt ){
+@@ -82,14 +101,28 @@
+                         } );
+                         editor.config.width              = '".$this->width."';
+                         editor.config.height             = '".$this->height."';
+-                        editor.config.filebrowserBrowseUrl      = '".$browseUrl."?cms=civicrm&type=files';
+-                        editor.config.filebrowserImageBrowseUrl = '".$browseUrl."?cms=civicrm&type=images';
+-                        editor.config.filebrowserFlashBrowseUrl = '".$browseUrl."?cms=civicrm&type=flash';
+-                        editor.config.filebrowserUploadUrl      = '".$uploadUrl."?cms=civicrm&type=files';
+-                        editor.config.filebrowserImageUploadUrl = '".$uploadUrl."?cms=civicrm&type=images';
+-                        editor.config.filebrowserFlashUploadUrl = '".$uploadUrl."?cms=civicrm&type=flash';
++                        editor.config.filebrowserBrowseUrl      = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
++                        editor.config.filebrowserImageBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
++                        editor.config.filebrowserFlashBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
++                        editor.config.filebrowserUploadUrl      = '';
++                        editor.config.filebrowserImageUploadUrl = '';
++                        editor.config.filebrowserFlashUploadUrl = '';
+                     }
+                 }); 
++                /**
++                 * IMCE support
++                 */
++                var ckeditor_imceSendTo = function (file, win){
++                    var cfunc = win.location.href.split('&');
++                    for (var x in cfunc) {
++                        if (cfunc[x].match(/^CKEditorFuncNum=\d+$/)) {
++                            cfunc = cfunc[x].split('=');
++                            break;
++                        }
++                    }
++                    CKEDITOR.tools.callFunction(cfunc[1], file.url);
++                    win.close();
++                }
+             </script>";
+             return $html;
+         }
