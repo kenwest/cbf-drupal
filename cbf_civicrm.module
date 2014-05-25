@@ -263,7 +263,7 @@ function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
  * the standard error handling continues.
  */
 function cbf_civicrm_fatal_error_handler(&$vars) {
-	if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+	if ( isset($_SERVER['HTTP_X_FORWARDED_FOR']) ) {
 		$vars['ip']  = $_SERVER['HTTP_X_FORWARDED_FOR'];
 		$vars['url'] = $_SERVER['HTTP_X_FORWARDED_PROTO'] . '://' . $_SERVER['HTTP_X_HOST'] . $_SERVER['REQUEST_URI'];
 	} else {
@@ -271,7 +271,9 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
 		$vars['url'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
 	}
 	$vars['ip-details'] = json_decode(file_get_contents("http://ipinfo.io/" . $vars['ip'] . "/json"));
-	$vars['session'] = $_SESSION;
-	unset($vars['session']['CiviCRM']['qfPrivateKey']);
+	if ( isset($_SESSION) ) {
+		$vars['session'] = $_SESSION;
+		unset($vars['session']['CiviCRM']['qfPrivateKey']);
+	}
 	return false;
 }
