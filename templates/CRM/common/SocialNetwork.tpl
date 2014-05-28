@@ -28,7 +28,7 @@
 <div class="crm-section crm-socialnetwork help">
     <h3 class="nobackground">{ts}Help spread the word{/ts}</h3>
     <div class="description">
-        {ts}Why not let your friends and colleagues know about this?{/ts}{if $title}:
+        {ts}Why not let your friends and colleagues know about this?{/ts}{if $title}
         <span class="bold"><a href="{$pageURL}">{$title}</a></span>
         {else}.{/if}
     </div>
