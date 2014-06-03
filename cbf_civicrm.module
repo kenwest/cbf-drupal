@@ -136,8 +136,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
  * In cases where the Credit Card Holder field is not-required, it is mandatory if the
  * Credit Card Number has been entered.
  */
-function cbf_civicrm_civicrm_validate( $formName, &$fields, &$files, &$form ) {
-    $errors = array( );
+function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$errors ) {
     switch ( $formName ) {
 
         case 'CRM_Contribute_Form_Contribution':
@@ -176,7 +175,6 @@ function cbf_civicrm_civicrm_validate( $formName, &$fields, &$files, &$form ) {
             }
             break;
     }
-    return $errors;
 }
 
 /*
