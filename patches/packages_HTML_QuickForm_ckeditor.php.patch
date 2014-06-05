@@ -1,5 +1,5 @@
 --- /data/Download/CiviCRM/civicrm-4.4.4-drupal/packages/HTML/QuickForm/ckeditor.php	2014-02-07 14:28:23.000000000 +1100
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php	2014-05-23 10:18:06.983698828 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php	2014-06-05 14:01:45.712533771 +1000
 @@ -74,7 +74,26 @@
                          CKEDITOR.remove(CKEDITOR.instances['{$elementId}']);
                      }
@@ -28,7 +28,7 @@
                      var editor = CKEDITOR.instances['{$elementId}'];
                      if ( editor ) {
                          editor.on( 'key', function( evt ){
-@@ -82,14 +101,28 @@
+@@ -82,14 +101,30 @@
                          } );
                          editor.config.width              = '".$this->width."';
                          editor.config.height             = '".$this->height."';
@@ -44,6 +44,8 @@
 +                        editor.config.filebrowserUploadUrl      = '';
 +                        editor.config.filebrowserImageUploadUrl = '';
 +                        editor.config.filebrowserFlashUploadUrl = '';
++                        editor.config.bodyClass                 = 'cke_editable';
++                        editor.config.contentsCss               = '/sites/all/themes/cbootf/css/editor.css';
                      }
                  }); 
 +                /**
