@@ -27,6 +27,18 @@ function cbf_init() {
 }
 
 /*
+ * This hook is called before a comment is saved
+ * 
+ * Spam comments are being submitted with a certain subject line. This hook prevents
+ * those comments being published in the rare case Mollom doesn't stop it.
+ */
+function cbf_comment_presave($comment) {
+    if ($comment->subject == 'Add new comment | City Bible Forum') {
+        $comment->status = 0;
+    }
+}
+
+/*
  * This function is called by CCK Computed Field to compute the value of Field Sort Order.
  * The value is set to the timestamp of the start date for the Field Event Date.
  * If the event is a repeating event then apply this logic to the first date in the future.
