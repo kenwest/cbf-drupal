@@ -1,4 +1,4 @@
---- /data/Download/CiviCRM/civicrm-4.4.4-drupal/packages/HTML/QuickForm/ckeditor.php	2014-02-07 14:28:23.000000000 +1100
+--- packages/HTML/QuickForm/ckeditor.php	2014-02-07 14:28:23.000000000 +1100
 +++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php	2014-06-05 14:01:45.712533771 +1000
 @@ -74,7 +74,26 @@
                          CKEDITOR.remove(CKEDITOR.instances['{$elementId}']);
