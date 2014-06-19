@@ -127,6 +127,15 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             // For CiviMails, make the visibility of the mail content 'Public' by default
             $form->setDefaults(array('visibility' => 'Public Pages'));
             break;
+
+        case 'CRM_Mailing_Form_Upload':
+
+            // For CiviMails, unset the default email address
+            if ( $form->getElementValue('subject') == null ) {
+                $fromAddress = $form->getElement('from_email_address');
+                $fromAddress->setSelected(0);
+            }
+            break;
     }
     return;
 }
