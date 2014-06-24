@@ -130,7 +130,9 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
 
         case 'CRM_Mailing_Form_Upload':
 
-            // For CiviMails, unset the default email address
+            // For CiviMails, unset the From email address when the Subject is empty.
+            // This is a roundabout way of unsetting the CiviMail default, to force
+            // the user to enter an From address. 
             if ( $form->getElementValue('subject') == null ) {
                 $fromAddress = $form->getElement('from_email_address');
                 $fromAddress->setSelected(0);
