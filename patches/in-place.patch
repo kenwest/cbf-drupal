@@ -51,8 +51,8 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
    padding: 5px 0 0 0;
 diff -ur ./packages/HTML/QuickForm/ckeditor.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php
 --- ./packages/HTML/QuickForm/ckeditor.php	2014-07-02 21:14:55.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php	2014-07-12 21:10:32.079173051 +1000
-@@ -74,7 +74,26 @@
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php	2014-07-13 17:42:00.414132656 +1000
+@@ -74,19 +74,54 @@
                          CKEDITOR.remove(CKEDITOR.instances['{$elementId}']);
                      }
                      if ( cj('#{$elementId}').val( ) == '' ) cj('#{$elementId}').val('&nbsp;');
@@ -80,31 +80,23 @@ diff -ur ./packages/HTML/QuickForm/ckeditor.php /var/www/citybibleforum/sites/al
                      var editor = CKEDITOR.instances['{$elementId}'];
                      if ( editor ) {
                          editor.config.width              = '".$this->width."';
-@@ -112,12 +131,14 @@
-                   if ( editor ) {
-                       editor.config.width              = '".$this->width."';
-                       editor.config.height             = '".$this->height."';
--                      editor.config.filebrowserBrowseUrl      = '".$browseUrl."?cms=civicrm&type=files';
--                      editor.config.filebrowserImageBrowseUrl = '".$browseUrl."?cms=civicrm&type=images';
--                      editor.config.filebrowserFlashBrowseUrl = '".$browseUrl."?cms=civicrm&type=flash';
--                      editor.config.filebrowserUploadUrl      = '".$uploadUrl."?cms=civicrm&type=files';
--                      editor.config.filebrowserImageUploadUrl = '".$uploadUrl."?cms=civicrm&type=images';
--                      editor.config.filebrowserFlashUploadUrl = '".$uploadUrl."?cms=civicrm&type=flash';
-+                      editor.config.filebrowserBrowseUrl      = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
-+                      editor.config.filebrowserImageBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
-+                      editor.config.filebrowserFlashBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
-+                      editor.config.filebrowserUploadUrl      = '';
-+                      editor.config.filebrowserImageUploadUrl = '';
-+                      editor.config.filebrowserFlashUploadUrl = '';
-+                      editor.config.bodyClass                 = 'cke_editable';
-+                      editor.config.contentsCss               = '/sites/all/themes/cbootf/css/editor.css';
-                       editor.on( 'blur', function( e ) {
-                         this.updateElement();
-                         this.destroy(true);
-@@ -129,6 +150,20 @@
-                 };
-                 $('#{$elementId}-plain').click(openWysiwyg);
-                 $('#{$elementId}-plain').keypress(openWysiwyg);
+                         editor.config.height             = '".$this->height."';
+-                        editor.config.filebrowserBrowseUrl      = '".$browseUrl."?cms=civicrm&type=files';
+-                        editor.config.filebrowserImageBrowseUrl = '".$browseUrl."?cms=civicrm&type=images';
+-                        editor.config.filebrowserFlashBrowseUrl = '".$browseUrl."?cms=civicrm&type=flash';
+-                        editor.config.filebrowserUploadUrl      = '".$uploadUrl."?cms=civicrm&type=files';
+-                        editor.config.filebrowserImageUploadUrl = '".$uploadUrl."?cms=civicrm&type=images';
+-                        editor.config.filebrowserFlashUploadUrl = '".$uploadUrl."?cms=civicrm&type=flash';
++                        editor.config.filebrowserBrowseUrl      = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
++                        editor.config.filebrowserImageBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
++                        editor.config.filebrowserFlashBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
++                        editor.config.filebrowserUploadUrl      = '';
++                        editor.config.filebrowserImageUploadUrl = '';
++                        editor.config.filebrowserFlashUploadUrl = '';
++                        editor.config.bodyClass                 = 'cke_editable';
++                        editor.config.contentsCss               = '/sites/all/themes/cbootf/css/editor.css';
+                     }
+                 });
 +                /**
 +                 * IMCE support
 +                 */
@@ -119,9 +111,9 @@ diff -ur ./packages/HTML/QuickForm/ckeditor.php /var/www/citybibleforum/sites/al
 +                    CKEDITOR.tools.callFunction(cfunc[1], file.url);
 +                    win.close();
 +                }
-               });
-           </script>";
-           return $html;
+             </script>";
+             return $html;
+         }
 diff -ur ./packages/HTML/QuickForm/tinymce.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/tinymce.php
 --- ./packages/HTML/QuickForm/tinymce.php	2014-07-02 21:14:55.000000000 +1000
 +++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/tinymce.php	2014-07-12 20:51:45.991062199 +1000
