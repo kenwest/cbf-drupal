@@ -279,10 +279,40 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
 		$vars['ip']  = $_SERVER['REMOTE_ADDR'];
 		$vars['url'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
 	}
+
+	/*
+	 * There are a number of annoying errors that get logged. They seem to be due to
+	 * robots etc. The $ignore array stores the patterns that should be ignored.
+	 * 
+	 * The $ignore array consists of a number of pattern sets. Each set is matched
+	 * against elements of the $vars array. If all the patterns in a set match, we
+	 * simply return 'true'. This tells CiviCRM to abend processing, and nothing
+	 * is logged.
+	 */
+	$ignore = array(
+		array(
+			'message' => 'Invalid value passed to getPayment function',
+			'url' => '/civicrm/event/register.*id=[0-9][0-9][0-9]($|[^0-9])',
+		),
+		array(
+			'message' => 'id .* POST .* GET .* is not of the type Positive',
+		),
+	);
+
+	foreach ($ignore as $patternSet) {
+		foreach ($patternSet as $element => $pattern) {
+			if (preg_match('#' . $pattern . '#i', $vars[$element]) != 1) {
+				continue 2;
+			}
+		}
+		return true;
+	}
+
 	$vars['ip-details'] = json_decode(file_get_contents("http://ipinfo.io/" . $vars['ip'] . "/json"));
 	if ( isset($_SESSION) ) {
 		$vars['session'] = $_SESSION;
 		unset($vars['session']['CiviCRM']['qfPrivateKey']);
 	}
+
 	return false;
 }
