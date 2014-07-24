@@ -225,7 +225,8 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawPara
     	    $cookedParams['Suburb']   = 'Sydney';
     	    $cookedParams['State']    = 'NSW';
     	    $cookedParams['PostCode'] = '2000';
-    	} else if ( $paymentObj instanceof com_chrischinchilla_ewayrecurring ) {
+        } else if ( $paymentObj instanceof com_chrischinchilla_ewayrecurring ||
+                    $paymentObj instanceof CRM_Core_Payment_Ewayrecurring ) {
     	    // Set credit card holder
     	    if ( $credit_card_holder ) {
     	        $cookedParams['man:CCNameOnCard'] = $credit_card_holder;
@@ -239,7 +240,8 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawPara
     } else {
         if ( $paymentObj instanceof CRM_Core_Payment_eWAY  ||
              $paymentObj instanceof org_civicrm_ewayrecurring  ||
-             $paymentObj instanceof com_chrischinchilla_ewayrecurring ) {
+             $paymentObj instanceof com_chrischinchilla_ewayrecurring ||
+             $paymentObj instanceof CRM_Core_Payment_Ewayrecurring ) {
             // Set credit card holder
             if ( $credit_card_holder ) {
                 $cookedParams->CardHolderName($credit_card_holder);
