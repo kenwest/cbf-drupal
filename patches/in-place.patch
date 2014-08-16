@@ -49,7 +49,6 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  #crm-container div.finalconf-button {
    float: right;
    padding: 5px 0 0 0;
-Only in /var/www/citybibleforum/sites/all/modules/civicrm/css: civicrm.css.orig
 diff -ur ./packages/HTML/QuickForm/ckeditor.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php
 --- ./packages/HTML/QuickForm/ckeditor.php	2014-08-13 18:19:45.000000000 +1000
 +++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php	2014-08-16 18:22:22.015576590 +1000
