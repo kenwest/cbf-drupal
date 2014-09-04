@@ -469,3 +469,19 @@ function cbf_cron() {
 
 	variable_set('cbf_cron_last_run', $current_time);
 }
+
+function cbf_mail_alter(&$message) {
+	/*
+	 * The Contact module sends emails using the To: address supplied
+	 * by the visitor to a citybibleforum.org address. When this is
+	 * redirected to a gmail.com address Gmail rightly complains
+	 * (Unauthenticated email from yahoo.com is not accepted due to
+	 * domain's 550-5.7.1 DMARC policy)
+	 *
+	 * Change the message headers so the email is sent From the Sender
+	 * address (doulos@citybibleforum.org), but the original address
+	 * is in the Reply-To header.
+	 */
+	$message['headers']['Reply-To'] = $message['headers']['From'];
+	$message['headers']['From'] = $message['headers']['Sender'];
+}
