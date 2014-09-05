@@ -12,12 +12,20 @@ function cbf_init() {
             case 'event':
             case 'activity':
                 /*
-                 * "How to display summary field on node edit form by default?"
+                 * This JavaScript sets some defaults when adding new nodes.
+                 *  1. The Summary for the Body displays to encourage entry
+                 *  2. By default a tweet is not sent when the node is created
+                 *  3. Tablefield fields default to plain text
+                 *
+                 * See "How to display summary field on node edit form by default?"
                  * http://drupal.org/node/1395422#comment-6450618
                  */
                 $script = 'jQuery(document).ready(function(){
                     jQuery(".link-edit-summary").click();
                     jQuery("#twitter-toggle").attr("checked", false);
+                    jQuery(".field-type-tablefield .filter-wrapper select.filter-list option").each(function() {
+                        this.selected = (this.text == "Plain text");
+                    });
                 });';
                 drupal_add_js($script, 'inline');
                 break;
