@@ -186,7 +186,9 @@ CRM.$(function($) {
   }
   if(checked) {
     $('#billingcheckbox').prop('checked', true);
-    $('.billing_name_address-group').hide();
+    if (CRM.billing.billingProfileIsHideable) {
+      $('.billing_name_address-group').hide();
+    }
   }
 
   // onchange handlers for non-billing fields
@@ -224,7 +226,9 @@ CRM.$(function($) {
   // toggle show/hide
   $('#billingcheckbox').click(function(){
     if(this.checked) {
-      $('.billing_name_address-group').hide(200);
+      if (CRM.billing.billingProfileIsHideable) {
+        $('.billing_name_address-group').hide(200);
+      }
 
       // copy all values
       for(var id in input_ids) {
