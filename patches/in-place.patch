@@ -1,6 +1,6 @@
 diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml
---- ./CRM/Contribute/xml/Menu/Contribute.xml	2014-08-13 18:19:07.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2014-08-16 18:22:21.991576038 +1000
+--- ./CRM/Contribute/xml/Menu/Contribute.xml	2014-09-18 21:44:43.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2014-09-21 00:06:17.820216388 +1000
 @@ -229,6 +229,8 @@
      <title>Cancel Subscription</title>
      <page_callback>CRM_Contribute_Form_CancelSubscription</page_callback>
@@ -20,9 +20,9 @@ diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/
    <item>
      <path>civicrm/contribute/subscriptionstatus</path>
 diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css
---- ./css/civicrm.css	2014-08-13 18:19:09.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css	2014-08-16 18:22:22.015576590 +1000
-@@ -292,6 +292,14 @@
+--- ./css/civicrm.css	2014-09-18 21:44:46.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css	2014-09-21 00:07:05.404999511 +1000
+@@ -299,6 +299,14 @@
    height: 5px;
  }
  
@@ -37,7 +37,7 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  .crm-container td.compressed select,
  .crm-container td.compressed input {
    font-size: 0.90em;
-@@ -3842,6 +3850,11 @@
+@@ -3875,6 +3883,11 @@
  #crm-container .crm-fb-tweet-buttons {
    width: 93%;
  }
@@ -50,8 +50,8 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
    float: right;
    padding: 5px 0 0 0;
 diff -ur ./packages/HTML/QuickForm/ckeditor.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php
---- ./packages/HTML/QuickForm/ckeditor.php	2014-08-13 18:19:45.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php	2014-08-16 18:22:22.015576590 +1000
+--- ./packages/HTML/QuickForm/ckeditor.php	2014-09-18 21:45:10.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php	2014-09-21 22:42:00.808344348 +1000
 @@ -74,19 +74,54 @@
                          CKEDITOR.remove(CKEDITOR.instances['{$elementId}']);
                      }
@@ -87,9 +87,9 @@ diff -ur ./packages/HTML/QuickForm/ckeditor.php /var/www/citybibleforum/sites/al
 -                        editor.config.filebrowserUploadUrl      = '".$uploadUrl."?cms=civicrm&type=files';
 -                        editor.config.filebrowserImageUploadUrl = '".$uploadUrl."?cms=civicrm&type=images';
 -                        editor.config.filebrowserFlashUploadUrl = '".$uploadUrl."?cms=civicrm&type=flash';
-+                        editor.config.filebrowserBrowseUrl      = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
-+                        editor.config.filebrowserImageBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
-+                        editor.config.filebrowserFlashBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
++                        editor.config.filebrowserBrowseUrl      = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo_{$elementId}|';
++                        editor.config.filebrowserImageBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo_{$elementId}|';
++                        editor.config.filebrowserFlashBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo_{$elementId}|';
 +                        editor.config.filebrowserUploadUrl      = '';
 +                        editor.config.filebrowserImageUploadUrl = '';
 +                        editor.config.filebrowserFlashUploadUrl = '';
@@ -100,7 +100,7 @@ diff -ur ./packages/HTML/QuickForm/ckeditor.php /var/www/citybibleforum/sites/al
 +                /**
 +                 * IMCE support
 +                 */
-+                var ckeditor_imceSendTo = function (file, win){
++                var ckeditor_imceSendTo_{$elementId} = function (file, win){
 +                    var cfunc = win.location.href.split('&');
 +                    for (var x in cfunc) {
 +                        if (cfunc[x].match(/^CKEditorFuncNum=\d+$/)) {
@@ -149,9 +149,9 @@ diff -ur ./packages/HTML/QuickForm/ckeditor.php /var/www/citybibleforum/sites/al
 -                      editor.config.filebrowserUploadUrl      = '".$uploadUrl."?cms=civicrm&type=files';
 -                      editor.config.filebrowserImageUploadUrl = '".$uploadUrl."?cms=civicrm&type=images';
 -                      editor.config.filebrowserFlashUploadUrl = '".$uploadUrl."?cms=civicrm&type=flash';
-+                      editor.config.filebrowserBrowseUrl      = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
-+                      editor.config.filebrowserImageBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
-+                      editor.config.filebrowserFlashBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|';
++                      editor.config.filebrowserBrowseUrl      = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo_{$elementId}|';
++                      editor.config.filebrowserImageBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo_{$elementId}|';
++                      editor.config.filebrowserFlashBrowseUrl = '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo_{$elementId}|';
 +                      editor.config.filebrowserUploadUrl      = '';
 +                      editor.config.filebrowserImageUploadUrl = '';
 +                      editor.config.filebrowserFlashUploadUrl = '';
@@ -160,30 +160,32 @@ diff -ur ./packages/HTML/QuickForm/ckeditor.php /var/www/citybibleforum/sites/al
                        editor.on( 'blur', function( e ) {
                          this.updateElement();
                          this.destroy(true);
-@@ -127,6 +183,20 @@
-                       })
-                   }
-                 };
-+                /**
-+                 * IMCE support
-+                 */
-+                var ckeditor_imceSendTo = function (file, win){
-+                    var cfunc = win.location.href.split('&');
-+                    for (var x in cfunc) {
-+                        if (cfunc[x].match(/^CKEditorFuncNum=\d+$/)) {
-+                            cfunc = cfunc[x].split('=');
-+                            break;
-+                        }
-+                    }
-+                    CKEDITOR.tools.callFunction(cfunc[1], file.url);
-+                    win.close();
-+                }
+@@ -130,7 +186,21 @@
                  $('#{$elementId}-plain').click(openWysiwyg);
                  $('#{$elementId}-plain').keypress(openWysiwyg);
                });
+-          </script>";
++              /**
++               * IMCE support
++               */
++              var ckeditor_imceSendTo_{$elementId} = function (file, win){
++                  var cfunc = win.location.href.split('&');
++                  for (var x in cfunc) {
++                      if (cfunc[x].match(/^CKEditorFuncNum=\d+$/)) {
++                          cfunc = cfunc[x].split('=');
++                          break;
++                      }
++                  }
++                  CKEDITOR.tools.callFunction(cfunc[1], file.url);
++                  win.close();
++              }
++            </script>";
+           return $html;
+         }
+     }
 diff -ur ./packages/HTML/QuickForm/tinymce.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/tinymce.php
---- ./packages/HTML/QuickForm/tinymce.php	2014-08-13 18:19:45.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/tinymce.php	2014-08-16 18:22:22.015576590 +1000
+--- ./packages/HTML/QuickForm/tinymce.php	2014-09-18 21:45:10.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/tinymce.php	2014-09-21 00:07:17.481198279 +1000
 @@ -160,7 +160,7 @@
          theme_advanced_buttons1_add: "separator,forecolor,backcolor,separator,link,unlink,separator,image,hr,emotions",
          theme_advanced_buttons2    : "separator,numlist,bullist,|,outdent,indent,cite,separator,justifyleft,justifycenter,justifyright",
@@ -194,8 +196,8 @@ diff -ur ./packages/HTML/QuickForm/tinymce.php /var/www/citybibleforum/sites/all
          theme_advanced_toolbar_align : "left",
          theme_advanced_statusbar_location : "bottom",
 diff -ur ./packages/Net/SMTP.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php
---- ./packages/Net/SMTP.php	2014-08-13 18:19:45.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php	2014-08-16 18:22:22.015576590 +1000
+--- ./packages/Net/SMTP.php	2014-09-18 21:45:10.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php	2014-09-21 00:07:17.485198345 +1000
 @@ -601,8 +601,6 @@
           * (SSL) socket connection. */
          if ($tls && version_compare(PHP_VERSION, '5.1.0', '>=') &&
