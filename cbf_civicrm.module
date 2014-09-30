@@ -122,12 +122,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             $form->assign( 'address', '' );
             break;
 
-        case 'CRM_Mailing_Form_Settings':
-
-            // For CiviMails, make the visibility of the mail content 'Public' by default
-            $form->setDefaults(array('visibility' => 'Public Pages'));
-            break;
-
         case 'CRM_Mailing_Form_Upload':
 
             // For CiviMails, unset the From email address when the Subject is empty.
@@ -187,24 +181,6 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
             break;
     }
 }
-
-/*
- * This function is called after a form has been processed by CiviCRM.
- * It was hoped to add the Credit Card Holder field to the Smarty template, but this
- * function gets called too late. This affects off-line contributions and event 
- * registrations - the Credit Card Holder and Billing Address are removed from the
- * System Workflow Message Templates in these cases.
- */
-//function cbf_civicrm_civicrm_postProcess($formName, &$form) {
-//    switch ( $formName ) {
-//
-//        case 'CRM_Contribute_Form_Contribution':
-//        case 'CRM_Event_Form_Participant':
-//            cbf_add_creditCardHolder_to_tpl($form); // TOO LATE !!
-//            break;
-//    }
-//    return;
-//}
 
 /*
  * This function is called before CiviCRM passes payment details to a Payment Processor.
