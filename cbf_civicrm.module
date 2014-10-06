@@ -275,6 +275,14 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
 		array(
 			'message' => 'id .* POST .* GET .* is not of the type Positive',
 		),
+		array(
+			'message' => 'Invalid form parameters',
+			'url' => '/civicrm/mailing/forward$',
+		),
+		array(
+			'message' => 'Missing (input )?parameters',
+			'url' => '/civicrm/mailing/(optout|unsubscribe)$',
+		),
 	);
 
 	foreach ($ignore as $patternSet) {
