@@ -302,3 +302,58 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
 
 	return false;
 }
+
+/*
+ * Implementation of hook_civicrm_pre() to capture changes before they're saved
+ */
+function cbf_civicrm_pre( $op, $objectName, $id, &$params ) {
+	if ($objectName == 'Household') {
+		switch ($op) {
+			case 'create':
+			case 'edit':
+				foreach ($params['contact_sub_type'] as $sub_type) {
+					if ($sub_type == 'Archived_team') {
+						$archived_team_prefix = 'No longer meets: ';
+
+						if (strpos($params['household_name'], $archived_team_prefix) === false) {
+							$params['household_name'] = $archived_team_prefix . $params['household_name'];
+						}
+
+						try {
+							$get_a = civicrm_api3('Relationship', 'get', array(
+										'sequential' => 1,
+										'contact_id_a' => $id,
+										'is_active' => 1,
+							));
+							$get_b = civicrm_api3('Relationship', 'get', array(
+									'sequential' => 1,
+									'contact_id_b' => $id,
+									'is_active' => 1,
+							));
+							$get = array_merge($get_a['values'], $get_b['values']);
+
+							foreach ($get as $relationship) {
+								if (isset($relationship['end_date'])) {
+									$end_date = $relationship['end_date'];
+								} else {
+									$end_date = CRM_Utils_Date::getToday();
+								}
+
+								$create = civicrm_api3('Relationship', 'create', array(
+										'sequential' => 1,
+										'id' => $relationship['id'],
+										'is_active' => 0,
+										'end_date' => $end_date,
+								));
+							}
+						} catch (CiviCRM_API3_Exception $e) {
+							;
+						}
+					}
+				}
+				break;
+		}
+	}
+
+	return;
+}
