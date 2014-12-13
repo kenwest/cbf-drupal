@@ -32,7 +32,7 @@
 <div class="crm-contribution-page-id-{$contributionPageID} crm-block crm-contribution-confirm-form-block">
   <div class="progress payment">
     <div class="progress-bar past">
-      1. Entered <br/> details
+      1. Entered <br/> details &#x2713;
     </div>
     <div class="progress-bar present">
       2. Check <br/> details
