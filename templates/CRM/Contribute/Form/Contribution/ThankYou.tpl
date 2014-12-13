@@ -30,6 +30,17 @@
 {include file="CRM/common/TrackingFields.tpl"}
 
 <div class="crm-contribution-page-id-{$contributionPageID} crm-block crm-contribution-thankyou-form-block">
+  <div class="progress payment">
+    <div class="progress-bar past">
+      1. Entered <br/> details
+    </div>
+    <div class="progress-bar past">
+      2. Checked <br/> details
+    </div>
+    <div class="progress-bar present">
+      3. Made <br/> payment
+    </div>
+  </div>
     {if $thankyou_text}
         <div id="thankyou_text" class="crm-section thankyou_text-section">
             {$thankyou_text}

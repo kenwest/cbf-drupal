@@ -30,6 +30,17 @@
 {include file="CRM/common/TrackingFields.tpl"}
 
 <div class="crm-contribution-page-id-{$contributionPageID} crm-block crm-contribution-confirm-form-block">
+  <div class="progress payment">
+    <div class="progress-bar past">
+      1. Entered <br/> details
+    </div>
+    <div class="progress-bar present">
+      2. Check <br/> details
+    </div>
+    <div class="progress-bar future">
+      3. Make <br/> payment
+    </div>
+  </div>
     <div id="help">
         <p>{ts}Please verify the information below carefully. Click <strong>Go Back</strong> if you need to make changes.{/ts}
             {if $contributeMode EQ 'notify' and ! $is_pay_later}
