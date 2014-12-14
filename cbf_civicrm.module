@@ -129,9 +129,13 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             $form->assign( 'address', '' );
 
             if ($formName == 'CRM_Contribute_Form_Contribution_Confirm') {
+                $makePaymentLabel = 'Make payment';
+
                 $buttons = $form->getElement('buttons');
                 $submit = $buttons->getElements()[0];
-                $submit->setValue('Make payment');
+                $submit->setValue($makePaymentLabel);
+
+                $tpl->assign('button', $makePaymentLabel);
             }
 
             break;
