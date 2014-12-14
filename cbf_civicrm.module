@@ -100,6 +100,13 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
                     }
                 }
             }
+
+            if ($formName == 'CRM_Contribute_Form_Contribution_Main') {
+                $buttons = $form->getElement('buttons');
+                $submit = $buttons->getElements()[0];
+                $submit->setValue('Next >>');
+            }
+
             break;
 
         case 'CRM_Contribute_Form_Contribution_Confirm':
@@ -120,6 +127,13 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
                 }
             }
             $form->assign( 'address', '' );
+
+            if ($formName == 'CRM_Contribute_Form_Contribution_Confirm') {
+                $buttons = $form->getElement('buttons');
+                $submit = $buttons->getElements()[0];
+                $submit->setValue('Make payment');
+            }
+
             break;
 
         case 'CRM_Mailing_Form_Upload':
