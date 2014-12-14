@@ -132,8 +132,8 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
                 $makePaymentLabel = 'Make payment';
 
                 $buttons = $form->getElement('buttons');
-                $submit = $buttons->getElements()[0];
-                $submit->setValue($makePaymentLabel);
+                $submit = $buttons->getElements();
+                $submit[0]->setValue($makePaymentLabel);
 
                 $tpl->assign('button', $makePaymentLabel);
             }
