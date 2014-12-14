@@ -103,8 +103,8 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
 
             if ($formName == 'CRM_Contribute_Form_Contribution_Main') {
                 $buttons = $form->getElement('buttons');
-                $submit = $buttons->getElements()[0];
-                $submit->setValue('Next >>');
+                $submit = $buttons->getElements();
+                $submit[0]->setValue('Next >>');
             }
 
             break;
