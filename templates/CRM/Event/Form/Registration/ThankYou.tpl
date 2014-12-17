@@ -30,6 +30,19 @@
 {include file="CRM/common/TrackingFields.tpl"}
 
 <div class="crm-event-id-{$event.id} crm-block crm-event-thankyou-form-block">
+  {if $paidEvent}
+    <div class="progress payment">
+      <div class="progress-bar past">
+        1. Entered <br/> details &#x2713;
+      </div>
+      <div class="progress-bar past">
+        2. Checked <br/> details &#x2713;
+      </div>
+      <div class="progress-bar present">
+        3. Made <br/> payment &#x2713;
+      </div>
+    </div>
+  {/if}
     {* Don't use "normal" thank-you message for Waitlist and Approval Required registrations - since it will probably not make sense for those situations. dgg *}
     {if $event.thankyou_text AND (not $isOnWaitlist AND not $isRequireApproval)}
         <div id="intro_text" class="crm-section event_thankyou_text-section">
