@@ -101,7 +101,8 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
                 }
             }
 
-            if ($formName == 'CRM_Contribute_Form_Contribution_Main') {
+            if ($formName == 'CRM_Contribute_Form_Contribution_Main'
+                    && $form->elementExists('buttons') ) {
                 $buttons = $form->getElement('buttons');
                 $submit = $buttons->getElements();
                 $submit[0]->setValue('Next >>');
@@ -128,7 +129,8 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             }
             $form->assign( 'address', '' );
 
-            if ($formName == 'CRM_Contribute_Form_Contribution_Confirm') {
+            if ($formName == 'CRM_Contribute_Form_Contribution_Confirm'
+                    && $form->elementExists('buttons') ) {
                 $makePaymentLabel = 'Make payment';
 
                 $buttons = $form->getElement('buttons');
