@@ -244,21 +244,19 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
    * based on querying the line item table and relevant price field values
    * Note that any one contribution should only be able to have one line item relating to a particular membership
    * type
+   *
    * @param int $membershipTypeID
+   *
+   * @param int $contributionID
    *
    * @return int
    */
-  public function getNumTermsByContributionAndMembershipType($membershipTypeID) {
-    if (!is_numeric($membershipTypeID)) {
-      //precautionary measure - this is being introduced to a mature release hence adding extra checks that
-      // might be removed later
-      return 1;
-    }
-    $numTerms = CRM_Core_DAO::singleValueQuery("
+  public function getNumTermsByContributionAndMembershipType($membershipTypeID, $contributionID) {
+     $numTerms = CRM_Core_DAO::singleValueQuery("
       SELECT membership_num_terms FROM civicrm_line_item li
       LEFT JOIN civicrm_price_field_value v ON li.price_field_value_id = v.id
       WHERE contribution_id = %1 AND membership_type_id = %2",
-      array(1 => array($this->id, 'Integer') , 2 => array($membershipTypeID, 'Integer'))
+      array(1 => array($contributionID, 'Integer') , 2 => array($membershipTypeID, 'Integer'))
     );
     // default of 1 is precautionary
     return empty($numTerms) ? 1 : $numTerms;
@@ -3097,6 +3095,13 @@ WHERE  contribution_id = %1 ";
           $types = (array) CRM_Utils_Array::value('payment_processor', $page, 0);
           $params['condition'] = 'id IN (' . implode(',', $types) . ')';
         }
+        break;
+      // CRM-13981 This field was combined with soft_credits in 4.5 but the api still supports it
+      case 'honor_type_id':
+        $className = 'CRM_Contribute_BAO_ContributionSoft';
+        $fieldName = 'soft_credit_type_id';
+        $params['condition'] = "v.name IN ('in_honor_of','in_memory_of')";
+        break;
     }
     return CRM_Core_PseudoConstant::get($className, $fieldName, $params, $context);
   }
