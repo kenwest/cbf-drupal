@@ -1,26 +1,3 @@
-diff -ur ./CRM/Contact/BAO/Query.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contact/BAO/Query.php
---- ./CRM/Contact/BAO/Query.php	2015-03-06 14:16:37.000000000 +1100
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contact/BAO/Query.php	2015-03-07 20:30:47.957552174 +1100
-@@ -2539,16 +2539,16 @@
-             }
-             else {
-               $from .= " $side JOIN civicrm_relationship ON (civicrm_relationship.contact_id_b = contact_a.id OR civicrm_relationship.contact_id_a = contact_a.id)";
--              $from .= " $side JOIN civicrm_contact contact_b ON (civicrm_relationship.contact_id_a = contact_b.id OR civicrm_relationship.contact_id_b = contact_b.id)";
-+              $from .= " $side JOIN civicrm_contact contact_b ON ((civicrm_relationship.contact_id_a = contact_b.id OR civicrm_relationship.contact_id_b = contact_b.id) AND contact_b.is_deleted = 0)";
-             }
-           }
-           elseif (self::$_relType == 'b') {
-             $from .= " $side JOIN civicrm_relationship ON (civicrm_relationship.contact_id_b = contact_a.id )";
--            $from .= " $side JOIN civicrm_contact contact_b ON (civicrm_relationship.contact_id_a = contact_b.id )";
-+            $from .= " $side JOIN civicrm_contact contact_b ON (civicrm_relationship.contact_id_a = contact_b.id AND contact_b.is_deleted = 0)";
-           }
-           else {
-             $from .= " $side JOIN civicrm_relationship ON (civicrm_relationship.contact_id_a = contact_a.id )";
--            $from .= " $side JOIN civicrm_contact contact_b ON (civicrm_relationship.contact_id_b = contact_b.id )";
-+            $from .= " $side JOIN civicrm_contact contact_b ON (civicrm_relationship.contact_id_b = contact_b.id AND contact_b.is_deleted = 0)";
-           }
-           continue;
- 
 diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml
 --- ./CRM/Contribute/xml/Menu/Contribute.xml	2015-03-06 14:16:37.000000000 +1100
 +++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2015-03-07 20:30:47.977552526 +1100
