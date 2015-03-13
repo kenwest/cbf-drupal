@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.5                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2014                                |
  +--------------------------------------------------------------------+
@@ -75,20 +75,21 @@
         highlightSelected();
         CRM.updateContactSummaryTags();
       });
-
-      //load js tree.
-      $("#tagtree").jstree({
-        plugins : ["themes", "html_data"],
-        themes: {
-          "theme": 'classic',
-          "dots": false,
-          "icons": false,
-          "url": CRM.config.resourceBase + 'packages/jquery/plugins/jstree/themes/classic/style.css'
-        }
-      }).on('loaded.jstree', function() {
-        $("#tagtree").jstree('open_all');
-      });
-
+      var childTag = "{/literal}{$loadjsTree}{literal}";
+      if (childTag) {
+        //load js tree.
+        $("#tagtree").jstree({
+          plugins : ["themes", "html_data"],
+          themes: {
+            "theme": 'classic',
+            "dots": false,
+            "icons": false,
+            "url": CRM.config.resourceBase + 'packages/jquery/plugins/jstree/themes/classic/style.css'
+          }
+        }).on('loaded.jstree', function() {
+          $("#tagtree").jstree('open_all');
+        });
+      }
       {/literal}
       {if $permission neq 'edit'}
         {literal}
