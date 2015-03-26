@@ -1,6 +1,6 @@
 diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml
---- ./CRM/Contribute/xml/Menu/Contribute.xml	2015-03-11 21:42:34.000000000 +1100
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2015-03-13 15:05:07.905466312 +1100
+--- ./CRM/Contribute/xml/Menu/Contribute.xml	2015-03-18 22:17:34.000000000 +1100
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2015-03-26 12:01:45.196263137 +1100
 @@ -229,6 +229,8 @@
      <title>Cancel Subscription</title>
      <page_callback>CRM_Contribute_Form_CancelSubscription</page_callback>
@@ -20,8 +20,8 @@ diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/
    <item>
      <path>civicrm/contribute/subscriptionstatus</path>
 diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css
---- ./css/civicrm.css	2015-03-11 21:42:35.000000000 +1100
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css	2015-03-13 15:05:07.929466715 +1100
+--- ./css/civicrm.css	2015-03-18 22:17:35.000000000 +1100
++++ /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css	2015-03-26 12:01:45.212263567 +1100
 @@ -241,6 +241,14 @@
    height: 5px;
  }
@@ -37,7 +37,15 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  .crm-container td.compressed select,
  .crm-container td.compressed input {
    font-size: 0.90em;
-@@ -3358,6 +3366,11 @@
+@@ -1573,6 +1581,7 @@
+ }
+ .crm-container a.action-item {
+   display: inline;
++  padding: 2px;
+ }
+ 
+ /* theming for panel and context menus */
+@@ -3358,6 +3367,11 @@
  #crm-container .crm-fb-tweet-buttons {
    width: 93%;
  }
@@ -49,9 +57,17 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  #crm-container div.finalconf-button {
    float: right;
    padding: 5px 0 0 0;
+@@ -3784,6 +3798,7 @@
+ #crm-container.crm-public .crm-section,
+ .crm-section {
+   margin-bottom: 0;
++  clear: left; /* Ensure form elements clear left */
+ }
+ 
+ #crm-container.crm-public #crm-submit-buttons {
 diff -ur ./packages/HTML/QuickForm/ckeditor.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php
---- ./packages/HTML/QuickForm/ckeditor.php	2015-03-11 21:43:01.000000000 +1100
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php	2015-03-13 15:05:07.965467320 +1100
+--- ./packages/HTML/QuickForm/ckeditor.php	2015-03-18 22:18:00.000000000 +1100
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/ckeditor.php	2015-03-26 12:01:45.228263997 +1100
 @@ -74,19 +74,54 @@
                          CKEDITOR.remove(CKEDITOR.instances['{$elementId}']);
                      }
@@ -184,8 +200,8 @@ diff -ur ./packages/HTML/QuickForm/ckeditor.php /var/www/citybibleforum/sites/al
          }
      }
 diff -ur ./packages/HTML/QuickForm/tinymce.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/tinymce.php
---- ./packages/HTML/QuickForm/tinymce.php	2015-03-11 21:43:01.000000000 +1100
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/tinymce.php	2015-03-13 15:05:07.977467521 +1100
+--- ./packages/HTML/QuickForm/tinymce.php	2015-03-18 22:18:00.000000000 +1100
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/tinymce.php	2015-03-26 12:01:45.232264104 +1100
 @@ -160,7 +160,7 @@
          theme_advanced_buttons1_add: "separator,forecolor,backcolor,separator,link,unlink,separator,image,hr,emotions",
          theme_advanced_buttons2    : "separator,numlist,bullist,|,outdent,indent,cite,separator,justifyleft,justifycenter,justifyright",
@@ -196,8 +212,8 @@ diff -ur ./packages/HTML/QuickForm/tinymce.php /var/www/citybibleforum/sites/all
          theme_advanced_toolbar_align : "left",
          theme_advanced_statusbar_location : "bottom",
 diff -ur ./packages/Net/SMTP.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php
---- ./packages/Net/SMTP.php	2015-03-11 21:43:01.000000000 +1100
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php	2015-03-13 15:05:07.981467589 +1100
+--- ./packages/Net/SMTP.php	2015-03-18 22:18:00.000000000 +1100
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php	2015-03-26 12:01:45.240264320 +1100
 @@ -601,8 +601,6 @@
           * (SSL) socket connection. */
          if ($tls && version_compare(PHP_VERSION, '5.1.0', '>=') &&
@@ -207,3 +223,15 @@ diff -ur ./packages/Net/SMTP.php /var/www/citybibleforum/sites/all/modules/civic
              strncasecmp($this->host, 'ssl://', 6) !== 0) {
              /* Start the TLS connection attempt. */
              if (PEAR::isError($result = $this->_put('STARTTLS'))) {
+diff -ur ./packages/Smarty/internals/core.create_dir_structure.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php
+--- ./packages/Smarty/internals/core.create_dir_structure.php	2015-03-18 22:18:01.000000000 +1100
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php	2015-03-26 12:01:45.244264427 +1100
+@@ -65,7 +65,7 @@
+                 $_make_new_dir = true;
+             }
+ 
+-            if ($_make_new_dir && !file_exists($_new_dir) && !@mkdir($_new_dir, $smarty->_dir_perms) && !is_dir($_new_dir)) {
++            if ($_make_new_dir && !file_exists($_new_dir) && (!@mkdir($_new_dir) || !@chmod($_new_dir, 0770)) && !is_dir($_new_dir)) {
+                 $smarty->trigger_error("problem creating directory '" . $_new_dir . "'");
+                 return false;
+             }
