@@ -41,7 +41,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         /*
          * Look for the closing tag for the BODY element, and add it if needed
          */
-        if (stripos($htmlMessage, '</body>') == false) {
+        if (stripos($htmlMessage, '</body>') === false) {
             $htmlMessage .= '</body></html>';
         }
         $params['html'] = $htmlMessage;
