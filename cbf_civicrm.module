@@ -415,16 +415,31 @@ function cbf_civicrm_civicrm_post( $op, $objectName, $id, &$params ) {
 						}
 					}
 
-					$event = civicrm_api3('Event', 'get', array(
+					$custom_values = civicrm_api3('CustomValue', 'get', array(
 							'sequential' => 1,
-							'return' => 'custom_25',
-							'id' => $params->event_id,
+							'entity_id' => $params->event_id,
+							'entity_table' => 'civicrm_event',
+							'id' => 25,
 					));
+
+					$ministry_centre_id = null;
+					foreach ($custom_values['values'] as $custom_value) {
+						if (isset($custom_value['latest'])
+								&& isset($custom_value['id'])
+								&& $custom_value['id'] = '25') {
+							$ministry_centre_id = (int) $custom_value['latest'];
+							break;
+						}
+					}
+
+					if ( ! isset($ministry_centre_id) ) {
+						break;
+					}
 
 					$ministry_centre = civicrm_api3('OptionValue', 'get', array(
 							'sequential' => 1,
 							'option_group_id' => $ministry_centre_group_id,
-							'value' => $event['values'][0]['custom_25'],
+							'value' => $ministry_centre_id,
 					));
 
 					$tag = civicrm_api3('Tag', 'get', array(
@@ -438,7 +453,7 @@ function cbf_civicrm_civicrm_post( $op, $objectName, $id, &$params ) {
 								'sequential' => 1,
 								'entity_table' => 'civicrm_contact',
 								'entity_id' => $params->contact_id,
-								'tag_id' => $tag['values'][0]['tag_id'],
+								'tag_id' => $tag['values'][0]['id'],
 						));
 					}
 				} catch (CiviCRM_API3_Exception $e) {
