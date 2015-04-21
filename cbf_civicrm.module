@@ -463,3 +463,19 @@ function cbf_civicrm_civicrm_post( $op, $objectName, $id, &$params ) {
 		}
 	}
 }
+
+/*
+ * A hook that gets called by the AccountSync extension, prior to pushing data
+ * to Xero.
+ *
+ * @param string $entity entity - eg. 'contact'
+ * @param array $data data from accounts being processing
+ * @param bool $save save? - set this to false if it should be skipped
+ * @param $params
+ *
+ * @return mixed
+ *   Ignore value.
+ */
+function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$params) {
+	return;
+}
