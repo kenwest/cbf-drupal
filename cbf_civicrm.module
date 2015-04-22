@@ -465,6 +465,45 @@ function cbf_civicrm_civicrm_post( $op, $objectName, $id, &$params ) {
 }
 
 /*
+ * A hook that gets called by the AccountSync extension, prior to pulling data
+ * from Xero.
+ *
+ * @param string $entity entity - eg. 'contact'
+ * @param array $data data from accounts being processing
+ * @param bool $save save? - set this to false if it should be skipped
+ * @param $params
+ *
+ * @return mixed
+ *   Ignore value.
+ */
+function cbf_civicrm_civicrm_accountPullPreSave($entity, &$data, &$save, &$params) {
+  switch ($entity) {
+    case 'invoice' :
+      if (isset($params['contribution_id'])
+          && !is_numeric($params['contribution_id'])) {
+        /*
+         * This invoice was generated in Xero but not by CiviCRM
+         */
+        try {
+          $result = civicrm_api3('Contribution', 'create', array(
+              'sequential' => 1,
+              'financial_type_id' => 'Donation',
+              'total_amount' => $data['Total'],
+              'tax_amount' => $data['TotalTax'],
+              'contact_id' => $data['Contact']['ContactNumber'],
+              'contribution_status_id' => $data['Status'] == 'PAID' ? 'Completed' : 'Pending',
+          ));
+          $params['contribution_id'] = $data['InvoiceNumber'] = $result['id'];
+        } catch (CiviCRM_API3_Exception $e) {
+          ;
+        }
+      }
+      break;
+  }
+}
+
+
+/*
  * A hook that gets called by the AccountSync extension, prior to pushing data
  * to Xero.
  *
@@ -477,5 +516,5 @@ function cbf_civicrm_civicrm_post( $op, $objectName, $id, &$params ) {
  *   Ignore value.
  */
 function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$params) {
-	return;
+  return;
 }
