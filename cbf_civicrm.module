@@ -64,6 +64,23 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         case 'CRM_Event_Form_Participant':
         case 'CRM_Event_Form_Registration_Register':
 
+            if (user_is_anonymous() && isset($_SESSION['CiviCRM']['status'][0]['text'])) {
+              $status_text = $_SESSION['CiviCRM']['status'][0]['text'];
+              if (stristr($status_text, 'Payment Processor Error') !== false) {
+                if (stristr($status_text, '9001') !== false) {
+                  if (isset($_SESSION['City Bible Forum']['Card issues'])) {
+                    $_SESSION['City Bible Forum']['Card issues']++;
+                  } else {
+                    $_SESSION['City Bible Forum']['Card issues'] = 1;
+                  }
+                }
+              }
+            }
+
+            if ($_SESSION['City Bible Forum']['Card issues'] > 5) {
+              CRM_Utils_System::redirect(CRM_Utils_System::url('annoying-urls.html'));
+            }
+
             // Add a form element for the credit card holder
             // It is required if the credit card number is required
             if ( $form->elementExists('credit_card_number') && 
