@@ -533,5 +533,34 @@ function cbf_civicrm_civicrm_accountPullPreSave($entity, &$data, &$save, &$param
  *   Ignore value.
  */
 function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$params) {
-  return;
+  switch ($entity) {
+    case 'invoice' :
+      /*
+       * TODO
+       *  - Events
+       *  - Sales
+       *  - Recurring donations - subsequent payments have no custom data
+       *  - Don't push contributions derived from Bank Transactions
+       */
+      if (!empty($data['trxn_id'])) {
+        $params['Reference'] = $data['trxn_id'] . ' - ' . $params['Reference'];
+      }
+      if (!empty($data['contribution_recur_id'])) {
+        $params['LineItems']['LineItem'][0]['AccountCode'] = 260;
+      }
+      $params['LineItems']['LineItem'][0]['TaxType'] = 'EXEMPTOUTPUT';
+      if (!empty($data['custom_26'])) {
+        $params['LineItems']['LineItem'][0]['Tracking'] = array();
+        $params['LineItems']['LineItem'][0]['Tracking']['TrackingCategory'] = array();
+        $params['LineItems']['LineItem'][0]['Tracking']['TrackingCategory'][]
+          = array(
+            'Name' => 'Department',
+            'Option' => $data['custom_26'],
+          );
+      }
+      if (!empty($data['custom_27'])) {
+        $params['LineItems']['LineItem'][] = array('Description' => $data['custom_27']);
+      }
+      break;
+  }
 }
