@@ -567,11 +567,9 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
         if (!empty($data['contribution_recur_id'])) {
           $params['LineItems']['LineItem'][$key]['AccountCode'] = 260;
         }
+
         if (isset($local['tax_amount']) && $local['tax_amount'] != 0) {
-          $params['LineItems']['LineItem'][$key]['TaxType'] = 'OUTPUT';
           $params['LineItems']['LineItem'][$key]['UnitAmount'] = round((floatval($local['line_total']) + floatval($local['tax_amount'])) / floatval($local['qty']), 2);
-        } else {
-          $params['LineItems']['LineItem'][$key]['TaxType'] = 'EXEMPTOUTPUT';
         }
 
         if (!empty($data['custom_26'])) {
