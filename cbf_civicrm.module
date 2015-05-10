@@ -560,6 +560,11 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
       break;
 
     case 'invoice' :
+      if (!empty($data['custom_43'])) {
+        $save = false;
+        break;
+      }
+
       /*
        * TODO
        *  - Sales
