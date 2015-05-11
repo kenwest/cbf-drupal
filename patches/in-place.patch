@@ -1,3 +1,72 @@
+diff -ur ./ang/crmMailing/EditMailingCtrl/2step.html /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html
+--- ./ang/crmMailing/EditMailingCtrl/2step.html	2015-04-16 09:24:10.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html	2015-05-11 11:10:23.758582414 +1000
+@@ -21,9 +21,9 @@
+             </div>
+             <span ng-model="placeholder" crm-ui-validate="mailing.body_html || mailing.body_text"></span>
+           </div>
+-          <div crm-ui-tab id="tab-attachment" crm-title="ts('Attachments')">
++          <!-- div crm-ui-tab id="tab-attachment" crm-title="ts('Attachments')">
+             <div crm-attachments="attachments"/>
+-          </div>
++          </div -->
+           <div crm-ui-tab id="tab-header" crm-title="ts('Header and Footer')">
+             <div crm-mailing-block-header-footer crm-mailing="mailing"/>
+           </div>
+diff -ur ./ang/crmUi.js /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmUi.js
+--- ./ang/crmUi.js	2015-04-16 09:24:10.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmUi.js	2015-05-11 10:38:38.106365505 +1000
+@@ -397,12 +397,31 @@
+             _.extend(ck.config, {
+               width: '94%',
+               height: '400',
+-              filebrowserBrowseUrl: CRM.crmUi.browseUrl + '?cms=civicrm&type=files',
+-              filebrowserImageBrowseUrl: CRM.crmUi.browseUrl + '?cms=civicrm&type=images',
+-              filebrowserFlashBrowseUrl: CRM.crmUi.browseUrl + '?cms=civicrm&type=flash',
+-              filebrowserUploadUrl: CRM.crmUi.uploadUrl + '?cms=civicrm&type=files',
+-              filebrowserImageUploadUrl: CRM.crmUi.uploadUrl + '?cms=civicrm&type=images',
+-              filebrowserFlashUploadUrl: CRM.crmUi.uploadUrl + '?cms=civicrm&type=flash',
++              filebrowserBrowseUrl      : '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|',
++              filebrowserImageBrowseUrl : '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|',
++              filebrowserFlashBrowseUrl : '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|',
++              filebrowserUploadUrl      : '',
++              filebrowserImageUploadUrl : '',
++              filebrowserFlashUploadUrl : '',
++              bodyClass                 : 'cke_editable',
++              contentsCss               : '/sites/all/themes/cbootf/css/editor.css',
++              scayt_autoStartup         : true,
++              scayt_sLang               : 'en_GB',
++              forcePasteAsPlainText     : true,
++              toolbar : [
++                 ['Source'],
++                 ['Cut','Copy','PasteText','-','SpellChecker', 'Scayt'],
++                 ['Undo','Redo','Find','Replace','-','SelectAll','RemoveFormat'],
++                 ['Image','Table','HorizontalRule','SpecialChar'],
++                 '/',
++                 ['Bold','Italic','Underline','Strike','-','Subscript','Superscript'],
++                 ['NumberedList','BulletedList','-','Outdent','Indent','Blockquote'],
++                 ['JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock'],
++                 ['Link','Unlink','Anchor','Linkit','LinkToNode', 'LinkToMenu'],
++                 '/',
++                 ['TextColor','BGColor'],
++                 ['Maximize', 'ShowBlocks']
++              ],
+             });
+           }
+ 
+diff -ur ./Civi/Angular/Page/Main.php /var/www/citybibleforum/sites/all/modules/civicrm/Civi/Angular/Page/Main.php
+--- ./Civi/Angular/Page/Main.php	2015-04-16 09:24:10.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/Civi/Angular/Page/Main.php	2015-05-10 19:23:42.101009438 +1000
+@@ -80,7 +80,8 @@
+     $this->res->addScriptFile('civicrm', 'bower_components/angular/angular.min.js', 100, 'html-header', FALSE);
+ 
+     // FIXME: crmUi depends on loading ckeditor, but ckeditor doesn't work with this aggregation.
+-    $this->res->addScriptFile('civicrm', 'packages/ckeditor/ckeditor.js', 100, 'page-header', FALSE);
++    $this->res->addScriptFile('civicrm', '../ckeditor/includes/ckeditor.utils.js?', 100, 'page-header', FALSE);
++    $this->res->addScriptFile('civicrm', '../../libraries/ckeditor/ckeditor.js?', 100, 'page-header', FALSE);
+ 
+     $headOffset = 0;
+     $config = \CRM_Core_Config::singleton();
 diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml
 --- ./CRM/Contribute/xml/Menu/Contribute.xml	2015-04-16 09:24:10.000000000 +1000
 +++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2015-04-17 10:09:28.919831157 +1000
