@@ -344,119 +344,124 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
  * Implementation of hook_civicrm_pre() to capture changes before they're saved
 */
 function cbf_civicrm_civicrm_pre( $op, $objectName, $id, &$params ) {
-	/*
-	 * Whenever an Archived_team ("Past team") is created or edited, ensure
-	 * its name includes 'No longer meets: ' and its relationships are
-	 * inactive.
-	 */
-	if ($objectName == 'Household') {
-		switch ($op) {
-			case 'create':
-			case 'edit':
-				foreach ($params['contact_sub_type'] as $sub_type) {
-					if ($sub_type == 'Archived_team') {
-						$archived_team_prefix = 'No longer meets: ';
+  /*
+   * Whenever an Archived_team ("Past team") is created or edited, ensure
+   * its name includes 'No longer meets: ' and its relationships are
+   * inactive.
+   */
+  if ($objectName == 'Household') {
+    switch ($op) {
+      case 'create':
+      case 'edit':
+        foreach ($params['contact_sub_type'] as $sub_type) {
+          if ($sub_type == 'Archived_team') {
+            $archived_team_prefix = 'No longer meets: ';
 
-						if (strpos($params['household_name'], $archived_team_prefix) === false) {
-							$params['household_name'] = $archived_team_prefix . $params['household_name'];
-						}
+            if (strpos($params['household_name'], $archived_team_prefix) === false) {
+              $params['household_name'] = $archived_team_prefix . $params['household_name'];
+            }
 
-						try {
-							$get_a = civicrm_api3('Relationship', 'get', array(
-									'sequential' => 1,
-									'contact_id_a' => $id,
-									'is_active' => 1,
-							));
-							$get_b = civicrm_api3('Relationship', 'get', array(
-									'sequential' => 1,
-									'contact_id_b' => $id,
-									'is_active' => 1,
-							));
-							$get = array_merge($get_a['values'], $get_b['values']);
+            try {
+              $get_a = civicrm_api3('Relationship', 'get', array(
+                         'sequential' => 1,
+                         'contact_id_a' => $id,
+                         'is_active' => 1,
+                       ));
+              $get_b = civicrm_api3('Relationship', 'get', array(
+                         'sequential' => 1,
+                         'contact_id_b' => $id,
+                         'is_active' => 1,
+                       ));
+              $get = array_merge($get_a['values'], $get_b['values']);
 
-							foreach ($get as $relationship) {
-								if (isset($relationship['end_date'])) {
-									$end_date = $relationship['end_date'];
-								} else {
-									$end_date = CRM_Utils_Date::getToday();
-								}
+              foreach ($get as $relationship) {
+                if (!isset($relationship['end_date'])) {
+                  // 'setvalue' objects to dashes in dates
+                  $result = civicrm_api3('Relationship', 'setvalue', array(
+                              'sequential' => 1,
+                              'field' => 'end_date',
+                              'id' => $relationship['id'],
+                              'value' => str_replace('-', '', CRM_Utils_Date::getToday()),
+                            ));
+                }
 
-								$create = civicrm_api3('Relationship', 'create', array(
-										'sequential' => 1,
-										'id' => $relationship['id'],
-										'is_active' => 0,
-										'end_date' => $end_date,
-								));
-							}
-						} catch (CiviCRM_API3_Exception $e) {
-							;
-						}
-					}
-				}
-				break;
-		}
-	}
+                $result = civicrm_api3('Relationship', 'setvalue', array(
+                            'sequential' => 1,
+                            'field' => 'is_active',
+                            'id' => $relationship['id'],
+                            'value' => 0,
+                           ));
+              }
+
+            } catch (CiviCRM_API3_Exception $e) {
+              ;
+            }
+          }
+        }
+        break;
+    }
+  }
 }
 
 /*
  * Implementation of hook_civicrm_post() which is called after a db write on some core objects
 */
 function cbf_civicrm_civicrm_post( $op, $objectName, $id, &$params ) {
-	$ministry_centre_prefix = 'Ministry centre is ';
+  $ministry_centre_prefix = 'Ministry centre is ';
 
-	/*
-	 * Whenever a Participant is created, ensure the contact has a Ministry
-	 * Centre tag. If it doesn't, add a tag that corresponds to the Ministry
-	 * Centre of the event.
-	*/
-	if ($objectName == 'Participant') {
-		switch ($op) {
-			case 'create':
-				try {
-					$entity_tags = civicrm_api3('EntityTag', 'get', array(
-							'sequential' => 1,
-							'entity_table' => 'civicrm_contact',
-							'entity_id' => $params->contact_id,
-					));
+  /*
+   * Whenever a Participant is created, ensure the contact has a Ministry
+   * Centre tag. If it doesn't, add a tag that corresponds to the Ministry
+   * Centre of the event.
+   */
+  if ($objectName == 'Participant') {
+    switch ($op) {
+      case 'create':
+        try {
+          $entity_tags = civicrm_api3('EntityTag', 'get', array(
+                           'sequential' => 1,
+                           'entity_table' => 'civicrm_contact',
+                           'entity_id' => $params->contact_id,
+                         ));
 
-					foreach ($entity_tags['values'] as $entity_tag) {
-						$tag = civicrm_api3('Tag', 'get', array(
-								'sequential' => 1,
-								'id' => $entity_tag['tag_id'],
-								'return' => 'name',
-						));
+          foreach ($entity_tags['values'] as $entity_tag) {
+            $tag = civicrm_api3('Tag', 'get', array(
+                     'sequential' => 1,
+                     'id' => $entity_tag['tag_id'],
+                     'return' => 'name',
+                   ));
 
-						if (stristr($tag['values'][0]['name'], $ministry_centre_prefix) !== false) {
-							break 2;
-						}
-					}
+            if (stristr($tag['values'][0]['name'], $ministry_centre_prefix) !== false) {
+              break 2;
+            }
+          }
 
-					$ministry_centre = _cbf_civicrm_civicrm_event_ministry_centre($params->event_id);
+          $ministry_centre = _cbf_civicrm_civicrm_event_ministry_centre($params->event_id);
 
-					if (!isset($ministry_centre)) {
-						break;
-					}
+          if (!isset($ministry_centre)) {
+            break;
+          }
 
-					$tag = civicrm_api3('Tag', 'get', array(
-							'sequential' => 1,
-							'name' => $ministry_centre_prefix . $ministry_centre,
-							'return' => 'id',
-					));
+          $tag = civicrm_api3('Tag', 'get', array(
+                   'sequential' => 1,
+                   'name' => $ministry_centre_prefix . $ministry_centre,
+                   'return' => 'id',
+                 ));
 
-					if ($tag['count'] == 1) {
-						$create = civicrm_api3('EntityTag', 'create', array(
-								'sequential' => 1,
-								'entity_table' => 'civicrm_contact',
-								'entity_id' => $params->contact_id,
-								'tag_id' => $tag['values'][0]['id'],
-						));
-					}
-				} catch (CiviCRM_API3_Exception $e) {
-					;
-				}
-				break;
-		}
-	}
+          if ($tag['count'] == 1) {
+            $create = civicrm_api3('EntityTag', 'create', array(
+                        'sequential' => 1,
+                        'entity_table' => 'civicrm_contact',
+                        'entity_id' => $params->contact_id,
+                        'tag_id' => $tag['values'][0]['id'],
+                      ));
+          }
+        } catch (CiviCRM_API3_Exception $e) {
+          ;
+        }
+        break;
+    }
+  }
 }
 
 function _cbf_civicrm_civicrm_event_ministry_centre($event_id) {
