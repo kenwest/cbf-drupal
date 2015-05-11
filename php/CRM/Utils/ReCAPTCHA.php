@@ -89,18 +89,41 @@ class CRM_Utils_ReCAPTCHA {
     $form->assign('recaptchaOptions', $config->recaptchaOptions);
     $form->add(
       'text',
-      'g-recaptcha-response',
-      'reCaptcha',
+      'recaptcha_challenge_field',
+      NULL,
       NULL,
       TRUE
     );
+    $form->add(
+      'hidden',
+      'recaptcha_response_field',
+      'manual_challenge'
+    );
+
     $form->registerRule('recaptcha', 'callback', 'validate', 'CRM_Utils_ReCAPTCHA');
-    if ($form->isSubmitted() && empty($form->_submitValues['g-recaptcha-response'])) {
-      $form->setElementError(
-        'g-recaptcha-response',
-        ts('Input text must match the phrase in the image. Please review the image and re-enter matching text.')
-      );
-    }
+    $form->addRule(
+      'recaptcha_challenge_field',
+      ts('Input text must match the phrase in the image. Please review the image and re-enter matching text.'),
+      'recaptcha',
+      $form
+    );
   }
 
+  /**
+   * @param $value
+   * @param $form
+   *
+   * @return mixed
+   */
+  static function validate($value, $form) {
+    $config = CRM_Core_Config::singleton();
+
+    $resp = recaptcha_check_answer($config->recaptchaPrivateKey,
+      $_SERVER['REMOTE_ADDR'],
+      $_POST["recaptcha_challenge_field"],
+      $_POST["recaptcha_response_field"]
+    );
+    return $resp->is_valid;
+  }
 }
+
