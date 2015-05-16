@@ -344,139 +344,285 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
  * Implementation of hook_civicrm_pre() to capture changes before they're saved
 */
 function cbf_civicrm_civicrm_pre( $op, $objectName, $id, &$params ) {
-	/*
-	 * Whenever an Archived_team ("Past team") is created or edited, ensure
-	 * its name includes 'No longer meets: ' and its relationships are
-	 * inactive.
-	 */
-	if ($objectName == 'Household') {
-		switch ($op) {
-			case 'create':
-			case 'edit':
-				foreach ($params['contact_sub_type'] as $sub_type) {
-					if ($sub_type == 'Archived_team') {
-						$archived_team_prefix = 'No longer meets: ';
+  /*
+   * Whenever an Archived_team ("Past team") is created or edited, ensure
+   * its name includes 'No longer meets: ' and its relationships are
+   * inactive.
+   */
+  if ($objectName == 'Household') {
+    switch ($op) {
+      case 'create':
+      case 'edit':
+        foreach ($params['contact_sub_type'] as $sub_type) {
+          if ($sub_type == 'Archived_team') {
+            $archived_team_prefix = 'No longer meets: ';
 
-						if (strpos($params['household_name'], $archived_team_prefix) === false) {
-							$params['household_name'] = $archived_team_prefix . $params['household_name'];
-						}
+            if (strpos($params['household_name'], $archived_team_prefix) === false) {
+              $params['household_name'] = $archived_team_prefix . $params['household_name'];
+            }
 
-						try {
-							$get_a = civicrm_api3('Relationship', 'get', array(
-									'sequential' => 1,
-									'contact_id_a' => $id,
-									'is_active' => 1,
-							));
-							$get_b = civicrm_api3('Relationship', 'get', array(
-									'sequential' => 1,
-									'contact_id_b' => $id,
-									'is_active' => 1,
-							));
-							$get = array_merge($get_a['values'], $get_b['values']);
+            try {
+              $get_a = civicrm_api3('Relationship', 'get', array(
+                         'sequential' => 1,
+                         'contact_id_a' => $id,
+                         'is_active' => 1,
+                       ));
+              $get_b = civicrm_api3('Relationship', 'get', array(
+                         'sequential' => 1,
+                         'contact_id_b' => $id,
+                         'is_active' => 1,
+                       ));
+              $get = array_merge($get_a['values'], $get_b['values']);
 
-							foreach ($get as $relationship) {
-								if (isset($relationship['end_date'])) {
-									$end_date = $relationship['end_date'];
-								} else {
-									$end_date = CRM_Utils_Date::getToday();
-								}
+              foreach ($get as $relationship) {
+                if (!isset($relationship['end_date'])) {
+                  // 'setvalue' objects to dashes in dates
+                  $result = civicrm_api3('Relationship', 'setvalue', array(
+                              'sequential' => 1,
+                              'field' => 'end_date',
+                              'id' => $relationship['id'],
+                              'value' => str_replace('-', '', CRM_Utils_Date::getToday()),
+                            ));
+                }
 
-								$create = civicrm_api3('Relationship', 'create', array(
-										'sequential' => 1,
-										'id' => $relationship['id'],
-										'is_active' => 0,
-										'end_date' => $end_date,
-								));
-							}
-						} catch (CiviCRM_API3_Exception $e) {
-							;
-						}
-					}
-				}
-				break;
-		}
-	}
+                $result = civicrm_api3('Relationship', 'setvalue', array(
+                            'sequential' => 1,
+                            'field' => 'is_active',
+                            'id' => $relationship['id'],
+                            'value' => 0,
+                           ));
+              }
+
+            } catch (CiviCRM_API3_Exception $e) {
+              ;
+            }
+          }
+        }
+        break;
+    }
+  }
 }
 
 /*
  * Implementation of hook_civicrm_post() which is called after a db write on some core objects
 */
 function cbf_civicrm_civicrm_post( $op, $objectName, $id, &$params ) {
-	$ministry_centre_prefix = 'Ministry centre is ';
-	$ministry_centre_group_id = 326;
+  $ministry_centre_prefix = 'Ministry centre is ';
 
-	/*
-	 * Whenever a Participant is created, ensure the contact has a Ministry
-	 * Centre tag. If it doesn't, add a tag that corresponds to the Ministry
-	 * Centre of the event.
-	*/
-	if ($objectName == 'Participant') {
-		switch ($op) {
-			case 'create':
-				try {
-					$entity_tags = civicrm_api3('EntityTag', 'get', array(
-							'sequential' => 1,
-							'entity_table' => 'civicrm_contact',
-							'entity_id' => $params->contact_id,
-					));
+  /*
+   * Whenever a Participant is created, ensure the contact has a Ministry
+   * Centre tag. If it doesn't, add a tag that corresponds to the Ministry
+   * Centre of the event.
+   */
+  if ($objectName == 'Participant') {
+    switch ($op) {
+      case 'create':
+        try {
+          $entity_tags = civicrm_api3('EntityTag', 'get', array(
+                           'sequential' => 1,
+                           'entity_table' => 'civicrm_contact',
+                           'entity_id' => $params->contact_id,
+                         ));
 
-					foreach ($entity_tags['values'] as $entity_tag) {
-						$tag = civicrm_api3('Tag', 'get', array(
-								'sequential' => 1,
-								'id' => $entity_tag['tag_id'],
-								'return' => 'name',
-						));
+          foreach ($entity_tags['values'] as $entity_tag) {
+            $tag = civicrm_api3('Tag', 'get', array(
+                     'sequential' => 1,
+                     'id' => $entity_tag['tag_id'],
+                     'return' => 'name',
+                   ));
 
-						if (stristr($tag['values'][0]['name'], $ministry_centre_prefix) !== false) {
-							break 2;
-						}
-					}
+            if (stristr($tag['values'][0]['name'], $ministry_centre_prefix) !== false) {
+              break 2;
+            }
+          }
 
-					$custom_values = civicrm_api3('CustomValue', 'get', array(
-							'sequential' => 1,
-							'entity_id' => $params->event_id,
-							'entity_table' => 'civicrm_event',
-							'id' => 25,
-					));
+          $ministry_centre = _cbf_civicrm_civicrm_event_ministry_centre($params->event_id);
 
-					$ministry_centre_id = null;
-					foreach ($custom_values['values'] as $custom_value) {
-						if (isset($custom_value['latest'])
-								&& isset($custom_value['id'])
-								&& $custom_value['id'] = '25') {
-							$ministry_centre_id = (int) $custom_value['latest'];
-							break;
-						}
-					}
+          if (!isset($ministry_centre)) {
+            break;
+          }
 
-					if ( ! isset($ministry_centre_id) ) {
-						break;
-					}
+          $tag = civicrm_api3('Tag', 'get', array(
+                   'sequential' => 1,
+                   'name' => $ministry_centre_prefix . $ministry_centre,
+                   'return' => 'id',
+                 ));
 
-					$ministry_centre = civicrm_api3('OptionValue', 'get', array(
-							'sequential' => 1,
-							'option_group_id' => $ministry_centre_group_id,
-							'value' => $ministry_centre_id,
-					));
+          if ($tag['count'] == 1) {
+            $create = civicrm_api3('EntityTag', 'create', array(
+                        'sequential' => 1,
+                        'entity_table' => 'civicrm_contact',
+                        'entity_id' => $params->contact_id,
+                        'tag_id' => $tag['values'][0]['id'],
+                      ));
+          }
+        } catch (CiviCRM_API3_Exception $e) {
+          ;
+        }
+        break;
+    }
+  }
+}
 
-					$tag = civicrm_api3('Tag', 'get', array(
-							'sequential' => 1,
-							'name' => $ministry_centre_prefix . $ministry_centre['values'][0]['name'],
-							'return' => 'id',
-					));
+function _cbf_civicrm_civicrm_event_ministry_centre($event_id) {
+  $ministry_centre_group_id = 326;
+  try {
+    $custom_values = civicrm_api3('CustomValue', 'get', array(
+        'sequential' => 1,
+        'entity_id' => $event_id,
+        'entity_table' => 'civicrm_event',
+        'id' => 25,
+    ));
 
-					if ($tag['count'] == 1) {
-						$create = civicrm_api3('EntityTag', 'create', array(
-								'sequential' => 1,
-								'entity_table' => 'civicrm_contact',
-								'entity_id' => $params->contact_id,
-								'tag_id' => $tag['values'][0]['id'],
-						));
-					}
-				} catch (CiviCRM_API3_Exception $e) {
-					;
-				}
-				break;
-		}
-	}
+    $ministry_centre_id = null;
+    foreach ($custom_values['values'] as $custom_value) {
+      if (isset($custom_value['latest'])
+          && isset($custom_value['id'])
+          && $custom_value['id'] = '25') {
+        $ministry_centre_id = (int) $custom_value['latest'];
+        break;
+      }
+    }
+
+    if ( ! isset($ministry_centre_id) ) {
+      return null;
+    }
+
+    $ministry_centre = civicrm_api3('OptionValue', 'get', array(
+        'sequential' => 1,
+        'option_group_id' => $ministry_centre_group_id,
+        'value' => $ministry_centre_id,
+    ));
+
+    return $ministry_centre['values'][0]['name'];
+ 
+  } catch (CiviCRM_API3_Exception $e) {
+    return null;
+  }
+}
+
+/*
+ * A hook that gets called by the AccountSync extension, prior to pulling data
+ * from Xero.
+ *
+ * @param string $entity entity - eg. 'contact'
+ * @param array $data data from accounts being processing
+ * @param bool $save save? - set this to false if it should be skipped
+ * @param $params
+ *
+ * @return mixed
+ *   Ignore value.
+ */
+function cbf_civicrm_civicrm_accountPullPreSave($entity, &$data, &$save, &$params) {
+  switch ($entity) {
+    case 'contact' :
+      break;
+
+    case 'invoice' :
+      if (isset($params['contribution_id'])
+          && !is_numeric($params['contribution_id'])) {
+        /*
+         * This invoice was generated in Xero but not by CiviCRM
+         */
+        try {
+          $result = civicrm_api3('Contribution', 'create', array(
+              'sequential' => 1,
+              'financial_type_id' => 'Donation',
+              'total_amount' => $data['Total'],
+              'tax_amount' => $data['TotalTax'],
+              'contact_id' => $data['Contact']['ContactNumber'],
+              'contribution_status_id' => $data['Status'] == 'PAID' ? 'Completed' : 'Pending',
+          ));
+          $params['contribution_id'] = $data['InvoiceNumber'] = $result['id'];
+        } catch (CiviCRM_API3_Exception $e) {
+          ;
+        }
+      }
+      break;
+  }
+}
+
+
+/*
+ * A hook that gets called by the AccountSync extension, prior to pushing data
+ * to Xero.
+ *
+ * @param string $entity entity - eg. 'contact'
+ * @param array $data data from accounts being processing
+ * @param bool $save save? - set this to false if it should be skipped
+ * @param $params
+ *
+ * @return mixed
+ *   Ignore value.
+ */
+function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$params) {
+  switch ($entity) {
+    case 'contact' :
+      $deletedSuffix = ' (deleted in CiviCRM)';
+      if (!empty($data['contact_is_deleted']) && stristr($params['Name'], $deletedSuffix) === false) {
+        $params['Name'] .= $deletedSuffix;
+      }
+      break;
+
+    case 'invoice' :
+      if (!empty($data['custom_43'])) {
+        $save = false;
+        break;
+      }
+
+      /*
+       * TODO
+       *  - Sales
+       *  - Recurring donations - subsequent payments have no custom data
+       *  - Don't push contributions derived from Bank Transactions
+       */
+      if (!empty($data['trxn_id'])) {
+        $params['Reference'] = $data['trxn_id'] . ' - ' . $params['Reference'];
+      }
+
+      foreach ($params['LineItems']['LineItem'] as $key => $lineitem) {
+        $local = $data['line_items'][$key];
+
+        $params['LineItems']['LineItem'][$key]['Description'] = $local['label'];
+        if (!empty($data['contribution_recur_id'])) {
+          $params['LineItems']['LineItem'][$key]['AccountCode'] = 260;
+        }
+
+        if (isset($local['tax_amount']) && $local['tax_amount'] != 0) {
+          $params['LineItems']['LineItem'][$key]['UnitAmount'] = round((floatval($local['line_total']) + floatval($local['tax_amount'])) / floatval($local['qty']), 2);
+        }
+
+        if (!empty($data['custom_26'])) {
+          $params['LineItems']['LineItem'][$key]['Tracking']
+            = array(
+                'TrackingCategory' =>
+                  array(
+                    array(
+                     'Name' => 'Department',
+                     'Option' => $data['custom_26']
+                  )
+              )
+          );
+        } elseif (!empty($data['api.participant_payment.get'])) {
+          $event_id = $data['api.participant_payment.get']['values'][0]['api.participant.get']['values'][0]['event_id'];
+          $ministry_centre = _cbf_civicrm_civicrm_event_ministry_centre($event_id);
+          if (isset($ministry_centre)) {
+            $params['LineItems']['LineItem'][$key]['Tracking']
+              = array(
+                  'TrackingCategory' =>
+                    array(
+                      array(
+                       'Name' => 'Department',
+                       'Option' => strtoupper(substr($ministry_centre, 0, 3))
+                    )
+                )
+            );
+          }
+        }
+      }
+      if (!empty($data['custom_27'])) {
+        $params['LineItems']['LineItem'][] = array('Description' => $data['custom_27']);
+      }
+      break;
+  }
 }

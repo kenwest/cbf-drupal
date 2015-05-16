@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.5                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2014                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2014
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -47,20 +47,16 @@ class CRM_Utils_ReCAPTCHA {
    * pattern and cache the instance in this variable
    *
    * @var object
-   * @static
    */
   static private $_singleton = NULL;
 
   /**
-   * singleton function used to manage this object
+   * Singleton function used to manage this object.
    *
-   * @param string the key to permit session scope's
    *
    * @return object
-   * @static
-   *
    */
-  static function &singleton() {
+  public static function &singleton() {
     if (self::$_singleton === NULL) {
       self::$_singleton = new CRM_Utils_ReCAPTCHA();
     }
@@ -68,19 +64,18 @@ class CRM_Utils_ReCAPTCHA {
   }
 
   /**
-   *
    */
-  function __construct() {}
+  public function __construct() {
+  }
 
   /**
-   * Add element to form
-   *
+   * Add element to form.
    */
-  static function add(&$form) {
-    $error  = NULL;
+  public static function add(&$form) {
+    $error = NULL;
     $config = CRM_Core_Config::singleton();
     $useSSL = FALSE;
-    if ( !function_exists( 'recaptcha_get_html' ) ) {
+    if (!function_exists('recaptcha_get_html')) {
       module_load_include('php', 'recaptcha', 'recaptcha-php-1.11/recaptchalib');
     }
 

@@ -4,4 +4,4 @@ dependencies[] = civicrm
 package = CiviCRM
 files[] = cbf_civicrm.module
 core = 7.x
-version = 4.5
+version = 4.6

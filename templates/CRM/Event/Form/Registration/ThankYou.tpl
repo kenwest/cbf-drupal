@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.5                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2014                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -106,7 +106,7 @@
         </div>
     </div>
 
-    {if $paidEvent}
+    {if $paidEvent && !$isRequireApproval && !$isOnWaitlist}
         <div class="crm-group event_fees-group">
             <div class="header-dark">
                 {$event.fee_label}
@@ -122,6 +122,10 @@
                   <div class="clear"></div>
                     {/foreach}
                 </div>
+                {if $totalTaxAmount}
+                  <div class="content bold">{ts}Tax Total{/ts}:&nbsp;&nbsp;{$totalTaxAmount|crmMoney}</div>
+                  <div class="clear"></div>
+                {/if}
                 {if $totalAmount}
                  <div class="crm-section no-label total-amount-section">
                     <div class="content bold">{ts}Event Total{/ts}:&nbsp;&nbsp;{$totalAmount|crmMoney}</div>
