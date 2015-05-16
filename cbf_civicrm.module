@@ -77,7 +77,8 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
               }
             }
 
-            if ($_SESSION['City Bible Forum']['Card issues'] > 5) {
+            if (isset($_SESSION['City Bible Forum']['Card issues'])
+                && $_SESSION['City Bible Forum']['Card issues'] > 5) {
               CRM_Utils_System::redirect(CRM_Utils_System::url('annoying-urls.html'));
             }
 
