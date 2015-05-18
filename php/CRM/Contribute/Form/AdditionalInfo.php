@@ -446,9 +446,9 @@ class CRM_Contribute_Form_AdditionalInfo {
       //retrieve custom data
       $customGroup = array();
 
-      // Assume this receipt is being sent to an anonymous user.
-      // This code emulates CRM_Core_Permission::CRM_Core_Permission() being called for an
-      // anonymous user. The result is used to filter the custom data that is presented.
+      // Assume this receipt is being sent to an anonymous user. This code emulates
+      // CRM_Core_Permission::customGroup() being called for an anonymous user. The
+      // result is used to filter the custom data that is presented.
       $publicGroups = CRM_ACL_BAO_ACL::group(
           CRM_Core_Permission::VIEW,
           0,
