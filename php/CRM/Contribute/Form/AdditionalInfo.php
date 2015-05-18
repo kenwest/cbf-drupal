@@ -448,7 +448,7 @@ class CRM_Contribute_Form_AdditionalInfo {
 
       // Assume this receipt is being sent to an anonymous user. This code emulates
       // CRM_Core_Permission::customGroup() being called for an anonymous user, and
-      // assumes anonymous users are not granted the 'access all custom data'
+      // assumes that anonymous users are not granted the 'access all custom data'
       // permission. Anonymous users are only shown public custom data groups.
       $publicGroups = CRM_ACL_BAO_ACL::group(
           CRM_Core_Permission::VIEW,
