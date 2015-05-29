@@ -120,4 +120,3 @@ class CRM_Core_ScheduledJob {
   }
 
 }
-
