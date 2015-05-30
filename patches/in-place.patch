@@ -54,6 +54,17 @@ diff -ur ./ang/crmUi.js /var/www/citybibleforum/sites/all/modules/civicrm/ang/cr
              });
            }
  
+diff -ur ./api/v3/Generic/Setvalue.php /var/www/citybibleforum/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php
+--- ./api/v3/Generic/Setvalue.php	2015-05-20 16:30:37.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php	2015-05-30 12:04:26.928248333 +1000
+@@ -106,6 +106,7 @@
+       break;
+ 
+     case CRM_Utils_Type::T_DATE:
++    case CRM_Utils_Type::T_DATE + CRM_Utils_Type::T_TIME:
+       $value = CRM_Utils_Type::escape($value, "Date", FALSE);
+       if (!$value) {
+         return civicrm_api3_create_error("Param '$field' is not a date. format YYYYMMDD or YYYYMMDDHHMMSS");
 diff -ur ./Civi/Angular/Page/Main.php /var/www/citybibleforum/sites/all/modules/civicrm/Civi/Angular/Page/Main.php
 --- ./Civi/Angular/Page/Main.php	2015-05-20 16:30:37.000000000 +1000
 +++ /var/www/citybibleforum/sites/all/modules/civicrm/Civi/Angular/Page/Main.php	2015-05-29 11:46:22.862661518 +1000

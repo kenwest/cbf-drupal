@@ -652,8 +652,10 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
         $data['line_items'][] = array('label' => 'Amount');
       }
 
+      $lineItemKeys = array_keys($data['line_items']);
+
       foreach ($params['LineItems']['LineItem'] as $key => $lineitem) {
-        $local = $data['line_items'][$key];
+        $local = $data['line_items'][$lineItemKeys[$key]];
 
         $params['LineItems']['LineItem'][$key]['Description'] = $local['label'];
 
