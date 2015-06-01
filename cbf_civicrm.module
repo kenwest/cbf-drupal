@@ -79,7 +79,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
 
             if (isset($_SESSION['City Bible Forum']['Card issues'])
                 && $_SESSION['City Bible Forum']['Card issues'] > 5) {
-              CRM_Utils_System::redirect(CRM_Utils_System::url('annoying-urls.html'));
+              CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
             }
 
             // Add a form element for the credit card holder
