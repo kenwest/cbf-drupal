@@ -624,6 +624,9 @@ function cbf_civicrm_civicrm_accountPullPreSave($entity, &$data, &$save, &$param
 function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$params) {
   switch ($entity) {
     case 'contact' :
+      if ($data['contact_type'] == 'Individual') {
+        $params['Name'] = $data['first_name'] . ' ' . $data['last_name'] . ' - ' . $data['contact_id'];
+      }
       $deletedSuffix = ' (deleted in CiviCRM)';
       if (!empty($data['contact_is_deleted']) && stristr($params['Name'], $deletedSuffix) === false) {
         $params['Name'] .= $deletedSuffix;
