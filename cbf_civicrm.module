@@ -7,52 +7,52 @@
  *  left off so CiviMail can add a tracking token to the email.
  */
 function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
+  /*
+   *  Change relative URLs to absolute.
+   */
+  $htmlMessage = CRM_Utils_Array::value( 'html', $params );
+  if ( $htmlMessage ) {
     /*
-     *  Change relative URLs to absolute.
+     *  Links:  Relative URLs start with a '/' and occur in the HREF attribute of an A element
+     *  Images: Relative URLs start with a '/' and occur in the SRC attribute of an IMG element
+     *  The '/' is replaced by the CiviCRM User Framework Base URL, which terminates with a '/'
      */
-    $htmlMessage = CRM_Utils_Array::value( 'html', $params );
-    if ( $htmlMessage ) {
-        /*
-         *  Links:  Relative URLs start with a '/' and occur in the HREF attribute of an A element
-         *  Images: Relative URLs start with a '/' and occur in the SRC attribute of an IMG element
-         *  The '/' is replaced by the CiviCRM User Framework Base URL, which terminates with a '/'
-         */
-        $config = CRM_Core_Config::singleton( );
-        $htmlMessage = str_replace(' href="//', ' href="http://', $htmlMessage);
-        $htmlMessage = str_replace(' src="//',  ' src="http://',  $htmlMessage);
-        $htmlMessage = str_replace(' href="/',  ' href="'.$config->userFrameworkBaseURL, $htmlMessage);
-        $htmlMessage = str_replace(' src="/',   ' src="'.$config->userFrameworkBaseURL,  $htmlMessage);
-        /*
-         *  Remove empty paragraphs inserted by CKeditor
-         */
-        $htmlMessage = preg_replace('!<p>(\r\n\t)*&nbsp;</p>!i', '', $htmlMessage);
-        /*
-         * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes an issue
-         * for responsive email templates when the email is viewed in Outlook. As these images have
-         * a CSS style setting their width or max-width to 280px, we reinsert the HTML attribute on
-         * images that match that pattern.
-         */
-        $htmlMessage = preg_replace('!<img ([^w/>][^>]+width: 280px[^>]+)/>!i', '<img width="280" $1/>', $htmlMessage);
-        /*
-         * The HTML IMGs that have been set to 280px wide will not scale properly if the height
-         * attribute is set. We remove that.
-         */
-        $htmlMessage = preg_replace('!<img width="280" ([^>]+)height: [0-9px%]+[;]?([^>]+)/>!i', '<img width="280" $1$2/>', $htmlMessage);
-        /*
-         * Look for the closing tag for the BODY element, and add it if needed
-         */
-        if (stripos($htmlMessage, '</body>') === false) {
-            $htmlMessage .= '</body></html>';
-        }
-        /*
-         * Ensure the email has a Title in its title-field
-         */
-        if (!isset($params['tplParams']['title']) && isset($params['subject'])) {
-            $htmlMessage = preg_replace('!class="title-field">  </p>!i', 'class="title-field"> ' . $params['subject'] . ' </p>', $htmlMessage);
-        }
-
-        $params['html'] = $htmlMessage;
+    $config = CRM_Core_Config::singleton( );
+    $htmlMessage = str_replace(' href="//', ' href="http://', $htmlMessage);
+    $htmlMessage = str_replace(' src="//',  ' src="http://',  $htmlMessage);
+    $htmlMessage = str_replace(' href="/',  ' href="'.$config->userFrameworkBaseURL, $htmlMessage);
+    $htmlMessage = str_replace(' src="/',   ' src="'.$config->userFrameworkBaseURL,  $htmlMessage);
+    /*
+     *  Remove empty paragraphs inserted by CKeditor
+     */
+    $htmlMessage = preg_replace('!<p>(\r\n\t)*&nbsp;</p>!i', '', $htmlMessage);
+    /*
+     * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes an issue
+     * for responsive email templates when the email is viewed in Outlook. As these images have
+     * a CSS style setting their width or max-width to 280px, we reinsert the HTML attribute on
+     * images that match that pattern.
+     */
+    $htmlMessage = preg_replace('!<img ([^w/>][^>]+width: 280px[^>]+)/>!i', '<img width="280" $1/>', $htmlMessage);
+    /*
+     * The HTML IMGs that have been set to 280px wide will not scale properly if the height
+     * attribute is set. We remove that.
+     */
+    $htmlMessage = preg_replace('!<img width="280" ([^>]+)height: [0-9px%]+[;]?([^>]+)/>!i', '<img width="280" $1$2/>', $htmlMessage);
+    /*
+     * Look for the closing tag for the BODY element, and add it if needed
+     */
+    if (stripos($htmlMessage, '</body>') === false) {
+      $htmlMessage .= '</body></html>';
     }
+    /*
+     * Ensure the email has a Title in its title-field
+     */
+    if (!isset($params['tplParams']['title']) && isset($params['subject'])) {
+      $htmlMessage = preg_replace('!class="title-field">  </p>!i', 'class="title-field"> ' . $params['subject'] . ' </p>', $htmlMessage);
+    }
+
+    $params['html'] = $htmlMessage;
+  }
 }
 
 /*
@@ -64,121 +64,115 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
  * on CBF payment forms.
  */
 function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
-    switch ( $formName ) {
+  switch ( $formName ) {
 
-        case 'CRM_Contribute_Form_Contribution':
-        case 'CRM_Contribute_Form_Contribution_Main':
-        case 'CRM_Event_Form_Participant':
-        case 'CRM_Event_Form_Registration_Register':
+    case 'CRM_Contribute_Form_Contribution':
+    case 'CRM_Contribute_Form_Contribution_Main':
+    case 'CRM_Event_Form_Participant':
+    case 'CRM_Event_Form_Registration_Register':
 
-            if (user_is_anonymous() && isset($_SESSION['CiviCRM']['status'][0]['text'])) {
-              $status_text = $_SESSION['CiviCRM']['status'][0]['text'];
-              if (stristr($status_text, 'Payment Processor Error') !== false) {
-                if (stristr($status_text, '9001') !== false) {
-                  if (isset($_SESSION['City Bible Forum']['Card issues'])) {
-                    $_SESSION['City Bible Forum']['Card issues']++;
-                  } else {
-                    $_SESSION['City Bible Forum']['Card issues'] = 1;
-                  }
-                }
-              }
+      if (user_is_anonymous() && isset($_SESSION['CiviCRM']['status'][0]['text'])) {
+        $status_text = $_SESSION['CiviCRM']['status'][0]['text'];
+        if (stristr($status_text, 'Payment Processor Error') !== false) {
+          if (stristr($status_text, '9001') !== false) {
+            if (isset($_SESSION['City Bible Forum']['Card issues'])) {
+              $_SESSION['City Bible Forum']['Card issues']++;
+            } else {
+              $_SESSION['City Bible Forum']['Card issues'] = 1;
             }
+          }
+        }
+      }
 
-            if (isset($_SESSION['City Bible Forum']['Card issues'])
-                && $_SESSION['City Bible Forum']['Card issues'] > 5) {
-              CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
-            }
+      if (isset($_SESSION['City Bible Forum']['Card issues']) && $_SESSION['City Bible Forum']['Card issues'] > 5) {
+        CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
+      }
 
-            // Add a form element for the credit card holder
-            // It is required if the credit card number is required
-            if ( $form->elementExists('credit_card_number') && 
-                !$form->elementExists('credit_card_holder') ) {
-                $form->add (
-                    'text', 
-                    'credit_card_holder', 
-                    ts('Card Holder'),
-                    array (
-                        'size' => 20, 
-                        'maxlength' => 30, 
-                        'autocomplete' => 'off' ), 
-                    $form->isElementRequired('credit_card_number'),
-                    null);
-            }
+      // Add a form element for the credit card holder
+      // It is required if the credit card number is required
+      if ($form->elementExists('credit_card_number') && !$form->elementExists('credit_card_holder')) {
+        $form->add (
+          'text',
+          'credit_card_holder',
+          ts('Card Holder'),
+          array (
+            'size' => 20,
+            'maxlength' => 30,
+            'autocomplete' => 'off' ),
+          $form->isElementRequired('credit_card_number'),
+          null);
+      }
 
-            // Assume the person's first and last name are being captured via a profile
-            // Make the address optional so donors have less data to supply
-            if (isset($form->_bltID)) {
-                $bltID = $form->_bltID;
-                $unnecessaryFields = array(
-                                         "billing_first_name",
-                                         "billing_last_name",
-                                         "billing_street_address-{$bltID}",
-                                         "billing_city-{$bltID}",
-                                         "billing_postal_code-{$bltID}",
-                                         "billing_state_province_id-{$bltID}",
-                                         "billing_country_id-{$bltID}"
-                                     );
-                $form->_required = array_diff($form->_required, $unnecessaryFields);
-                foreach ($unnecessaryFields as $field) {
-                    if ( isset($form->_paymentFields[$field]) ) {
-                        $form->_paymentFields[$field]['is_required'] = false;
-                    }
-                }
-            }
+      // Assume the person's first and last name are being captured via a profile
+      // Make the address optional so donors have less data to supply
+      if (isset($form->_bltID)) {
+        $bltID = $form->_bltID;
+        $unnecessaryFields = array(
+          "billing_first_name",
+          "billing_last_name",
+          "billing_street_address-{$bltID}",
+          "billing_city-{$bltID}",
+          "billing_postal_code-{$bltID}",
+          "billing_state_province_id-{$bltID}",
+          "billing_country_id-{$bltID}"
+        );
+        $form->_required = array_diff($form->_required, $unnecessaryFields);
+        foreach ($unnecessaryFields as $field) {
+          if ( isset($form->_paymentFields[$field]) ) {
+            $form->_paymentFields[$field]['is_required'] = false;
+          }
+        }
+      }
 
-            if ($formName == 'CRM_Contribute_Form_Contribution_Main'
-                    && $form->elementExists('buttons') ) {
-                $buttons = $form->getElement('buttons');
-                $submit = $buttons->getElements();
-                $submit[0]->setValue('Next >>');
-            }
+      if ($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->elementExists('buttons') ) {
+        $buttons = $form->getElement('buttons');
+        $submit = $buttons->getElements();
+        $submit[0]->setValue('Next >>');
+      }
 
-            break;
+      break;
 
-        case 'CRM_Contribute_Form_Contribution_Confirm':
-        case 'CRM_Contribute_Form_Contribution_ThankYou':
-        case 'CRM_Event_Form_Registration_Confirm':
-        case 'CRM_Event_Form_Registration_ThankYou':
+    case 'CRM_Contribute_Form_Contribution_Confirm':
+    case 'CRM_Contribute_Form_Contribution_ThankYou':
+    case 'CRM_Event_Form_Registration_Confirm':
+    case 'CRM_Event_Form_Registration_ThankYou':
 
-            // Set the Credit Card Holder in the Smarty template
-            // Clear the Address in the Smarty template
-            $tpl = $form->getTemplate();
-            $tpl_credit_card_number = $tpl->get_template_vars('credit_card_number'); 
-            if ( isset($tpl_credit_card_number) ) {
-                if ( isset($form->_params['credit_card_holder']) ) {
-                    $form->assign( 'credit_card_holder', $form->_params['credit_card_holder'] );
-                } else if ( isset($form->_params[0]) && 
-                            isset($form->_params[0]['credit_card_holder']) ) {
-                    $form->assign( 'credit_card_holder', $form->_params[0]['credit_card_holder'] );
-                }
-            }
-            $form->assign( 'address', '' );
+      // Set the Credit Card Holder in the Smarty template
+      // Clear the Address in the Smarty template
+      $tpl = $form->getTemplate();
+      $tpl_credit_card_number = $tpl->get_template_vars('credit_card_number');
+      if ( isset($tpl_credit_card_number) ) {
+        if ( isset($form->_params['credit_card_holder']) ) {
+          $form->assign( 'credit_card_holder', $form->_params['credit_card_holder'] );
+        }
+        else if (isset($form->_params[0]) && isset($form->_params[0]['credit_card_holder'])) {
+          $form->assign( 'credit_card_holder', $form->_params[0]['credit_card_holder'] );
+        }
+      }
+      $form->assign( 'address', '' );
 
-            if ($formName == 'CRM_Contribute_Form_Contribution_Confirm'
-                    && $form->elementExists('buttons') ) {
-                $makePaymentLabel = 'Make payment';
+      if ($formName == 'CRM_Contribute_Form_Contribution_Confirm' && $form->elementExists('buttons')) {
+        $makePaymentLabel = 'Make payment';
 
-                $buttons = $form->getElement('buttons');
-                $submit = $buttons->getElements();
-                $submit[0]->setValue($makePaymentLabel);
+        $buttons = $form->getElement('buttons');
+        $submit = $buttons->getElements();
+        $submit[0]->setValue($makePaymentLabel);
 
-                $tpl->assign('button', $makePaymentLabel);
-            }
+        $tpl->assign('button', $makePaymentLabel);
+      }
+      break;
 
-            break;
+    case 'CRM_Mailing_Form_Upload':
 
-        case 'CRM_Mailing_Form_Upload':
-
-            // For CiviMails, unset the From email address when the Subject is empty.
-            // This is a roundabout way of unsetting the CiviMail default, to force
-            // the user to enter an From address. 
-            if ( $form->getElementValue('subject') == null ) {
-                $fromAddress = $form->getElement('from_email_address');
-                $fromAddress->setSelected(0);
-            }
-            break;
-    }
-    return;
+      // For CiviMails, unset the From email address when the Subject is empty.
+      // This is a roundabout way of unsetting the CiviMail default, to force
+      // the user to enter an From address.
+      if ( $form->getElementValue('subject') == null ) {
+        $fromAddress = $form->getElement('from_email_address');
+        $fromAddress->setSelected(0);
+      }
+      break;
+  }
 }
 
 /*
