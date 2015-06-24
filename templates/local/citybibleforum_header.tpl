@@ -73,9 +73,7 @@
       <table width="580"  class="deviceWidth" border="0" cellpadding="0" cellspacing="0" align="center" bgcolor="#ffffff">
         <tr>
           <td style="font-size: 16px; color: #ffffff; font-weight: bold; text-align: left; font-family: 'Open Sans',Arial,Helvetica,sans-serif; line-height: 24px; vertical-align: top; padding: 15px; border-radius: 4px;" bgcolor="#1e9dd8">
-            <p style="margin: 0;">
-              {$title}
-            </p>
+            <p style="margin: 0;" class="title-field"> {$title} </p>
           </td>
         </tr>
         <tr>
