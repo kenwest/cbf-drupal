@@ -47,9 +47,37 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     /*
      * Ensure the email has a Title in its title-field
      */
-    if (!isset($params['tplParams']['title']) && isset($params['subject'])) {
+    if (isset($params['tplParams']) && !isset($params['tplParams']['title']) && isset($params['subject'])) {
       $htmlMessage = preg_replace('!class="title-field">  </p>!i', 'class="title-field"> ' . $params['subject'] . ' </p>', $htmlMessage);
     }
+    /*
+     * Replace the '<tax-invoice/>' HTML element with the Tax Invoice text.
+     * This is usually empty, except for event registrations and contributions
+     * for Event Fees and Sales.
+     */
+    $taxInvoice = '<tr><td>This email serves as a Tax Invoice. Amounts quoted include GST.</td></tr><tr><td>ABN 42 172 211 662</td></tr>';
+    $isTaxInvoice = FALSE;
+    if (isset($params['valueName'])) {
+      switch ($params['valueName']) {
+        case 'contribution_offline_receipt':
+        case 'contribution_online_receipt':
+          if (isset($params['tplParams']['contributionTypeName'])) {
+            switch ($params['tplParams']['contributionTypeName']) {
+              case 'Event Fee':
+              case 'Sales':
+                $isTaxInvoice = TRUE;
+                break;
+            }
+          }
+          break;
+
+        case 'event_offline_receipt':
+        case 'event_online_receipt':
+          $isTaxInvoice = TRUE;
+          break;
+      }
+    }
+    $htmlMessage = preg_replace('!<tax-invoice/>!i', $isTaxInvoice ? $taxInvoice : '', $htmlMessage);
 
     $params['html'] = $htmlMessage;
   }
@@ -64,7 +92,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
  * on CBF payment forms.
  */
 function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
-  switch ( $formName ) {
+  switch ($formName) {
 
     case 'CRM_Contribute_Form_Contribution':
     case 'CRM_Contribute_Form_Contribution_Main':
