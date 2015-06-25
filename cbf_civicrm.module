@@ -62,12 +62,24 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         case 'contribution_offline_receipt':
         case 'contribution_online_receipt':
           if (isset($params['tplParams']['contributionTypeName'])) {
-            switch ($params['tplParams']['contributionTypeName']) {
-              case 'Event Fee':
-              case 'Sales':
-                $isTaxInvoice = TRUE;
-                break;
+            $financialType = $params['tplParams']['contributionTypeName'];
+          }
+          else {
+            try {
+              $contribution = civicrm_api3('Contribution', 'get', array(
+                'sequential' => 1,
+                'id' => $params['contributionId'],
+              ));
+              $financialType = $contribution['values'][0]['financial_type'];
+            } catch (CiviCRM_API3_Exception $e) {
+              $financialType = '';
             }
+          }
+          switch ($financialType) {
+            case 'Event Fee':
+            case 'Sales':
+              $isTaxInvoice = TRUE;
+              break;
           }
           break;
 
