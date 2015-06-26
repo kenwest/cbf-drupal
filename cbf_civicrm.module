@@ -713,7 +713,7 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
                 'TrackingCategory' =>
                   array(
                     array(
-                     'Name' => 'Department',
+                     'Name' => 'City',
                      'Option' => $data['custom_26']
                   )
               )
@@ -727,7 +727,7 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
                   'TrackingCategory' =>
                     array(
                       array(
-                       'Name' => 'Department',
+                       'Name' => 'City',
                        'Option' => strtoupper(substr($name, 0, 3))
                     )
                 )
