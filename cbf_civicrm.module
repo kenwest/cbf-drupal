@@ -641,10 +641,14 @@ function _cbf_civicrm_civicrm_contribution_ministry_centre($contribution_id) {
  */
 function cbf_civicrm_civicrm_accountPullPreSave($entity, &$data, &$save, &$params) {
   switch ($entity) {
-    case 'contact' :
+    case 'contact':
       break;
 
-    case 'invoice' :
+    case 'invoice':
+      // Don't try to pull Invoices when the Contribution Id is not numeric
+      if (isset($params['contribution_id']) && !is_numeric($params['contribution_id'])) {
+        $save = FALSE;
+      }
       break;
   }
 }
@@ -664,28 +668,34 @@ function cbf_civicrm_civicrm_accountPullPreSave($entity, &$data, &$save, &$param
  */
 function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$params) {
   switch ($entity) {
-    case 'contact' :
+    case 'contact':
+      // Remove prefixes etc from Contact name
       if ($data['contact_type'] == 'Individual') {
         $params['Name'] = $data['first_name'] . ' ' . $data['last_name'] . ' - ' . $data['contact_id'];
       }
+      // Highlight deleted contacts in Xero
       $deletedSuffix = ' (deleted in CiviCRM)';
       if (!empty($data['contact_is_deleted']) && stristr($params['Name'], $deletedSuffix) === false) {
         $params['Name'] .= $deletedSuffix;
       }
       break;
 
-    case 'invoice' :
+    case 'invoice':
+      // Ensure the contact has a Ministry Centre tag
       _cbf_civicrm_civicrm_post_contribution('create', $data['contribution_id'], $data['contact_id']);
 
+      // Baulk if the Suppress Xero Invoice is set
       if (!empty($data['custom_43'])) {
-        $save = false;
+        $save = FALSE;
         break;
       }
 
+      // Include the Transaction Id in the Invoice reference
       if (!empty($data['trxn_id'])) {
         $params['Reference'] = $data['trxn_id'] . ' - ' . $params['Reference'];
       }
 
+      // Ensure there is at least one Line Item in the Invoice
       if (empty($params['LineItems']['LineItem'])) {
         $params['LineItems']['LineItem'][] = array(
           'Description' => 'Amount',
@@ -696,17 +706,22 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
         $data['line_items'][] = array('label' => 'Amount');
       }
 
+      // Process each Line Item
       $lineItemKeys = array_keys($data['line_items']);
-
       foreach ($params['LineItems']['LineItem'] as $key => $lineitem) {
         $local = $data['line_items'][$lineItemKeys[$key]];
 
+        // Remove some gumph from the Description
         $params['LineItems']['LineItem'][$key]['Description'] = $local['label'];
 
+        // Set the Account Code for recurring contributions
         if (!empty($data['contribution_recur_id'])) {
           $params['LineItems']['LineItem'][$key]['AccountCode'] = '40110';
         }
 
+        // Capture the City tracking category. This may be supplied for
+        // Contributions, but can be derived from the Event's ministry
+        // centre.
         if (!empty($data['custom_26'])) {
           $params['LineItems']['LineItem'][$key]['Tracking']
             = array(
@@ -735,6 +750,8 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
           }
         }
       }
+
+      // Capture the Purpose if supplied as an extra Line Item
       if (!empty($data['custom_27'])) {
         $params['LineItems']['LineItem'][] = array('Description' => $data['custom_27']);
       }
