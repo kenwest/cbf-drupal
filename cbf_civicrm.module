@@ -350,7 +350,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
   /*
    * There are a number of annoying errors that get logged. They seem to be due to
    * robots etc. The $ignore array stores the patterns that should be ignored.
-   * 
+   *
    * The $ignore array consists of a number of pattern sets. Each set is matched
    * against elements of the $vars array. If all the patterns in a set match, we
    * simply return 'true'. This tells CiviCRM to abend processing, and nothing
