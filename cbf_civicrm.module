@@ -110,7 +110,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
     case 'CRM_Contribute_Form_Contribution_Main':
     case 'CRM_Event_Form_Participant':
     case 'CRM_Event_Form_Registration_Register':
-
       if (user_is_anonymous() && isset($_SESSION['CiviCRM']['status'][0]['text'])) {
         $status_text = $_SESSION['CiviCRM']['status'][0]['text'];
         if (stristr($status_text, 'Payment Processor Error') !== false) {
@@ -176,7 +175,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
     case 'CRM_Contribute_Form_Contribution_ThankYou':
     case 'CRM_Event_Form_Registration_Confirm':
     case 'CRM_Event_Form_Registration_ThankYou':
-
       // Set the Credit Card Holder in the Smarty template
       // Clear the Address in the Smarty template
       $tpl = $form->getTemplate();
@@ -203,7 +201,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       break;
 
     case 'CRM_Mailing_Form_Upload':
-
       // For CiviMails, unset the From email address when the Subject is empty.
       // This is a roundabout way of unsetting the CiviMail default, to force
       // the user to enter an From address.
@@ -221,44 +218,54 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
  * Credit Card Number has been entered.
  */
 function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$errors ) {
-    switch ( $formName ) {
+  switch ($formName) {
 
-        case 'CRM_Contribute_Form_Contribution':
-        case 'CRM_Contribute_Form_Contribution_Main':
-        case 'CRM_Event_Form_Participant':
-        case 'CRM_Event_Form_Registration_Register':
-            
-            // The credit card holder is required for CC transactions
-            // Assume that a credit card payment is being made if the CC number is supplied
-            // This test is only required if the Card Holder field exists and is not a required field
-            if ( $form->elementExists('credit_card_holder') &&
-                !$form->isElementRequired('credit_card_holder') ) {
-                $credit_card_number = CRM_Utils_Array::value( 'credit_card_number', $fields );
-                $credit_card_holder = CRM_Utils_Array::value( 'credit_card_holder', $fields );
-                if ( $credit_card_number && ! $credit_card_holder ) {
-                    $errors['credit_card_holder']
-                        = ts( 'Card Holder is required if Card Number is supplied' );
-                }
-            }
-            break;
+    case 'CRM_Contribute_Form_Contribution':
+    case 'CRM_Contribute_Form_Contribution_Main':
+    case 'CRM_Event_Form_Participant':
+    case 'CRM_Event_Form_Registration_Register':
+      // The credit card holder is required for CC transactions
+      // Assume that a credit card payment is being made if the CC number is supplied
+      // This test is only required if the Card Holder field exists and is not a required field
+      if ($form->elementExists('credit_card_holder') && !$form->isElementRequired('credit_card_holder')) {
+        $credit_card_number = CRM_Utils_Array::value('credit_card_number', $fields);
+        $credit_card_holder = CRM_Utils_Array::value('credit_card_holder', $fields);
+        if ($credit_card_number && !$credit_card_holder) {
+          $errors['credit_card_holder'] = ts('Card Holder is required if Card Number is supplied');
+        }
+      }
+      break;
 
-        case 'CRM_Contact_Import_Form_DataSource':
+    case 'CRM_Contact_Import_Form_DataSource':
+      // The dedupe rule is needed, except when 'No Duplicate Checking' is selected
+      $onDuplicate = CRM_Utils_Array::value( 'onDuplicate', $fields );
+      foreach ($form->getElement('onDuplicate')->getElements() as $duplicateOption ) {
+        if ($duplicateOption->getValue() == $onDuplicate) {
+          break; // We've found the option that's been selected
+        }
+      }
+      if ($duplicateOption->getText() <> 'No Duplicate Checking') {
+        if (CRM_Utils_Array::value( 'dedupe', $fields ) == '') {
+          $errors['dedupe'] = ts('Dedupe rule must be set, unless there is no duplicate checking');
+        }
+      }
+      break;
 
-            // The dedupe rule is needed, except when 'No Duplicate Checking' is selected
-            $onDuplicate = CRM_Utils_Array::value( 'onDuplicate', $fields );
-            foreach ($form->getElement('onDuplicate')->getElements() as $duplicateOption ) {
-            	if ( $duplicateOption->getValue() == $onDuplicate ) {
-            		break; // We've found the option that's been selected
-            	}
-            }
-            if ( $duplicateOption->getText() <> 'No Duplicate Checking' ) {
-                if ( CRM_Utils_Array::value( 'dedupe', $fields ) == '' ) {
-                    $errors['dedupe']
-                        = ts( 'Dedupe rule must be set, unless there is no duplicate checking' );
-                }
-            }
-            break;
-    }
+    case 'CRM_Event_Form_ManageEvent_EventInfo':
+      // Ensure the End date is set for Events that are not templates
+      $isTemplate = CRM_Utils_Array::value('is_template', $fields);
+      $start = CRM_Utils_Date::processDate(CRM_Utils_Array::value('start_date', $fields), CRM_Utils_Array::value('start_date_time', $fields));
+      $end = CRM_Utils_Date::processDate(CRM_Utils_Array::value('end_date', $fields), CRM_Utils_Array::value('end_date_time', $fields));
+      if (empty($isTemplate)) {
+        if (empty($end)) {
+          $errors['end_date'] = ts('End Date and Time are required fields');
+        }
+        elseif ($end < $start) {
+          $errors['end_date'] = ts('End date should be after Start date');
+        }
+      }
+      break;
+  }
 }
 
 /*
@@ -267,61 +274,63 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
  * The Purchaser Address details are cleared, since the Billing Address is not captured.
  */
 function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawParams, &$cookedParams ) {
-    $is_recur           = CRM_Utils_Array::value( 'is_recur',           $rawParams );
-    $credit_card_holder = CRM_Utils_Array::value( 'credit_card_holder', $rawParams );
-    if ( isset($is_recur) && $is_recur ) {
-        if ( $paymentObj instanceof org_civicrm_ewayrecurring ) {
-    	    // Set credit card holder
-    	    if ( $credit_card_holder ) {
-    	        $cookedParams['CCNameOnCard'] = $credit_card_holder;
-    	    }
-    	    // Set address
-    	    $cookedParams['Address']  = 'c/o Level 3, 13-15 Bridge St';
-    	    $cookedParams['Suburb']   = 'Sydney';
-    	    $cookedParams['State']    = 'NSW';
-    	    $cookedParams['PostCode'] = '2000';
-        } else if ( $paymentObj instanceof com_chrischinchilla_ewayrecurring ||
-                    $paymentObj instanceof CRM_Core_Payment_Ewayrecurring ) {
-    	    // Set credit card holder
-    	    if ( $credit_card_holder ) {
-    	        $cookedParams['man:CCNameOnCard'] = $credit_card_holder;
-    	    }
-    	    // Set address
-    	    $cookedParams['man:Address']  = 'c/o Level 3, 13-15 Bridge St';
-    	    $cookedParams['man:Suburb']   = 'Sydney';
-    	    $cookedParams['man:State']    = 'NSW';
-    	    $cookedParams['man:PostCode'] = '2000';
-    	}
-    } else {
-        if ( $paymentObj instanceof CRM_Core_Payment_eWAY  ||
-             $paymentObj instanceof org_civicrm_ewayrecurring  ||
-             $paymentObj instanceof com_chrischinchilla_ewayrecurring ||
-             $paymentObj instanceof CRM_Core_Payment_Ewayrecurring ) {
-            // Set credit card holder
-            if ( $credit_card_holder ) {
-                $cookedParams->CardHolderName($credit_card_holder);
-            }
-            // Clear address information
-            $cookedParams->PurchaserAddress('');
-            $cookedParams->PurchaserPostalCode('');
-        }
+  $is_recur           = CRM_Utils_Array::value('is_recur',           $rawParams);
+  $credit_card_holder = CRM_Utils_Array::value('credit_card_holder', $rawParams);
+  if (isset($is_recur) && $is_recur) {
+    if ($paymentObj instanceof org_civicrm_ewayrecurring) {
+      // Set credit card holder
+      if ($credit_card_holder) {
+        $cookedParams['CCNameOnCard'] = $credit_card_holder;
+      }
+      // Set address
+      $cookedParams['Address']  = 'c/o Level 3, 13-15 Bridge St';
+      $cookedParams['Suburb']   = 'Sydney';
+      $cookedParams['State']    = 'NSW';
+      $cookedParams['PostCode'] = '2000';
     }
+    else if ($paymentObj instanceof com_chrischinchilla_ewayrecurring || $paymentObj instanceof CRM_Core_Payment_Ewayrecurring) {
+      // Set credit card holder
+      if ($credit_card_holder) {
+        $cookedParams['man:CCNameOnCard'] = $credit_card_holder;
+      }
+      // Set address
+      $cookedParams['man:Address']  = 'c/o Level 3, 13-15 Bridge St';
+      $cookedParams['man:Suburb']   = 'Sydney';
+      $cookedParams['man:State']    = 'NSW';
+      $cookedParams['man:PostCode'] = '2000';
+    }
+  }
+  else {
+    if ($paymentObj instanceof CRM_Core_Payment_eWAY  ||
+        $paymentObj instanceof org_civicrm_ewayrecurring  ||
+        $paymentObj instanceof com_chrischinchilla_ewayrecurring ||
+        $paymentObj instanceof CRM_Core_Payment_Ewayrecurring) {
+      // Set credit card holder
+      if ($credit_card_holder) {
+        $cookedParams->CardHolderName($credit_card_holder);
+      }
+      // Clear address information
+      $cookedParams->PurchaserAddress('');
+      $cookedParams->PurchaserPostalCode('');
+    }
+  }
 }
 
 function cbf_civicrm_civicrm_tokens( &$tokens ) {
-	$tokens['cbf'] = array( 'cbf.hostname' );
+  $tokens['cbf'] = array('cbf.hostname');
 }
 
 function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
-    $config = CRM_Core_Config::singleton( );
-    $hostname = preg_replace('!^https?://([^/]+)/$!i', '$1', $config->userFrameworkBaseURL);
-	if (is_array($contactIDs)) {
-		foreach ($details as $id => $detail) {
-			$details[$id]['cbf.hostname'] = $hostname;
-		}
-	} else {
-		$details['cbf.hostname'] = $hostname;
-	}
+  $config = CRM_Core_Config::singleton( );
+  $hostname = preg_replace('!^https?://([^/]+)/$!i', '$1', $config->userFrameworkBaseURL);
+  if (is_array($contactIDs)) {
+    foreach ($details as $id => $detail) {
+      $details[$id]['cbf.hostname'] = $hostname;
+    }
+  }
+  else {
+    $details['cbf.hostname'] = $hostname;
+  }
 }
 
 /*
@@ -329,57 +338,58 @@ function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
  * the standard error handling continues.
  */
 function cbf_civicrm_fatal_error_handler(&$vars) {
-	if ( isset($_SERVER['HTTP_X_FORWARDED_FOR']) ) {
-		$vars['ip']  = $_SERVER['HTTP_X_FORWARDED_FOR'];
-		$vars['url'] = $_SERVER['HTTP_X_FORWARDED_PROTO'] . '://' . $_SERVER['HTTP_X_HOST'] . $_SERVER['REQUEST_URI'];
-	} else {
-		$vars['ip']  = $_SERVER['REMOTE_ADDR'];
-		$vars['url'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
-	}
+  if ( isset($_SERVER['HTTP_X_FORWARDED_FOR']) ) {
+    $vars['ip']  = $_SERVER['HTTP_X_FORWARDED_FOR'];
+    $vars['url'] = $_SERVER['HTTP_X_FORWARDED_PROTO'] . '://' . $_SERVER['HTTP_X_HOST'] . $_SERVER['REQUEST_URI'];
+  }
+  else {
+    $vars['ip']  = $_SERVER['REMOTE_ADDR'];
+    $vars['url'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
+  }
 
-	/*
-	 * There are a number of annoying errors that get logged. They seem to be due to
-	 * robots etc. The $ignore array stores the patterns that should be ignored.
-	 * 
-	 * The $ignore array consists of a number of pattern sets. Each set is matched
-	 * against elements of the $vars array. If all the patterns in a set match, we
-	 * simply return 'true'. This tells CiviCRM to abend processing, and nothing
-	 * is logged.
-	 */
-	$ignore = array(
-		array(
-			'message' => 'Invalid value passed to getPayment function',
-			'url' => '/civicrm/event/register.*id=[0-9][0-9][0-9]($|[^0-9])',
-		),
-		array(
-			'message' => 'id .* POST .* GET .* is not of the type Positive',
-		),
-		array(
-			'message' => 'Invalid form parameters',
-			'url' => '/civicrm/mailing/forward$',
-		),
-		array(
-			'message' => 'Missing (input )?parameters',
-			'url' => '/civicrm/mailing/(optout|unsubscribe)$',
-		),
-	);
+  /*
+   * There are a number of annoying errors that get logged. They seem to be due to
+   * robots etc. The $ignore array stores the patterns that should be ignored.
+   * 
+   * The $ignore array consists of a number of pattern sets. Each set is matched
+   * against elements of the $vars array. If all the patterns in a set match, we
+   * simply return 'true'. This tells CiviCRM to abend processing, and nothing
+   * is logged.
+   */
+  $ignore = array(
+    array(
+      'message' => 'Invalid value passed to getPayment function',
+      'url' => '/civicrm/event/register.*id=[0-9][0-9][0-9]($|[^0-9])',
+    ),
+    array(
+      'message' => 'id .* POST .* GET .* is not of the type Positive',
+    ),
+    array(
+      'message' => 'Invalid form parameters',
+      'url' => '/civicrm/mailing/forward$',
+    ),
+    array(
+      'message' => 'Missing (input )?parameters',
+      'url' => '/civicrm/mailing/(optout|unsubscribe)$',
+    ),
+  );
 
-	foreach ($ignore as $patternSet) {
-		foreach ($patternSet as $element => $pattern) {
-			if (preg_match('#' . $pattern . '#i', $vars[$element]) != 1) {
-				continue 2;
-			}
-		}
-		return true;
-	}
+  foreach ($ignore as $patternSet) {
+    foreach ($patternSet as $element => $pattern) {
+      if (preg_match('#' . $pattern . '#i', $vars[$element]) != 1) {
+        continue 2;
+      }
+    }
+    return true;
+  }
 
-	$vars['ip-details'] = json_decode(file_get_contents("http://ipinfo.io/" . $vars['ip'] . "/json"));
-	if ( isset($_SESSION) ) {
-		$vars['session'] = $_SESSION;
-		unset($vars['session']['CiviCRM']['qfPrivateKey']);
-	}
+  $vars['ip-details'] = json_decode(file_get_contents("http://ipinfo.io/" . $vars['ip'] . "/json"));
+  if (isset($_SESSION)) {
+    $vars['session'] = $_SESSION;
+    unset($vars['session']['CiviCRM']['qfPrivateKey']);
+  }
 
-	return false;
+  return false;
 }
 
 /*
@@ -405,34 +415,34 @@ function cbf_civicrm_civicrm_pre( $op, $objectName, $id, &$params ) {
 
             try {
               $get_a = civicrm_api3('Relationship', 'get', array(
-                         'sequential' => 1,
-                         'contact_id_a' => $id,
-                         'is_active' => 1,
-                       ));
+                'sequential' => 1,
+                'contact_id_a' => $id,
+                'is_active' => 1,
+              ));
               $get_b = civicrm_api3('Relationship', 'get', array(
-                         'sequential' => 1,
-                         'contact_id_b' => $id,
-                         'is_active' => 1,
-                       ));
+                'sequential' => 1,
+                'contact_id_b' => $id,
+                'is_active' => 1,
+              ));
               $get = array_merge($get_a['values'], $get_b['values']);
 
               foreach ($get as $relationship) {
                 if (!isset($relationship['end_date'])) {
                   // 'setvalue' objects to dashes in dates
                   $result = civicrm_api3('Relationship', 'setvalue', array(
-                              'sequential' => 1,
-                              'field' => 'end_date',
-                              'id' => $relationship['id'],
-                              'value' => str_replace('-', '', CRM_Utils_Date::getToday()),
-                            ));
+                    'sequential' => 1,
+                    'field' => 'end_date',
+                    'id' => $relationship['id'],
+                    'value' => str_replace('-', '', CRM_Utils_Date::getToday()),
+                  ));
                 }
 
                 $result = civicrm_api3('Relationship', 'setvalue', array(
-                            'sequential' => 1,
-                            'field' => 'is_active',
-                            'id' => $relationship['id'],
-                            'value' => 0,
-                           ));
+                  'sequential' => 1,
+                  'field' => 'is_active',
+                  'id' => $relationship['id'],
+                  'value' => 0,
+                ));
               }
 
             } catch (CiviCRM_API3_Exception $e) {
@@ -473,10 +483,10 @@ function _cbf_civicrm_civicrm_post_participant($op, $id, &$params) {
 
         if ($tagId !== FALSE) {
           $create = civicrm_api3('EntityTag', 'create', array(
-              'sequential' => 1,
-              'entity_table' => 'civicrm_contact',
-              'entity_id' => $params->contact_id,
-              'tag_id' => $tagId,
+            'sequential' => 1,
+            'entity_table' => 'civicrm_contact',
+            'entity_id' => $params->contact_id,
+            'tag_id' => $tagId,
           ));
         }
       } catch (CiviCRM_API3_Exception $e) {
@@ -511,10 +521,10 @@ function _cbf_civicrm_civicrm_post_contribution($op, $id, $contact_id) {
 
         if ($ministry_centre !== FALSE) {
           $create = civicrm_api3('EntityTag', 'create', array(
-              'sequential' => 1,
-              'entity_table' => 'civicrm_contact',
-              'entity_id' => $contact_id,
-              'tag_id' => $ministry_centre,
+            'sequential' => 1,
+            'entity_table' => 'civicrm_contact',
+            'entity_id' => $contact_id,
+            'tag_id' => $ministry_centre,
           ));
         }
       } catch (CiviCRM_API3_Exception $e) {
@@ -528,16 +538,16 @@ function _cbf_civicrm_civicrm_contact_has_ministry_centre($contact_id) {
   $ministry_centre_prefix = 'Ministry centre is ';
 
   $entity_tags = civicrm_api3('EntityTag', 'get', array(
-      'sequential' => 1,
-      'entity_table' => 'civicrm_contact',
-      'entity_id' => $contact_id,
+    'sequential' => 1,
+    'entity_table' => 'civicrm_contact',
+    'entity_id' => $contact_id,
   ));
 
   foreach ($entity_tags['values'] as $entity_tag) {
     $tag = civicrm_api3('Tag', 'get', array(
-        'sequential' => 1,
-        'id' => $entity_tag['tag_id'],
-        'return' => 'name',
+      'sequential' => 1,
+      'id' => $entity_tag['tag_id'],
+      'return' => 'name',
     ));
 
     if (stristr($tag['values'][0]['name'], $ministry_centre_prefix) !== false) {
@@ -554,18 +564,16 @@ function _cbf_civicrm_civicrm_event_ministry_centre($event_id) {
 
   try {
     $custom_values = civicrm_api3('CustomValue', 'get', array(
-        'sequential' => 1,
-        'entity_id' => $event_id,
-        'entity_table' => 'civicrm_event',
-        'id' => 25,
+      'sequential' => 1,
+      'entity_id' => $event_id,
+      'entity_table' => 'civicrm_event',
+      'id' => 25,
     ));
 
     $ministry_centre_id = null;
 
     foreach ($custom_values['values'] as $custom_value) {
-      if (isset($custom_value['latest'])
-          && isset($custom_value['id'])
-          && $custom_value['id'] = '25') {
+      if (isset($custom_value['latest']) && isset($custom_value['id']) && $custom_value['id'] = '25') {
         $ministry_centre_id = (int) $custom_value['latest'];
         break;
       }
@@ -576,16 +584,16 @@ function _cbf_civicrm_civicrm_event_ministry_centre($event_id) {
     }
 
     $ministry_centre = civicrm_api3('OptionValue', 'getvalue', array(
-        'sequential' => 1,
-        'option_group_id' => $ministry_centre_group_id,
-        'value' => $ministry_centre_id,
-        'return' => 'name',
+      'sequential' => 1,
+      'option_group_id' => $ministry_centre_group_id,
+      'value' => $ministry_centre_id,
+      'return' => 'name',
     ));
 
     $tag = civicrm_api3('Tag', 'getvalue', array(
-        'sequential' => 1,
-        'name' => $ministry_centre_prefix . $ministry_centre,
-        'return' => 'id',
+      'sequential' => 1,
+      'name' => $ministry_centre_prefix . $ministry_centre,
+      'return' => 'id',
     ));
 
     return array($tag, $ministry_centre);
@@ -601,9 +609,9 @@ function _cbf_civicrm_civicrm_contribution_ministry_centre($contribution_id) {
   try {
     // Since the City value is publicly visible, no need to use CustomValue API
     $city = civicrm_api3('Contribution', 'getvalue', array(
-        'sequential' => 1,
-        'return' => 'custom_26',
-        'id' => $contribution_id,
+      'sequential' => 1,
+      'return' => 'custom_26',
+      'id' => $contribution_id,
     ));
 
     if (empty($city)) {
@@ -611,8 +619,8 @@ function _cbf_civicrm_civicrm_contribution_ministry_centre($contribution_id) {
     }
 
     $tags = civicrm_api3('Tag', 'get', array(
-        'sequential' => 1,
-        'return' => 'id,name',
+      'sequential' => 1,
+      'return' => 'id,name',
     ));
 
     foreach ($tags['values'] as $tag) {
