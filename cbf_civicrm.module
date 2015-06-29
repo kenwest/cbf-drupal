@@ -260,7 +260,7 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
         if (empty($end)) {
           $errors['end_date'] = ts('End Date and Time are required fields');
         }
-        elseif ($end < $start) {
+        elseif ($end <= $start) {
           $errors['end_date'] = ts('End date should be after Start date');
         }
       }
