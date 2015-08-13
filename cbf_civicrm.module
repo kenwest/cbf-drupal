@@ -844,20 +844,25 @@ function tapestrymultiaccounts_get_civicrm_account_code($financialTypeID) {
  * option of 'None' => '0', which needs to be removed.
  */
 function cbf_civicrm_civicrm_customFieldOptions($fieldID, &$options, $detailedFormat = false ) {
+  static $activeMailingLists = null;
+
   switch ($fieldID) {
     case 45: // 'Events like this' list
     case 46: // 'News and updates' list
       try {
-        $result = civicrm_api3('Group', 'get', array(
-          'sequential' => 1,
-          'is_active' => 1,
-          'group_type' => 2,
-          'is_hidden' => 0,
-        ));
-        if ($result['is_error'] != 0) {
+        if (!isset($activeMailingLists)) {
+          $activeMailingLists = civicrm_api3('Group', 'get', array(
+            'sequential' => 1,
+            'is_active' => 1,
+            'group_type' => 2, // Mailing list
+            'is_hidden' => 0,
+            'options' => array('limit' => 0),
+          ));
+        }
+        if ($activeMailingLists['is_error'] != 0) {
           return;
         }
-        foreach ($result['values'] as $list) {
+        foreach ($activeMailingLists['values'] as $list) {
           $detailed_options[$list['id']] = array(
             'id' => $list['id'],
             'value' => $list['id'],
