@@ -198,6 +198,25 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
 
         $tpl->assign('button', $makePaymentLabel);
       }
+
+      // Add participants who elect for future communications to the
+      // appropriate list
+      if ($formName == 'CRM_Event_Form_Registration_ThankYou') {
+        if (isset($form->_params[0]['custom_28']) && $form->_params[0]['custom_28'] == 1) {
+          _cbf_civicrm_civicrm_add_to_list_via_entity(
+            $form->_values['participant']['contact_id'],
+            'Event',
+            $form->_values['participant']['event_id'],
+            'custom_45'); // 'Events like this' list
+        }
+        if (isset($form->_params[0]['custom_29']) && $form->_params[0]['custom_29'] == 1) {
+          _cbf_civicrm_civicrm_add_to_list_via_entity(
+            $form->_values['participant']['contact_id'],
+            'Event',
+            $form->_values['participant']['event_id'],
+            'custom_46'); // 'News and updates' list
+        }
+      }
       break;
 
     case 'CRM_Mailing_Form_Upload':
@@ -472,6 +491,29 @@ function cbf_civicrm_civicrm_post( $op, $objectName, $id, &$params ) {
     case 'Participant':
       _cbf_civicrm_civicrm_post_participant($op, $id, $params);
       break;
+  }
+}
+
+function _cbf_civicrm_civicrm_add_to_list_via_entity($contactId, $entity, $entityId, $fieldName) {
+  try {
+    $result = civicrm_api3($entity, 'get', array(
+      'sequential' => 1,
+      'id' => $entityId,
+    ));
+    if ($result['is_error'] != 0) {
+      return;
+    }
+    $listId = $result['values'][0][$fieldName];
+    if (isset($listId) && $listId > 0) {
+      $result = civicrm_api3('GroupContact', 'create', array(
+        'sequential' => 1,
+        'contact_id' => $contactId,
+        'status' => 'Added',
+        'group_id' => $listId,
+      ));
+    }
+  } catch (Exception $e) {
+    return;
   }
 }
 
@@ -795,4 +837,47 @@ function tapestrymultiaccounts_get_civicrm_account_code($financialTypeID) {
     }
   }
   return $codes[$financialTypeID];
+}
+
+/*
+ * Support integer custom fields that map to group ids. These are set with a dummy
+ * option of 'None' => '0', which needs to be removed.
+ */
+function cbf_civicrm_civicrm_customFieldOptions($fieldID, &$options, $detailedFormat = false ) {
+  switch ($fieldID) {
+    case 45: // 'Events like this' list
+    case 46: // 'News and updates' list
+      try {
+        $result = civicrm_api3('Group', 'get', array(
+          'sequential' => 1,
+          'is_active' => 1,
+          'group_type' => 2,
+          'is_hidden' => 0,
+        ));
+        if ($result['is_error'] != 0) {
+          return;
+        }
+        foreach ($result['values'] as $list) {
+          $detailed_options[$list['id']] = array(
+            'id' => $list['id'],
+            'value' => $list['id'],
+            'label' => $list['title']);
+        }
+        unset($options[0]);
+      } catch (Exception $e) {
+        return;
+      }
+      break;
+
+    default:
+      return;
+  }
+
+  if (isset($detailed_options) && !$detailedFormat ) {
+    foreach ($detailed_options AS $key => $choice) {
+      $options[$choice['value']] = $choice['label'];
+    }
+  } else {
+    $options += $detailed_options;
+  }
 }
