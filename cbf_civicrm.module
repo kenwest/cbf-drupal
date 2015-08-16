@@ -503,14 +503,16 @@ function _cbf_civicrm_civicrm_add_to_list_via_entity($contactId, $entity, $entit
     if ($result['is_error'] != 0) {
       return;
     }
-    $listId = $result['values'][0][$fieldName];
-    if (isset($listId) && $listId > 0) {
-      $result = civicrm_api3('GroupContact', 'create', array(
-        'sequential' => 1,
-        'contact_id' => $contactId,
-        'status' => 'Added',
-        'group_id' => $listId,
-      ));
+    if (isset($result['values'][0][$fieldName])) {
+      $listId = $result['values'][0][$fieldName];
+      if ($listId > 0) {
+        $result = civicrm_api3('GroupContact', 'create', array(
+          'sequential' => 1,
+          'contact_id' => $contactId,
+          'status' => 'Added',
+          'group_id' => $listId,
+        ));
+      }
     }
   } catch (Exception $e) {
     return;
