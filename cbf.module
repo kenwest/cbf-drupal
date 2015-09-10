@@ -244,9 +244,11 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 
 			if ($endstamp <= $current_time) {
 				$previous++;
-			} else if ($startstamp >= $upperlimit) {
+			}
+			else if ($startstamp >= $upperlimit) {
 				$subsequent++;
-			} else {
+			}
+			else {
 				$start_date_text = date_format_date(
 				                $utc_start_time,
 				                'custom',
@@ -259,14 +261,16 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 
 				if ($start_date_text == $end_date_text) {
 					$this_date_text = $start_date_text;
-				} else {
+				}
+				else {
 					$this_date_text = $start_date_text . ' to ' . $end_date_text;
 					$time_text = $midnight;
 				}
 
 				if ($date_text == '') {
 					$date_text = $this_date_text;
-				} else {
+				}
+				else {
 					$date_text .= ', ' . $this_date_text;
 				}
 			}
@@ -275,10 +279,12 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 
 	if ($date_text == '') {
 		$entity_field[0]['value'] = '';
-	} else {
+	}
+	else {
 		if ($previous > 0) {
 			$date_text = 'Next on ' . $date_text;
-		} else if ($subsequent > 0) {
+		}
+		else if ($subsequent > 0) {
 			$date_text = 'Starts on ' . $date_text;
 		}
 		if ($time_text == $midnight) {
@@ -302,7 +308,8 @@ function computed_field_field_date_text_display($field, $entity_field_item) {
 function computed_field_field_is_audio_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
     if (count($entity->field_content[LANGUAGE_NONE]) > 0) {
     	$entity_field[0]['value'] = 1;
-    } else {
+    }
+    else {
     	$entity_field[0]['value'] = 0;
     }
 }
@@ -313,7 +320,8 @@ function computed_field_field_is_audio_compute(&$entity_field, $entity_type, $en
 function computed_field_field_is_audio_display($field, $entity_field_item, $entity_lang, $langcode) {
     if ($entity_field_item['value'] != 0) {
     	return 'Yes';
-    } else {
+    }
+    else {
     	return 'No';
     }
 }
@@ -324,7 +332,8 @@ function computed_field_field_is_audio_display($field, $entity_field_item, $enti
 function computed_field_field_is_video_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
     if (count($entity->field_video[LANGUAGE_NONE]) > 0) {
     	$entity_field[0]['value'] = 1;
-    } else {
+    }
+    else {
     	$entity_field[0]['value'] = 0;
     }
 }
@@ -335,31 +344,62 @@ function computed_field_field_is_video_compute(&$entity_field, $entity_type, $en
 function computed_field_field_is_video_display($field, $entity_field_item, $entity_lang, $langcode) {
     if ($entity_field_item['value'] != 0) {
     	return 'Yes';
-    } else {
+    }
+    else {
     	return 'No';
     }
 }
 
 /*
  * This function is called by CCK Computed Field to compute the value of Field Is Text.
- */
+*/
 function computed_field_field_is_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-    if (count($entity->field_attachment[LANGUAGE_NONE]) > 0) {
-    	$entity_field[0]['value'] = 1;
-    } else {
-    	$entity_field[0]['value'] = 0;
-    }
+  if (count($entity->field_attachment[LANGUAGE_NONE]) > 0) {
+    $entity_field[0]['value'] = 1;
+  }
+  else {
+    $entity_field[0]['value'] = 0;
+  }
 }
 
 /*
  * This function is called by CCK Computed Field to generate the display text of Field Is Text.
- */
+*/
 function computed_field_field_is_text_display($field, $entity_field_item, $entity_lang, $langcode) {
-    if ($entity_field_item['value'] != 0) {
-    	return 'Yes';
-    } else {
-    	return 'No';
+  if ($entity_field_item['value'] != 0) {
+    return 'Yes';
+  }
+  else {
+    return 'No';
+  }
+}
+
+/*
+ * This function is called by CCK Computed Field to compute the value of field Add to Calendar.
+*/
+function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+  $entity_field[0]['value'] = $entity->type . '/' . $entity->nid;
+}
+
+/*
+ * This function is called by CCK Computed Field to generate the display text of field Add to Calendar.
+*/
+function computed_field_field_add_to_calendar_display($field, $entity_field_item, $entity_lang, $langcode) {
+  $result = '';
+  if (empty($entity_field_item['value'])) {
+    return $result;
+  }
+  if (stristr($entity_field_item['value'], 'event') === false) {
+    if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+      $host = $_SERVER['HTTP_X_HOST'];
     }
+    else {
+      $host = $_SERVER['SERVER_NAME'];
+    }
+    $result .= '<a href="webcal://' . $host . '/ical/' . $entity_field_item['value'] . '/calendar.ics">iCal feed</a>';
+  }
+  $result .= '<a href="/ical/' . $entity_field_item['value'] . '/calendar.ics">Add to calendar</a>';
+  return $result;
 }
 
 function cbf_field_attach_presave($entity_type, $entity)
@@ -425,7 +465,8 @@ function cbf_cron() {
 				node_save($node);
 			}
 		}
-	} else {
+	}
+	else {
 		/* Clear the date text for past events */
 		$query = new EntityFieldQuery();
 		$result = $query->entityCondition('entity_type', 'node')
