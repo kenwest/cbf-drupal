@@ -378,27 +378,95 @@ function computed_field_field_is_text_display($field, $entity_field_item, $entit
  * This function is called by CCK Computed Field to compute the value of field Add to Calendar.
 */
 function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-  $entity_field[0]['value'] = $entity->type . '/' . $entity->nid;
+  if (isset($entity->field_date_text[LANGUAGE_NONE]) && empty($entity->field_date_text[LANGUAGE_NONE][0]['value'])) {
+    $entity_field[0]['value'] = '';
+  }
+  elseif (isset($entity->field_civievent[LANGUAGE_NONE]) && !empty($entity->field_civievent[LANGUAGE_NONE][0])) {
+    $entity_field[0]['value'] = '';
+  }
+  else {
+    $result = array(
+      $entity->type,
+      $entity->nid,
+    );
+    if (isset($entity->field_event_date[LANGUAGE_NONE])) {
+      $result[] = count($entity->field_event_date[LANGUAGE_NONE]); // a possibly-repeating event
+    }
+    else {
+      $result[] = 2; // the other cases will have multiple events (at least 2)
+    }
+    $entity_field[0]['value'] = implode(',', $result);
+  }
 }
 
 /*
  * This function is called by CCK Computed Field to generate the display text of field Add to Calendar.
 */
 function computed_field_field_add_to_calendar_display($field, $entity_field_item, $entity_lang, $langcode) {
+  $clients = array(
+    'Apple' => array('single' => 'ics', 'multiple' => 'ics', 'subscribe' => 'webcal'),
+    'Outlook' => array('single' => 'ics', 'multiple' => 'ics', 'subscribe' => 'webcal'),
+    'Google Calendar' => array('single' => 'google', 'multiple' => 'ics', 'subscribe' => 'google webcal'),
+    'Other' => array('single' => 'ics', 'multiple' => 'ics', 'subscribe' => 'ics'),
+  );
   $result = '';
   if (empty($entity_field_item['value'])) {
     return $result;
   }
-  if (stristr($entity_field_item['value'], 'event') === false) {
-    if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-      $host = $_SERVER['HTTP_X_HOST'];
+  $value = explode(',', $entity_field_item['value']);
+  if (count($value) != 3 || empty($value[2])) {
+    return $result;
+  }
+  $entity_type = $value[0];
+  $entity_nid = $value[1];
+  $event_count = $value[2];
+  if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+    $host = $_SERVER['HTTP_X_HOST'];
+  }
+  else {
+    $host = $_SERVER['SERVER_NAME'];
+  }
+  if ($entity_type == 'event') {
+    if ($event_count == 1) {
+      $scheme = 'single';
     }
     else {
-      $host = $_SERVER['SERVER_NAME'];
+      $scheme = 'multiple';
     }
-    $result .= '<a href="webcal://' . $host . '/ical/' . $entity_field_item['value'] . '/calendar.ics">iCal feed</a>';
   }
-  $result .= '<a href="/ical/' . $entity_field_item['value'] . '/calendar.ics">Add to calendar</a>';
+  else {
+    $scheme = 'subscribe';
+  }
+  foreach ($clients as $client => $methods) {
+    switch ($methods[$scheme]) {
+      case 'ics':
+        $target = "/ical/$entity_type/$entity_nid/calendar.ics";
+        break;
+      case 'webcal':
+        $target = "webcal://$host/ical/$entity_type/$entity_nid/calendar.ics";
+        break;
+      case 'google webcal':
+        $target = "https://www.google.com/calendar/render?cid=webcal%3A%2F%2F$host%2Fical%2F$entity_type%2F$entity_nid%2Fcalendar.ics";
+        break;
+      default:
+        $target = '';
+        break;
+    }
+    if (!empty($target)) {
+      $result .= '<li><a href="' . $target . '" target="_blank">' . $client . '</a></li>';
+    }
+  }
+  if (empty($result)) {
+    return $result;
+  }
+  $result = '
+    <ul class="nav">
+      <li class="dropdown">
+        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Add to calendar</a>
+        <ul class="dropdown-menu">' . $result . '
+        </ul>
+      </li>
+    </ul>';
   return $result;
 }
 
