@@ -859,8 +859,12 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
       // Ensure the contact has a Ministry Centre tag
       _cbf_civicrm_civicrm_post_contribution('create', $data['contribution_id'], $data['contact_id']);
 
-      // Baulk if the Suppress Xero Invoice is set
-      if (!empty($data['custom_43'])) {
+      /* Baulk if
+       *  - the Suppress Xero Invoice is set
+       *  - the contribution is a test
+       *  - the contribution is zero-valued
+       */
+      if (!empty($data['custom_43']) || $data['is_test'] != '0' || $data['total_amount'] == '0.00') {
         $save = FALSE;
         break;
       }
