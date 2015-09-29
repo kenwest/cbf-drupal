@@ -389,6 +389,12 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
       $entity->type,
       $entity->nid,
     );
+    if (isset($entity->field_in_activity[LANGUAGE_NONE]) && !empty($entity->field_in_activity[LANGUAGE_NONE][0])) {
+      $result[] = $entity->field_in_activity[LANGUAGE_NONE][0]['target_id'];
+    }
+    else {
+      $result[] = 0;
+    }
     if (isset($entity->field_event_date[LANGUAGE_NONE])) {
       $result[] = count($entity->field_event_date[LANGUAGE_NONE]); // a possibly-repeating event
     }
@@ -403,70 +409,118 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
  * This function is called by CCK Computed Field to generate the display text of field Add to Calendar.
 */
 function computed_field_field_add_to_calendar_display($field, $entity_field_item, $entity_lang, $langcode) {
-  $clients = array(
-    'Apple' => array('single' => 'ics', 'multiple' => 'ics', 'subscribe' => 'webcal'),
-    'Outlook' => array('single' => 'ics', 'multiple' => 'ics', 'subscribe' => 'webcal'),
-    'Google Calendar' => array('single' => 'google', 'multiple' => 'ics', 'subscribe' => 'google webcal'),
-    'Other' => array('single' => 'ics', 'multiple' => 'ics', 'subscribe' => 'ics'),
-  );
   $result = '';
   if (empty($entity_field_item['value'])) {
     return $result;
   }
   $value = explode(',', $entity_field_item['value']);
-  if (count($value) != 3 || empty($value[2])) {
+  if (count($value) != 4 || empty($value[3])) {
     return $result;
   }
   $entity_type = $value[0];
   $entity_nid = $value[1];
-  $event_count = $value[2];
+  $entity_activity = $value[2];
+  $event_count = $value[3];
   if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
     $host = $_SERVER['HTTP_X_HOST'];
   }
   else {
     $host = $_SERVER['SERVER_NAME'];
   }
+  $schemes = array();
+  $results = array();
+  $types = array();
+  $nids = array();
   if ($entity_type == 'event') {
     if ($event_count == 1) {
-      $scheme = 'single';
+      $schemes[] = 'single';
+      $types['single'] = $entity_type;
+      $nids['single'] = $entity_nid;
     }
     else {
-      $scheme = 'multiple';
+      $schemes[] = 'multiple';
+      $types['multiple'] = $entity_type;
+      $nids['multiple'] = $entity_nid;
+    }
+    if (!empty($entity_activity)) {
+      $schemes[] = 'subscribe';
+      $types['subscribe'] = 'activity';
+      $nids['subscribe'] = $entity_activity;
     }
   }
-  else {
-    $scheme = 'subscribe';
+  elseif ($entity_type == 'activity') {
+    $schemes[] = 'subscribe';
+    $types['single'] = $entity_type;
+    $nids['subscribe'] = $entity_nid;
   }
-  foreach ($clients as $client => $methods) {
-    switch ($methods[$scheme]) {
-      case 'ics':
-        $target = "/ical/$entity_type/$entity_nid/calendar.ics";
-        break;
-      case 'webcal':
-        $target = "webcal://$host/ical/$entity_type/$entity_nid/calendar.ics";
-        break;
-      case 'google webcal':
-        $target = "https://www.google.com/calendar/render?cid=webcal%3A%2F%2F$host%2Fical%2F$entity_type%2F$entity_nid%2Fcalendar.ics";
-        break;
-      default:
-        $target = '';
-        break;
-    }
-    if (!empty($target)) {
-      $result .= '<li><a href="' . $target . '" target="_blank">' . $client . '</a></li>';
+  $clients = array(
+    'Apple' => array('single' => 'ics', 'multiple' => 'ics', 'subscribe' => 'webcal'),
+    'Outlook' => array('single' => 'ics', 'multiple' => 'ics', 'subscribe' => 'webcal'),
+    'Google Calendar' => array('single' => 'google', 'multiple' => '', 'subscribe' => 'google webcal'),
+    'Other' => array('single' => 'ics', 'multiple' => 'ics', 'subscribe' => 'ics'),
+  );
+  foreach ($schemes as $scheme) {
+    $results[$scheme] = '';
+    foreach ($clients as $client => $methods) {
+      switch ($methods[$scheme]) {
+        case 'ics':
+          $target = "/ical/$types[$scheme]/$nids[$scheme]/calendar.ics";
+          break;
+        case 'webcal':
+          $target = "webcal://$host/ical/$types[$scheme]/$nids[$scheme]/calendar.ics";
+          break;
+        case 'google webcal':
+          $target = "https://www.google.com/calendar/render?cid=webcal%3A%2F%2F$host%2Fical%2F$types[$scheme]%2F$nids[$scheme]%2Fcalendar.ics";
+          break;
+        default:
+          $target = '';
+          break;
+      }
+      if (!empty($target)) {
+        $results[$scheme] .= '<li><a href="' . $target . '" target="_blank">' . $client . '</a></li>';
+      }
     }
   }
-  if (empty($result)) {
+  if (count($results) == 0) {
     return $result;
   }
-  $result = '
+  $result .= '
     <ul class="nav">
       <li class="dropdown">
         <a class="dropdown-toggle" data-toggle="dropdown" href="#">Add to calendar</a>
-        <ul class="dropdown-menu">' . $result . '
+        <ul class="dropdown-menu">';
+  $result .= (count($results) == 1) ? '' : '
+          <li class="dropdown dropdown-submenu">
+            <a class="dropdown-toggle" data-toggle="dropdown" href="#">This event only</a>
+            <ul class="dropdown-menu">';
+  $result .= isset($results['single']) ? $results['single'] : $results['multiple'];
+  $result .= (count($results) == 1) ? '' : '
+            </ul>
+          </li>
+          <li class="dropdown dropdown-submenu">
+            <a class="dropdown-toggle" data-toggle="dropdown" href="#">This and future events</a>
+            <ul class="dropdown-menu">';
+  $result .= isset($results['subscribe']) ? $results['subscribe'] : '';
+  $result .= (count($results) == 1) ? '' : '
+            </ul>
+          </li>';
+  $result .= '
         </ul>
       </li>
     </ul>';
+  $result .= (count($results) == 1) ? '' : '
+    <script type="text/javascript">
+      (function($){
+        $(document).ready(function(){
+          $(\'ul.dropdown-menu [data-toggle=dropdown]\').on(\'click\', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            $(this).parent().siblings().removeClass(\'open\');
+            $(this).parent().toggleClass(\'open\');
+          });
+        });
+      })(jQuery);
+    </script>';
   return $result;
 }
 
