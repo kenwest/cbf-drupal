@@ -450,7 +450,7 @@ function computed_field_field_add_to_calendar_display($field, $entity_field_item
   }
   elseif ($entity_type == 'activity') {
     $schemes[] = 'subscribe';
-    $types['single'] = $entity_type;
+    $types['subscribe'] = $entity_type;
     $nids['subscribe'] = $entity_nid;
   }
   $clients = array(
