@@ -493,7 +493,8 @@ function computed_field_field_add_to_calendar_display($field, $entity_field_item
           <li class="dropdown dropdown-submenu">
             <a class="dropdown-toggle" data-toggle="dropdown" href="#">This event only</a>
             <ul class="dropdown-menu">';
-  $result .= isset($results['single']) ? $results['single'] : $results['multiple'];
+  $result .= isset($results['single']) ? $results['single'] : '';
+  $result .= isset($results['multiple']) ? $results['multiple'] : '';
   $result .= (count($results) == 1) ? '' : '
             </ul>
           </li>
