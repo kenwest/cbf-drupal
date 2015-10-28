@@ -1624,7 +1624,7 @@ class CRM_Event_Form_Participant extends CRM_Contribute_Form_AbstractEditPayment
           if (in_array($fieldValue['custom_group_id'], $publicGroups) === FALSE) {
             continue;
           }
-      	  $customValue = array('data' => $fieldValue['value']);
+          $customValue = array('data' => $fieldValue['value']);
           $customFields[$fieldID]['id'] = $fieldID;
           $formattedValue = CRM_Core_BAO_CustomGroup::formatCustomValues($customValue, $customFields[$fieldID], TRUE);
           $customGroup[$customFields[$fieldID]['groupTitle']][$customFields[$fieldID]['label']] = str_replace('&nbsp;', '', $formattedValue);
