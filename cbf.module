@@ -393,6 +393,10 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
   $entity_nid = $entity->nid;
   if (isset($entity->field_in_activity[LANGUAGE_NONE]) && !empty($entity->field_in_activity[LANGUAGE_NONE][0])) {
     $entity_activity = $entity->field_in_activity[LANGUAGE_NONE][0]['target_id'];
+    $activity = node_load($entity_activity);
+    if (isset($activity->field_publish_calendar[LANGUAGE_NONE]) && empty($activity->field_publish_calendar[LANGUAGE_NONE][0]['value'])) {
+      $entity_activity = 0; // The activity's 'Publish calendar' flag has not been ticked
+    }
   }
   else {
     $entity_activity = 0;
@@ -420,11 +424,19 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
   $results = array();
   $types = array();
   $nids = array();
+  $title = '';
+  $description = '';
+  $startDate = '';
+  $endDate = '';
   if ($entity_type == 'event') {
     if ($event_count == 1) {
       $schemes[] = 'single';
       $types['single'] = $entity_type;
       $nids['single'] = $entity_nid;
+      $title = $entity->title;
+      $description = truncate_utf8($entity->body[LANGUAGE_NONE][0]['value'], 600, TRUE, TRUE);
+      $startDate = '';
+      $endDate = '';
     }
     else {
       $schemes[] = 'multiple';
@@ -457,36 +469,46 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
     $results[$scheme] = '';
     foreach ($clients as $client => $methods) {
       if ($scheme == 'city') {
-        switch ($methods[$scheme]) {
-          case 'ics':
-            $target = "/ical/city/$types[$scheme]/calendar.ics";
-            break;
-          case 'webcal':
-            $target = "webcal://$host/ical/city/$types[$scheme]/calendar.ics";
-            break;
-          case 'google webcal':
-            $target = "https://www.google.com/calendar/render?cid=webcal%3A%2F%2F$host%2Fical%2Fcity%2F$types[$scheme]%2Fcalendar.ics";
-            break;
-          default:
-            $target = '';
-            break;
-        }
+        $relative_url = "/ical/city/$types[$scheme]/calendar.ics";
       }
       else {
-        switch ($methods[$scheme]) {
-          case 'ics':
-            $target = "/ical/$types[$scheme]/$nids[$scheme]/calendar.ics";
-            break;
-          case 'webcal':
-            $target = "webcal://$host/ical/$types[$scheme]/$nids[$scheme]/calendar.ics";
-            break;
-          case 'google webcal':
-            $target = "https://www.google.com/calendar/render?cid=webcal%3A%2F%2F$host%2Fical%2F$types[$scheme]%2F$nids[$scheme]%2Fcalendar.ics";
-            break;
-          default:
+        $relative_url = "/ical/$types[$scheme]/$nids[$scheme]/calendar.ics";
+      }
+      switch ($methods[$scheme]) {
+        case 'ics':
+          $target = $relative_url;
+          break;
+        case 'webcal':
+          $target = "webcal://$host$relative_url";
+          break;
+        case 'google':
+          if (empty($title)) {
             $target = '';
-            break;
-        }
+          }
+          else {
+            $target = url(
+              'http://www.google.com/calendar/event',
+              array(
+                'query' => array(
+                  'action' => 'TEMPLATE',
+                  'text' => $title,
+                  'dates' => $startDate . '/' . $endDate,
+                  'sprop' => 'website:' . $host,
+//                  'location' => $info['location'],
+                  'details' => $description,
+                  'website' => url($info['url'], array('absolute' => TRUE)),
+              )));
+          }
+          break;
+        case 'google webcal':
+          $target = url(
+            'https://www.google.com/calendar/render',
+            array(
+              'query' => array('cid' => "webcal://$host$relative_url")));
+          break;
+        default:
+          $target = '';
+          break;
       }
       if (!empty($target)) {
         $results[$scheme] .= '<li><a href="' . $target . '" target="_blank">' . $client . '</a></li>';
