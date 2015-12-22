@@ -482,7 +482,7 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
           $target = "webcal://$host$relative_url";
           break;
         case 'google':
-          if (empty($title)) {
+          if (empty($title) || empty($startDate) || empty($endDate)) {
             $target = '';
           }
           else {
