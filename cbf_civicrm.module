@@ -7,6 +7,16 @@
  *  left off so CiviMail can add a tracking token to the email.
  */
 function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
+  // Don't send event confirmations when a Pending attendee is marked as Attended after the event
+  $now = date('Y-m-d G:i:s');
+  if (isset($params['valueName']) && $params['valueName'] == 'event_online_receipt'
+    && isset($params['tplParams']['participant_status']) && $params['tplParams']['participant_status'] == 'Pending from pay later'
+    && isset($params['tplParams']['event']['is_pay_later']) && $params['tplParams']['event']['is_pay_later'] == 1
+    && isset($params['tplParams']['event']['end_date']) && $params['tplParams']['event']['end_date'] < $now) {
+    $params['abortMailSend'] = 1;
+    return;
+  }
+
   $htmlMessage = CRM_Utils_Array::value( 'html', $params );
   if ( $htmlMessage ) {
 
@@ -241,6 +251,14 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
       }
 
+      // End users are getting confused when they enter email addresses with an additional space
+      // To avoid this we trim submitted email addresses
+      foreach ($form->getSubmitValues() as $field => $value) {
+        if (strpos($field, 'email-') !== FALSE) {
+          $form->applyFilter($field, 'trim');
+        }
+      }
+
       // Add a form element for the credit card holder
       // It is required if the credit card number is required
       if ($form->elementExists('credit_card_number') && !$form->elementExists('credit_card_holder')) {
@@ -319,16 +337,16 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         if (isset($form->_params[0]['custom_28']) && $form->_params[0]['custom_28'] == 1) {
           _cbf_civicrm_civicrm_add_to_list_via_entity(
             $form->_values['participant']['contact_id'],
-            'Event',
+            'civicrm_event',
             $form->_values['participant']['event_id'],
-            'custom_45'); // 'Events like this' list
+            45); // 'Events like this' list
         }
         if (isset($form->_params[0]['custom_29']) && $form->_params[0]['custom_29'] == 1) {
           _cbf_civicrm_civicrm_add_to_list_via_entity(
             $form->_values['participant']['contact_id'],
-            'Event',
+            'civicrm_event',
             $form->_values['participant']['event_id'],
-            'custom_46'); // 'News and updates' list
+            46); // 'News and updates' list
         }
       }
       break;
@@ -608,25 +626,31 @@ function cbf_civicrm_civicrm_post( $op, $objectName, $id, &$params ) {
   }
 }
 
-function _cbf_civicrm_civicrm_add_to_list_via_entity($contactId, $entity, $entityId, $fieldName) {
+function _cbf_civicrm_civicrm_add_to_list_via_entity($contactId, $entityTable, $entityId, $fieldNumber) {
   try {
-    $result = civicrm_api3($entity, 'get', array(
+    $custom_values = civicrm_api3('CustomValue', 'get', array(
       'sequential' => 1,
-      'id' => $entityId,
+      'entity_id' => $entityId,
+      'entity_table' => $entityTable,
+      'id' => $fieldNumber,
     ));
-    if ($result['is_error'] != 0) {
-      return;
-    }
-    if (isset($result['values'][0][$fieldName])) {
-      $listId = $result['values'][0][$fieldName];
-      if ($listId > 0) {
-        $result = civicrm_api3('GroupContact', 'create', array(
-          'sequential' => 1,
-          'contact_id' => $contactId,
-          'status' => 'Added',
-          'group_id' => $listId,
-        ));
+
+    $listId = null;
+
+    foreach ($custom_values['values'] as $custom_value) {
+      if (isset($custom_value['latest']) && isset($custom_value['id']) && $custom_value['id'] == $fieldNumber) {
+        $listId = (int) $custom_value['latest'];
+        break;
       }
+    }
+
+    if ($listId > 0) {
+      $result = civicrm_api3('GroupContact', 'create', array(
+        'sequential' => 1,
+         'contact_id' => $contactId,
+         'status' => 'Added',
+         'group_id' => $listId,
+      ));
     }
   } catch (Exception $e) {
     return;
@@ -740,7 +764,7 @@ function _cbf_civicrm_civicrm_event_ministry_centre($event_id) {
     $ministry_centre_id = null;
 
     foreach ($custom_values['values'] as $custom_value) {
-      if (isset($custom_value['latest']) && isset($custom_value['id']) && $custom_value['id'] = '25') {
+      if (isset($custom_value['latest']) && isset($custom_value['id']) && $custom_value['id'] == 25) {
         $ministry_centre_id = (int) $custom_value['latest'];
         break;
       }
