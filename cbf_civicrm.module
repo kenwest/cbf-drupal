@@ -488,8 +488,7 @@ function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
  * Allow users with 'edit contributions' permission to create civicrm_account_contact records.
  * This allows them to queue contacts to sync with Xero (from the Contact Summary screen).
  */
-function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$permissions)
-{
+function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$permissions) {
   $permissions['account_contact']['create'] = array('access CiviCRM', 'edit contributions');
 }
 
