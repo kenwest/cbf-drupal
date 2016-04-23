@@ -586,22 +586,17 @@ function cbf_civicrm_civicrm_pre( $op, $objectName, $id, &$params ) {
               $get = array_merge($get_a['values'], $get_b['values']);
 
               foreach ($get as $relationship) {
+                $arguments = array(
+                  'sequential' => 1,
+                  'id' => $relationship['id'],
+                  'is_active' => 0,
+                );
+
                 if (!isset($relationship['end_date'])) {
-                  // 'setvalue' objects to dashes in dates
-                  $result = civicrm_api3('Relationship', 'setvalue', array(
-                    'sequential' => 1,
-                    'field' => 'end_date',
-                    'id' => $relationship['id'],
-                    'value' => str_replace('-', '', CRM_Utils_Date::getToday()),
-                  ));
+                  $arguments['end_date'] = CRM_Utils_Date::getToday();
                 }
 
-                $result = civicrm_api3('Relationship', 'setvalue', array(
-                  'sequential' => 1,
-                  'field' => 'is_active',
-                  'id' => $relationship['id'],
-                  'value' => 0,
-                ));
+                $result = civicrm_api3('Relationship', 'create', $arguments);
               }
 
             } catch (CiviCRM_API3_Exception $e) {
@@ -903,7 +898,7 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
           'Description' => 'Amount',
           'Quantity' => '1.00',
           'UnitAmount' => $data['total_amount'],
-          'AccountCode' => tapestrymultiaccounts_get_civicrm_account_code($data['financial_type_id']),
+          'AccountCode' => CRM_Accountsync_BAO_AccountInvoice::getAccountCode($data['financial_type_id']),
         );
         $data['line_items'][] = array('label' => 'Amount');
       }
@@ -959,27 +954,6 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
       }
       break;
   }
-}
-
-/**
- * Get the accounting code from the financial type id.
- *
- * @param int $financialTypeID
- * @return mixed
- */
-function tapestrymultiaccounts_get_civicrm_account_code($financialTypeID) {
-  static $codes = array();
-  if (!in_array($financialTypeID, $codes)) {
-    $codes[$financialTypeID] = CRM_Financial_BAO_FinancialAccount::getAccountingCode($financialTypeID);
-    if (empty($codes[$financialTypeID])) {
-      $codes[$financialTypeID] = civicrm_api('setting', 'getvalue', array(
-        'group' => 'Xero Settings',
-        'name' => 'xero_default_revenue_account',
-        'version' => 3,
-      ));
-    }
-  }
-  return $codes[$financialTypeID];
 }
 
 /*
