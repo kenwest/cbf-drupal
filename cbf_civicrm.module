@@ -894,11 +894,19 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
 
       // Ensure there is at least one Line Item in the Invoice
       if (empty($params['LineItems']['LineItem'])) {
+        $accountCode = CRM_Accountsync_BAO_AccountInvoice::getAccountCode($data['financial_type_id']);
+        if (empty($accountCode)) {
+          $accountCode = civicrm_api('setting', 'getvalue', array(
+            'group' => 'Xero Settings',
+            'name' => 'xero_default_revenue_account',
+            'version' => 3,
+          ));
+        }
         $params['LineItems']['LineItem'][] = array(
           'Description' => 'Amount',
           'Quantity' => '1.00',
           'UnitAmount' => $data['total_amount'],
-          'AccountCode' => CRM_Accountsync_BAO_AccountInvoice::getAccountCode($data['financial_type_id']),
+          'AccountCode' => $accountCode,
         );
         $data['line_items'][] = array('label' => 'Amount');
       }
