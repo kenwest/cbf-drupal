@@ -64,31 +64,7 @@
       </div>
     </fieldset>
   {/if}
-  {if $billingDetailsFields|@count && $paymentProcessor.payment_processor_type neq 'PayPal_Express'}
-    {if $profileAddressFields}
-      <input type="checkbox" id="billingcheckbox" value="0">
-      <label for="billingcheckbox">{ts}My billing address is the same as above{/ts}</label>
-    {/if}
-    <fieldset class="billing_name_address-group">
-      <legend>{ts}Billing Name and Address{/ts}</legend>
-      <div class="crm-section billing_name_address-section">
-        {foreach from=$billingDetailsFields item=billingField}
-          {assign var='name' value=$form.$billingField.name}
-          <div class="crm-section {$form.$billingField.name}-section">
-            <div class="label">{$form.$billingField.label}
-              {if $requiredPaymentFields.$name}<span class="crm-marker" title="{ts}This field is required.{/ts}">*</span>{/if}
-            </div>
-            {if $form.$billingField.type == 'text'}
-              <div class="content">{$form.$billingField.html}</div>
-            {else}
-              <div class="content">{$form.$billingField.html|crmAddClass:big}</div>
-            {/if}
-            <div class="clear"></div>
-          </div>
-        {/foreach}
-      </div>
-    </fieldset>
-  {/if}
+  {* </KW: CRM-3224> *}
 </div>
 {if $profileAddressFields}
   <script type="text/javascript">
