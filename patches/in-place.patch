@@ -1,6 +1,6 @@
 diff -ur ./ang/crmMailing/BodyHtml.html /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/BodyHtml.html
 --- ./ang/crmMailing/BodyHtml.html	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/BodyHtml.html	2016-04-23 22:10:07.185230414 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/BodyHtml.html	2016-04-24 15:53:46.386451548 +1000
 @@ -14,7 +14,6 @@
          crm-ui-insert-rx="insert:body_html"
          ng-model="mailing.body_html"
@@ -11,7 +11,7 @@ diff -ur ./ang/crmMailing/BodyHtml.html /var/www/citybibleforum/sites/all/module
        <div ng-show="htmlForm.$error.crmUiValidate" class="crmMailing-error-link">
 diff -ur ./ang/crmMailing/EditMailingCtrl/2step.html /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html
 --- ./ang/crmMailing/EditMailingCtrl/2step.html	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html	2016-04-16 22:10:17.441137617 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html	2016-04-24 15:53:46.394451587 +1000
 @@ -21,9 +21,9 @@
              </div>
              <span ng-model="placeholder" crm-ui-validate="mailing.body_html || mailing.body_text"></span>
@@ -26,7 +26,7 @@ diff -ur ./ang/crmMailing/EditMailingCtrl/2step.html /var/www/citybibleforum/sit
            </div>
 diff -ur ./api/v3/Generic/Setvalue.php /var/www/citybibleforum/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php
 --- ./api/v3/Generic/Setvalue.php	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php	2016-04-16 22:10:34.313451561 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php	2016-04-24 15:53:45.730448295 +1000
 @@ -106,6 +106,7 @@
        break;
  
@@ -37,7 +37,7 @@ diff -ur ./api/v3/Generic/Setvalue.php /var/www/citybibleforum/sites/all/modules
          return civicrm_api3_create_error("Param '$field' is not a date. format YYYYMMDD or YYYYMMDDHHMMSS");
 diff -ur ./CRM/Contact/Page/AJAX.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contact/Page/AJAX.php
 --- ./CRM/Contact/Page/AJAX.php	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contact/Page/AJAX.php	2016-04-19 14:43:40.191533875 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contact/Page/AJAX.php	2016-04-24 15:53:43.166435581 +1000
 @@ -254,7 +254,7 @@
        ));
        // Save activity only for the primary (first) client
@@ -49,7 +49,7 @@ diff -ur ./CRM/Contact/Page/AJAX.php /var/www/citybibleforum/sites/all/modules/c
  
 diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml
 --- ./CRM/Contribute/xml/Menu/Contribute.xml	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2016-04-16 22:11:05.562033237 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2016-04-24 15:53:43.034434926 +1000
 @@ -229,6 +229,8 @@
      <title>Cancel Subscription</title>
      <page_callback>CRM_Contribute_Form_CancelSubscription</page_callback>
@@ -70,7 +70,7 @@ diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/
      <path>civicrm/contribute/subscriptionstatus</path>
 diff -ur ./CRM/Core/xml/Menu/Admin.xml /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Core/xml/Menu/Admin.xml
 --- ./CRM/Core/xml/Menu/Admin.xml	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Core/xml/Menu/Admin.xml	2016-04-18 18:19:02.302937252 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Core/xml/Menu/Admin.xml	2016-04-24 15:53:44.590442642 +1000
 @@ -741,7 +741,7 @@
       <path>civicrm/sms/send</path>
       <title>New Mass SMS</title>
@@ -80,9 +80,21 @@ diff -ur ./CRM/Core/xml/Menu/Admin.xml /var/www/citybibleforum/sites/all/modules
       <page_type>1</page_type>
       <weight>610</weight>
    </item>
+diff -ur ./CRM/Export/BAO/Export.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Export/BAO/Export.php
+--- ./CRM/Export/BAO/Export.php	2016-04-08 06:29:23.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Export/BAO/Export.php	2016-04-25 00:02:03.107726144 +1000
+@@ -764,7 +764,7 @@
+     $limitReached = FALSE;
+     while (!$limitReached) {
+       $limitQuery = "{$queryString} LIMIT {$offset}, {$rowCount}";
+-      $dao = CRM_Core_DAO::executeUnbufferedQuery($limitQuery);
++      $dao = CRM_Core_DAO::executeQuery($limitQuery);
+       // If this is less than our limit by the end of the iteration we do not need to run the query again to
+       // check if some remain.
+       $rowsThisIteration = 0;
 diff -ur ./CRM/Mailing/Info.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Mailing/Info.php
 --- ./CRM/Mailing/Info.php	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Mailing/Info.php	2016-04-16 22:11:24.950394291 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Mailing/Info.php	2016-04-24 15:53:45.122445280 +1000
 @@ -121,7 +121,7 @@
        'return' => array('id', 'name', 'scheduled_date'),
        'sequential' => 1,
@@ -94,7 +106,7 @@ diff -ur ./CRM/Mailing/Info.php /var/www/citybibleforum/sites/all/modules/civicr
      ));
 diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css
 --- ./css/civicrm.css	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css	2016-04-23 22:05:24.611858279 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css	2016-04-24 15:53:42.342431495 +1000
 @@ -241,6 +241,14 @@
    height: 5px;
  }
@@ -148,7 +160,7 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  #crm-container.crm-public #crm-submit-buttons {
 diff -ur ./js/wysiwyg/crm.ckeditor.js /var/www/citybibleforum/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js
 --- ./js/wysiwyg/crm.ckeditor.js	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js	2016-04-23 21:07:22.893394009 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js	2016-04-24 15:53:46.662452916 +1000
 @@ -71,12 +71,17 @@
        var isFullPage = $(item).hasClass('crm-wysiwyg-fullpage');
  
@@ -196,7 +208,7 @@ diff -ur ./js/wysiwyg/crm.ckeditor.js /var/www/citybibleforum/sites/all/modules/
 +};
 diff -ur ./packages/HTML/QuickForm/Rule/Email.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php
 --- ./packages/HTML/QuickForm/Rule/Email.php	2016-04-08 06:29:26.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php	2016-04-16 22:12:34.147902976 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php	2016-04-24 15:53:40.678423243 +1000
 @@ -69,10 +69,12 @@
                  if (checkdnsrr($tokens[1], 'MX') || checkdnsrr($tokens[1], 'A')) {
                      return true;
@@ -212,7 +224,7 @@ diff -ur ./packages/HTML/QuickForm/Rule/Email.php /var/www/citybibleforum/sites/
  
 diff -ur ./packages/Net/SMTP.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php
 --- ./packages/Net/SMTP.php	2016-04-08 06:29:26.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php	2016-04-18 14:05:31.482368088 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php	2016-04-24 15:53:41.782428718 +1000
 @@ -184,7 +184,7 @@
          $this->pipelining = $pipelining;
  
@@ -224,7 +236,7 @@ diff -ur ./packages/Net/SMTP.php /var/www/citybibleforum/sites/all/modules/civic
          /* Include the Auth_SASL package.  If the package is available, we 
 diff -ur ./packages/Smarty/internals/core.create_dir_structure.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php
 --- ./packages/Smarty/internals/core.create_dir_structure.php	2016-04-08 06:29:26.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php	2016-04-16 22:12:49.332260431 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php	2016-04-24 15:53:41.666428142 +1000
 @@ -65,7 +65,7 @@
                  $_make_new_dir = true;
              }
