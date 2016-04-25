@@ -207,7 +207,7 @@ class CRM_Contribute_BAO_Contribution_Utils {
     }
     elseif (empty($form->_values['amount'])) {
       // If the amount is not in _values[], set it
-    	$form->_values['amount'] = $form->_params['amount'];
+      $form->_values['amount'] = $form->_params['amount'];
     }
     CRM_Contribute_BAO_ContributionPage::sendMail($contactID,
       $form->_values,
