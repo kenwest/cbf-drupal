@@ -104,6 +104,74 @@ diff -ur ./CRM/Mailing/Info.php /var/www/citybibleforum/sites/all/modules/civicr
          'sort' => 'is_archived asc, scheduled_date desc',
        ),
      ));
+diff -ur ./CRM/Utils/DeprecatedUtils.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Utils/DeprecatedUtils.php
+--- ./CRM/Utils/DeprecatedUtils.php	2016-04-08 06:29:23.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Utils/DeprecatedUtils.php	2016-04-25 11:05:15.531230308 +1000
+@@ -523,7 +523,7 @@
+             }
+           }
+           else {
+-            return civicrm_api3_create_error('No match found for specified contact in contribution data. Row was skipped.', 'pledge_payment');
++            return civicrm_api3_create_error('Contribution not found. Row was skipped.');
+           }
+         }
+         else {
+@@ -539,7 +539,7 @@
+               $contributionContactID = $params['contribution_contact_id'] = $values['contribution_contact_id'] = $contact->id;
+             }
+             else {
+-              return civicrm_api3_create_error('No match found for specified contact in contribution data. Row was skipped.', 'pledge_payment');
++              return civicrm_api3_create_error('Contact not found. Row was skipped.');
+             }
+           }
+           else {
+@@ -551,21 +551,21 @@
+ 
+               // check if only one contact is found
+               if (count($matchedIDs) > 1) {
+-                return civicrm_api3_create_error($error['error_message']['message'], 'pledge_payment');
++                return civicrm_api3_create_error($error['error_message']['message']);
+               }
+               else {
+                 $contributionContactID = $params['contribution_contact_id'] = $values['contribution_contact_id'] = $matchedIDs[0];
+               }
+             }
+             else {
+-              return civicrm_api3_create_error('No match found for specified contact in contribution data. Row was skipped.', 'pledge_payment');
++              return civicrm_api3_create_error('No match found for specified contact in contribution data. Row was skipped.');
+             }
+           }
+         }
+ 
+         if (!empty($params['pledge_id'])) {
+           if (CRM_Core_DAO::getFieldValue('CRM_Pledge_DAO_Pledge', $params['pledge_id'], 'contact_id') != $contributionContactID) {
+-            return civicrm_api3_create_error('Invalid Pledge ID provided. Contribution row was skipped.', 'pledge_payment');
++            return civicrm_api3_create_error('Invalid Pledge ID provided. Contribution row was skipped.');
+           }
+           $values['pledge_id'] = $params['pledge_id'];
+         }
+@@ -575,10 +575,10 @@
+           $pledgeDetails = CRM_Pledge_BAO_Pledge::getContactPledges($contributionContactID);
+ 
+           if (empty($pledgeDetails)) {
+-            return civicrm_api3_create_error('No open pledges found for this contact. Contribution row was skipped.', 'pledge_payment');
++            return civicrm_api3_create_error('No open pledges found for this contact. Contribution row was skipped.');
+           }
+           elseif (count($pledgeDetails) > 1) {
+-            return civicrm_api3_create_error('This contact has more than one open pledge. Unable to determine which pledge to apply the contribution to. Contribution row was skipped.', 'pledge_payment');
++            return civicrm_api3_create_error('This contact has more than one open pledge. Unable to determine which pledge to apply the contribution to. Contribution row was skipped.');
+           }
+ 
+           // this mean we have only one pending / in progress pledge
+@@ -593,7 +593,7 @@
+           $values['pledge_payment_id'] = $pledgePaymentDetails['id'];
+         }
+         else {
+-          return civicrm_api3_create_error('Contribution and Pledge Payment amount mismatch for this record. Contribution row was skipped.', 'pledge_payment');
++          return civicrm_api3_create_error('Contribution and Pledge Payment amount mismatch for this record. Contribution row was skipped.');
+         }
+         break;
+ 
 diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css
 --- ./css/civicrm.css	2016-04-08 06:29:23.000000000 +1000
 +++ /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css	2016-04-24 15:53:42.342431495 +1000
