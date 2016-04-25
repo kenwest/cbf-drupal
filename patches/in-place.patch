@@ -106,7 +106,16 @@ diff -ur ./CRM/Mailing/Info.php /var/www/citybibleforum/sites/all/modules/civicr
      ));
 diff -ur ./CRM/Utils/DeprecatedUtils.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Utils/DeprecatedUtils.php
 --- ./CRM/Utils/DeprecatedUtils.php	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Utils/DeprecatedUtils.php	2016-04-25 11:05:15.531230308 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Utils/DeprecatedUtils.php	2016-04-25 11:21:31.204068408 +1000
+@@ -450,7 +450,7 @@
+               }
+ 
+               if ($errorMsg) {
+-                return civicrm_api3_create_error($errorMsg, $value[$key]);
++                return civicrm_api3_create_error($errorMsg);
+               }
+ 
+               // finally get soft credit contact id.
 @@ -523,7 +523,7 @@
              }
            }
