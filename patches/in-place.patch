@@ -1,6 +1,6 @@
 diff -ur ./ang/crmMailing/BodyHtml.html /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/BodyHtml.html
---- ./ang/crmMailing/BodyHtml.html	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/BodyHtml.html	2016-04-24 15:53:46.386451548 +1000
+--- ./ang/crmMailing/BodyHtml.html	2016-05-05 06:24:45.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/BodyHtml.html	2016-05-07 16:39:15.390792208 +1000
 @@ -14,7 +14,6 @@
          crm-ui-insert-rx="insert:body_html"
          ng-model="mailing.body_html"
@@ -10,8 +10,8 @@ diff -ur ./ang/crmMailing/BodyHtml.html /var/www/citybibleforum/sites/all/module
        <span ng-model="body_html_tokens" crm-ui-validate="hasAllTokens(mailing, 'body_html')"></span>
        <div ng-show="htmlForm.$error.crmUiValidate" class="crmMailing-error-link">
 diff -ur ./ang/crmMailing/EditMailingCtrl/2step.html /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html
---- ./ang/crmMailing/EditMailingCtrl/2step.html	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html	2016-04-24 15:53:46.394451587 +1000
+--- ./ang/crmMailing/EditMailingCtrl/2step.html	2016-05-05 06:24:45.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html	2016-05-07 16:39:15.390792208 +1000
 @@ -21,9 +21,9 @@
              </div>
              <span ng-model="placeholder" crm-ui-validate="mailing.body_html || mailing.body_text"></span>
@@ -25,8 +25,8 @@ diff -ur ./ang/crmMailing/EditMailingCtrl/2step.html /var/www/citybibleforum/sit
              <div crm-mailing-block-header-footer crm-mailing="mailing"/>
            </div>
 diff -ur ./api/v3/Generic/Setvalue.php /var/www/citybibleforum/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php
---- ./api/v3/Generic/Setvalue.php	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php	2016-04-24 15:53:45.730448295 +1000
+--- ./api/v3/Generic/Setvalue.php	2016-05-05 06:24:45.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php	2016-05-07 16:39:15.390792208 +1000
 @@ -106,6 +106,7 @@
        break;
  
@@ -35,9 +35,31 @@ diff -ur ./api/v3/Generic/Setvalue.php /var/www/citybibleforum/sites/all/modules
        $value = CRM_Utils_Type::escape($value, "Date", FALSE);
        if (!$value) {
          return civicrm_api3_create_error("Param '$field' is not a date. format YYYYMMDD or YYYYMMDDHHMMSS");
+diff -ur ./bower_components/ckeditor/plugins/table/dialogs/table.js /var/www/citybibleforum/sites/all/modules/civicrm/bower_components/ckeditor/plugins/table/dialogs/table.js
+--- ./bower_components/ckeditor/plugins/table/dialogs/table.js	2016-05-05 06:26:45.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/bower_components/ckeditor/plugins/table/dialogs/table.js	2016-05-07 16:50:15.247184573 +1000
+@@ -10,12 +10,12 @@
+ f))for(h=0;h<b.$.rows.length;h++)g=new CKEDITOR.dom.element(b.$.rows[h].cells[0]),g.renameNode("th"),g.setAttribute("scope","row");if(this.hasColumnHeaders&&"col"!=f&&"both"!=f)for(k=0;k<b.$.rows.length;k++)h=new CKEDITOR.dom.element(b.$.rows[k]),"tbody"==h.getParent().getName()&&(g=new CKEDITOR.dom.element(h.$.cells[0]),g.renameNode("td"),g.removeAttribute("scope"));c.txtHeight?b.setStyle("height",c.txtHeight):b.removeStyle("height");c.txtWidth?b.setStyle("width",c.txtWidth):b.removeStyle("width");
+ b.getAttribute("style")||b.removeAttribute("style")}if(this._.selectedElement)try{e.selectBookmarks(d)}catch(p){}else a.insertElement(b),setTimeout(function(){var e=new CKEDITOR.dom.element(b.$.rows[0].cells[0]),c=a.createRange();c.moveToPosition(e,CKEDITOR.POSITION_AFTER_START);c.select()},0)},contents:[{id:"info",label:a.lang.table.title,elements:[{type:"hbox",widths:[null,null],styles:["vertical-align:top"],children:[{type:"vbox",padding:0,children:[{type:"text",id:"txtRows","default":3,label:a.lang.table.rows,
+ required:!0,controlStyle:"width:5em",validate:r(a.lang.table.invalidRows),setup:function(e){this.setValue(e.$.rows.length)},commit:l},{type:"text",id:"txtCols","default":2,label:a.lang.table.columns,required:!0,controlStyle:"width:5em",validate:r(a.lang.table.invalidCols),setup:function(e){this.setValue(v(e))},commit:l},{type:"html",html:"\x26nbsp;"},{type:"select",id:"selHeaders",requiredContent:"th","default":"",label:a.lang.table.headers,items:[[a.lang.table.headersNone,""],[a.lang.table.headersRow,
+-"row"],[a.lang.table.headersColumn,"col"],[a.lang.table.headersBoth,"both"]],setup:function(e){var a=this.getDialog();a.hasColumnHeaders=!0;for(var b=0;b<e.$.rows.length;b++){var c=e.$.rows[b].cells[0];if(c&&"th"!=c.nodeName.toLowerCase()){a.hasColumnHeaders=!1;break}}null!==e.$.tHead?this.setValue(a.hasColumnHeaders?"both":"row"):this.setValue(a.hasColumnHeaders?"col":"")},commit:l},{type:"text",id:"txtBorder",requiredContent:"table[border]","default":a.filter.check("table[border]")?1:0,label:a.lang.table.border,
++"row"],[a.lang.table.headersColumn,"col"],[a.lang.table.headersBoth,"both"]],setup:function(e){var a=this.getDialog();a.hasColumnHeaders=!0;for(var b=0;b<e.$.rows.length;b++){var c=e.$.rows[b].cells[0];if(c&&"th"!=c.nodeName.toLowerCase()){a.hasColumnHeaders=!1;break}}null!==e.$.tHead?this.setValue(a.hasColumnHeaders?"both":"row"):this.setValue(a.hasColumnHeaders?"col":"")},commit:l},{type:"text",id:"txtBorder",requiredContent:"table[border]","default":0,label:a.lang.table.border,
+ controlStyle:"width:3em",validate:CKEDITOR.dialog.validate.number(a.lang.table.invalidBorder),setup:function(a){this.setValue(a.getAttribute("border")||"")},commit:function(a,d){this.getValue()?d.setAttribute("border",this.getValue()):d.removeAttribute("border")}},{id:"cmbAlign",type:"select",requiredContent:"table[align]","default":"",label:a.lang.common.align,items:[[a.lang.common.notSet,""],[a.lang.common.alignLeft,"left"],[a.lang.common.alignCenter,"center"],[a.lang.common.alignRight,"right"]],
+-setup:function(a){this.setValue(a.getAttribute("align")||"")},commit:function(a,d){this.getValue()?d.setAttribute("align",this.getValue()):d.removeAttribute("align")}}]},{type:"vbox",padding:0,children:[{type:"hbox",widths:["5em"],children:[{type:"text",id:"txtWidth",requiredContent:"table{width}",controlStyle:"width:5em",label:a.lang.common.width,title:a.lang.common.cssLengthTooltip,"default":a.filter.check("table{width}")?500>q.getSize("width")?"100%":500:0,getValue:u,validate:CKEDITOR.dialog.validate.cssLength(a.lang.common.invalidCssLength.replace("%1",
++setup:function(a){this.setValue(a.getAttribute("align")||"")},commit:function(a,d){this.getValue()?d.setAttribute("align",this.getValue()):d.removeAttribute("align")}}]},{type:"vbox",padding:0,children:[{type:"hbox",widths:["5em"],children:[{type:"text",id:"txtWidth",requiredContent:"table{width}",controlStyle:"width:5em",label:a.lang.common.width,title:a.lang.common.cssLengthTooltip,"default":0,getValue:u,validate:CKEDITOR.dialog.validate.cssLength(a.lang.common.invalidCssLength.replace("%1",
+ a.lang.common.width)),onChange:function(){var a=this.getDialog().getContentElement("advanced","advStyles");a&&a.updateStyle("width",this.getValue())},setup:function(a){a=a.getStyle("width");this.setValue(a)},commit:l}]},{type:"hbox",widths:["5em"],children:[{type:"text",id:"txtHeight",requiredContent:"table{height}",controlStyle:"width:5em",label:a.lang.common.height,title:a.lang.common.cssLengthTooltip,"default":"",getValue:u,validate:CKEDITOR.dialog.validate.cssLength(a.lang.common.invalidCssLength.replace("%1",
+-a.lang.common.height)),onChange:function(){var a=this.getDialog().getContentElement("advanced","advStyles");a&&a.updateStyle("height",this.getValue())},setup:function(a){(a=a.getStyle("height"))&&this.setValue(a)},commit:l}]},{type:"html",html:"\x26nbsp;"},{type:"text",id:"txtCellSpace",requiredContent:"table[cellspacing]",controlStyle:"width:3em",label:a.lang.table.cellSpace,"default":a.filter.check("table[cellspacing]")?1:0,validate:CKEDITOR.dialog.validate.number(a.lang.table.invalidCellSpacing),
+-setup:function(a){this.setValue(a.getAttribute("cellSpacing")||"")},commit:function(a,d){this.getValue()?d.setAttribute("cellSpacing",this.getValue()):d.removeAttribute("cellSpacing")}},{type:"text",id:"txtCellPad",requiredContent:"table[cellpadding]",controlStyle:"width:3em",label:a.lang.table.cellPad,"default":a.filter.check("table[cellpadding]")?1:0,validate:CKEDITOR.dialog.validate.number(a.lang.table.invalidCellPadding),setup:function(a){this.setValue(a.getAttribute("cellPadding")||"")},commit:function(a,
++a.lang.common.height)),onChange:function(){var a=this.getDialog().getContentElement("advanced","advStyles");a&&a.updateStyle("height",this.getValue())},setup:function(a){(a=a.getStyle("height"))&&this.setValue(a)},commit:l}]},{type:"html",html:"\x26nbsp;"},{type:"text",id:"txtCellSpace",requiredContent:"table[cellspacing]",controlStyle:"width:3em",label:a.lang.table.cellSpace,"default":0,validate:CKEDITOR.dialog.validate.number(a.lang.table.invalidCellSpacing),
++setup:function(a){this.setValue(a.getAttribute("cellSpacing")||"")},commit:function(a,d){this.getValue()?d.setAttribute("cellSpacing",this.getValue()):d.removeAttribute("cellSpacing")}},{type:"text",id:"txtCellPad",requiredContent:"table[cellpadding]",controlStyle:"width:3em",label:a.lang.table.cellPad,"default":5,validate:CKEDITOR.dialog.validate.number(a.lang.table.invalidCellPadding),setup:function(a){this.setValue(a.getAttribute("cellPadding")||"")},commit:function(a,
+ d){this.getValue()?d.setAttribute("cellPadding",this.getValue()):d.removeAttribute("cellPadding")}}]}]},{type:"html",align:"right",html:""},{type:"vbox",padding:0,children:[{type:"text",id:"txtCaption",requiredContent:"caption",label:a.lang.table.caption,setup:function(a){this.enable();a=a.getElementsByTag("caption");if(0<a.count()){a=a.getItem(0);var d=a.getFirst(CKEDITOR.dom.walker.nodeType(CKEDITOR.NODE_ELEMENT));d&&!d.equals(a.getBogus())?(this.disable(),this.setValue(a.getText())):(a=CKEDITOR.tools.trim(a.getText()),
+ this.setValue(a))}},commit:function(e,d){if(this.isEnabled()){var b=this.getValue(),c=d.getElementsByTag("caption");if(b)0<c.count()?(c=c.getItem(0),c.setHtml("")):(c=new CKEDITOR.dom.element("caption",a.document),d.append(c,!0)),c.append(new CKEDITOR.dom.text(b,a.document));else if(0<c.count())for(b=c.count()-1;0<=b;b--)c.getItem(b).remove()}}},{type:"text",id:"txtSummary",bidi:!0,requiredContent:"table[summary]",label:a.lang.table.summary,setup:function(a){this.setValue(a.getAttribute("summary")||
+-"")},commit:function(a,d){this.getValue()?d.setAttribute("summary",this.getValue()):d.removeAttribute("summary")}}]}]},p&&p.createAdvancedTab(a,null,"table")]}}var u=CKEDITOR.tools.cssLength,l=function(a){var f=this.id;a.info||(a.info={});a.info[f]=this.getValue()};CKEDITOR.dialog.add("table",function(a){return q(a,"table")});CKEDITOR.dialog.add("tableProperties",function(a){return q(a,"tableProperties")})})();
+\ No newline at end of file
++"")},commit:function(a,d){this.getValue()?d.setAttribute("summary",this.getValue()):d.removeAttribute("summary")}}]}]},p&&p.createAdvancedTab(a,null,"table")]}}var u=CKEDITOR.tools.cssLength,l=function(a){var f=this.id;a.info||(a.info={});a.info[f]=this.getValue()};CKEDITOR.dialog.add("table",function(a){return q(a,"table")});CKEDITOR.dialog.add("tableProperties",function(a){return q(a,"tableProperties")})})();
 diff -ur ./CRM/Contact/Page/AJAX.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contact/Page/AJAX.php
---- ./CRM/Contact/Page/AJAX.php	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contact/Page/AJAX.php	2016-04-24 15:53:43.166435581 +1000
+--- ./CRM/Contact/Page/AJAX.php	2016-05-05 06:24:44.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contact/Page/AJAX.php	2016-05-07 16:39:15.390792208 +1000
 @@ -254,7 +254,7 @@
        ));
        // Save activity only for the primary (first) client
@@ -48,8 +70,8 @@ diff -ur ./CRM/Contact/Page/AJAX.php /var/www/citybibleforum/sites/all/modules/c
      }
  
 diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml
---- ./CRM/Contribute/xml/Menu/Contribute.xml	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2016-04-24 15:53:43.034434926 +1000
+--- ./CRM/Contribute/xml/Menu/Contribute.xml	2016-05-05 06:24:44.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2016-05-07 16:39:15.390792208 +1000
 @@ -229,6 +229,8 @@
      <title>Cancel Subscription</title>
      <page_callback>CRM_Contribute_Form_CancelSubscription</page_callback>
@@ -69,8 +91,8 @@ diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/
    <item>
      <path>civicrm/contribute/subscriptionstatus</path>
 diff -ur ./CRM/Core/xml/Menu/Admin.xml /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Core/xml/Menu/Admin.xml
---- ./CRM/Core/xml/Menu/Admin.xml	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Core/xml/Menu/Admin.xml	2016-04-24 15:53:44.590442642 +1000
+--- ./CRM/Core/xml/Menu/Admin.xml	2016-05-05 06:24:44.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Core/xml/Menu/Admin.xml	2016-05-07 16:39:15.394792283 +1000
 @@ -741,7 +741,7 @@
       <path>civicrm/sms/send</path>
       <title>New Mass SMS</title>
@@ -80,21 +102,9 @@ diff -ur ./CRM/Core/xml/Menu/Admin.xml /var/www/citybibleforum/sites/all/modules
       <page_type>1</page_type>
       <weight>610</weight>
    </item>
-diff -ur ./CRM/Export/BAO/Export.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Export/BAO/Export.php
---- ./CRM/Export/BAO/Export.php	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Export/BAO/Export.php	2016-04-25 00:02:03.107726144 +1000
-@@ -764,7 +764,7 @@
-     $limitReached = FALSE;
-     while (!$limitReached) {
-       $limitQuery = "{$queryString} LIMIT {$offset}, {$rowCount}";
--      $dao = CRM_Core_DAO::executeUnbufferedQuery($limitQuery);
-+      $dao = CRM_Core_DAO::executeQuery($limitQuery);
-       // If this is less than our limit by the end of the iteration we do not need to run the query again to
-       // check if some remain.
-       $rowsThisIteration = 0;
 diff -ur ./CRM/Mailing/Info.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Mailing/Info.php
---- ./CRM/Mailing/Info.php	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Mailing/Info.php	2016-04-24 15:53:45.122445280 +1000
+--- ./CRM/Mailing/Info.php	2016-05-05 06:24:44.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Mailing/Info.php	2016-05-07 16:40:17.031942786 +1000
 @@ -121,7 +121,7 @@
        'return' => array('id', 'name', 'scheduled_date'),
        'sequential' => 1,
@@ -105,8 +115,8 @@ diff -ur ./CRM/Mailing/Info.php /var/www/citybibleforum/sites/all/modules/civicr
        ),
      ));
 diff -ur ./CRM/Utils/DeprecatedUtils.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Utils/DeprecatedUtils.php
---- ./CRM/Utils/DeprecatedUtils.php	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Utils/DeprecatedUtils.php	2016-04-25 11:21:31.204068408 +1000
+--- ./CRM/Utils/DeprecatedUtils.php	2016-05-05 06:24:45.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Utils/DeprecatedUtils.php	2016-05-07 16:40:17.035942861 +1000
 @@ -450,7 +450,7 @@
                }
  
@@ -182,8 +192,8 @@ diff -ur ./CRM/Utils/DeprecatedUtils.php /var/www/citybibleforum/sites/all/modul
          break;
  
 diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css
---- ./css/civicrm.css	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css	2016-04-24 15:53:42.342431495 +1000
+--- ./css/civicrm.css	2016-05-05 06:24:45.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css	2016-05-07 16:40:17.039942935 +1000
 @@ -241,6 +241,14 @@
    height: 5px;
  }
@@ -236,9 +246,9 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  
  #crm-container.crm-public #crm-submit-buttons {
 diff -ur ./js/wysiwyg/crm.ckeditor.js /var/www/citybibleforum/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js
---- ./js/wysiwyg/crm.ckeditor.js	2016-04-08 06:29:23.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js	2016-04-24 15:53:46.662452916 +1000
-@@ -71,12 +71,17 @@
+--- ./js/wysiwyg/crm.ckeditor.js	2016-05-05 06:24:45.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js	2016-05-07 16:57:15.431186444 +1000
+@@ -71,12 +71,18 @@
        var isFullPage = $(item).hasClass('crm-wysiwyg-fullpage');
  
        CKEDITOR.replace($(item)[0], {
@@ -255,14 +265,15 @@ diff -ur ./js/wysiwyg/crm.ckeditor.js /var/www/citybibleforum/sites/all/modules/
 +        filebrowserImageUploadUrl : '',
 +        filebrowserFlashUploadUrl : '',
 +        bodyClass                 : 'cke_editable',
-+    	contentsCss               : '/sites/all/themes/cbootf/css/editor.css',
++        contentsCss               : '/sites/all/themes/cbootf/css/editor.css',
++        stylesSet                 : 'civicrm:/sites/all/themes/cbootf/js/ckeditor.styles.js',
 +        scayt_autoStartup         : true,
 +        scayt_sLang               : 'en_GB',
 +        forcePasteAsPlainText     : true,
          allowedContent: true, // For CiviMail!
          fullPage: isFullPage,
          customConfig: CRM.config.CKEditorCustomConfig,
-@@ -157,3 +162,20 @@
+@@ -157,3 +163,20 @@
    };
  
  })(CRM.$, CRM._);
@@ -284,8 +295,8 @@ diff -ur ./js/wysiwyg/crm.ckeditor.js /var/www/citybibleforum/sites/all/modules/
 +  win.close();
 +};
 diff -ur ./packages/HTML/QuickForm/Rule/Email.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php
---- ./packages/HTML/QuickForm/Rule/Email.php	2016-04-08 06:29:26.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php	2016-04-24 15:53:40.678423243 +1000
+--- ./packages/HTML/QuickForm/Rule/Email.php	2016-05-05 06:24:47.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php	2016-05-07 16:40:17.039942935 +1000
 @@ -69,10 +69,12 @@
                  if (checkdnsrr($tokens[1], 'MX') || checkdnsrr($tokens[1], 'A')) {
                      return true;
@@ -300,8 +311,8 @@ diff -ur ./packages/HTML/QuickForm/Rule/Email.php /var/www/citybibleforum/sites/
      } // end func validate
  
 diff -ur ./packages/Net/SMTP.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php
---- ./packages/Net/SMTP.php	2016-04-08 06:29:26.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php	2016-04-24 15:53:41.782428718 +1000
+--- ./packages/Net/SMTP.php	2016-05-05 06:24:47.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Net/SMTP.php	2016-05-07 16:40:17.039942935 +1000
 @@ -184,7 +184,7 @@
          $this->pipelining = $pipelining;
  
@@ -312,8 +323,8 @@ diff -ur ./packages/Net/SMTP.php /var/www/citybibleforum/sites/all/modules/civic
  
          /* Include the Auth_SASL package.  If the package is available, we 
 diff -ur ./packages/Smarty/internals/core.create_dir_structure.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php
---- ./packages/Smarty/internals/core.create_dir_structure.php	2016-04-08 06:29:26.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php	2016-04-24 15:53:41.666428142 +1000
+--- ./packages/Smarty/internals/core.create_dir_structure.php	2016-05-05 06:24:47.000000000 +1000
++++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php	2016-05-07 16:40:17.039942935 +1000
 @@ -65,7 +65,7 @@
                  $_make_new_dir = true;
              }
