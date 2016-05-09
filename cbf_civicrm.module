@@ -301,6 +301,26 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         $submit[0]->setValue('Next >>');
       }
 
+      // Prevent the user from editing their name or email during
+      // online donations or registrations
+      switch ($formName) {
+        case 'CRM_Contribute_Form_Contribution_Main':
+        case 'CRM_Event_Form_Registration_Register':
+          $protect = array(
+            'first_name',
+            'last_name',
+            'email-5',    // Billing email, donation form
+            'email-6',    // Primary email, registration form
+            'phone-6-2',  // Primary mobile, registration form
+          );
+          foreach ($protect as $i) {
+            if (!empty($form->_defaultValues[$i])) {
+              $form->getElement($i)->freeze();
+            }
+          }
+          break;
+      }
+
       break;
 
     case 'CRM_Contribute_Form_Contribution_Confirm':
