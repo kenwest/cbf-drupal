@@ -309,12 +309,12 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
           $protect = array(
             'first_name',
             'last_name',
-//            'email-5',    // Billing email, donation form
-//            'email-6',    // Primary email, registration form
-//            'phone-6-2',  // Primary mobile, registration form
+            'email-5',    // Billing email, donation form
+            'email-6',    // Primary email, registration form
+            'phone-6-2',  // Primary mobile, registration form
           );
           foreach ($protect as $i) {
-            if (!empty($form->_defaultValues[$i])) {
+            if ($form->elementExists($i) && !empty($form->_defaultValues[$i])) {
               $form->getElement($i)->freeze();
             }
           }
