@@ -58,6 +58,7 @@ class CRM_Group_Page_AJAX {
         'visibility' => 'String',
         'status' => 'Integer',
         'parentsOnly' => 'Integer',
+        'showOrgInfo' => 'Boolean',
         // Ignore 'parent_id' as that case is handled above
       );
       $params = CRM_Core_Page_AJAX::defaultSortAndPagerParams();
