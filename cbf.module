@@ -719,7 +719,7 @@ function cbf_visitor_city_string() {
 	 */
 	static $cbf_visitor_city = null;
 
-	if ( !isset($cbf_visitor_city) ) {
+	if (!isset($cbf_visitor_city)) {
 		$cbf_visitor_city = false;
 
 		if (!function_exists('ip_geoloc_get_visitor_location')) {
@@ -728,27 +728,29 @@ function cbf_visitor_city_string() {
 
 		$result = ip_geoloc_get_visitor_location();
 
-		switch ($result['country']) {
-			case 'Australia':
-				switch ($result['administrative_area_level_1']) {
-					case 'New South Wales':
-						$cbf_visitor_city = 'sydney';
-						break;
-					case 'Victoria':
-						$cbf_visitor_city = 'melbourne';
-						break;
-					case 'Queensland':
-						$cbf_visitor_city = 'brisbane';
-						break;
-					case 'South Australia':
-						$cbf_visitor_city = 'adelaide';
-						break;
-					case 'West Australia':
-					case 'Western Australia':
-						$cbf_visitor_city = 'perth';
-						break;
-				}
-				break;
+		if (isset($result['country']) && isset($result['administrative_area_level_1'])) {
+			switch ($result['country']) {
+				case 'Australia':
+					switch ($result['administrative_area_level_1']) {
+						case 'New South Wales':
+							$cbf_visitor_city = 'sydney';
+							break;
+						case 'Victoria':
+							$cbf_visitor_city = 'melbourne';
+							break;
+						case 'Queensland':
+							$cbf_visitor_city = 'brisbane';
+							break;
+						case 'South Australia':
+							$cbf_visitor_city = 'adelaide';
+							break;
+						case 'West Australia':
+						case 'Western Australia':
+							$cbf_visitor_city = 'perth';
+							break;
+					}
+					break;
+			}
 		}
 	}
 
