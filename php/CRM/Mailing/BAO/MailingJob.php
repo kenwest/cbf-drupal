@@ -367,6 +367,13 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
         continue;
       }
 
+      /*
+       * Update the recipients. Core CiviCRM doesn't do this because
+       * of concerns over ACL lists restricting who can send emails
+       * to whom, but we don't worry about that at City Bible Forum.
+       */
+      CRM_Mailing_BAO_Mailing::getRecipients($job->id, $job->mailing_id, TRUE, FALSE, $mode);
+
       $job->split_job($offset);
 
       // update the status of the parent job
