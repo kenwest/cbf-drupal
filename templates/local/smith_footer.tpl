@@ -14,7 +14,9 @@
 <td style="border-top: 1px solid #ccc; color: #444444; font-size:11px; padding: 10px;">
 <p><strong>Smith Lecture</strong><br />
         {$domain_address}<br />
-        {$domain_phone} </p>
+        {$domain_phone}<br/>
+        <br/>
+        ABN 42 172 211 662 </p>
 </td>
 </tr>
 </tbody>

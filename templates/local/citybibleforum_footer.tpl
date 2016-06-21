@@ -23,7 +23,9 @@
                     <tr>
                       <td style="vertical-align: top; font-size: 11px; color: #ffffff; font-weight: normal; text-align: left; font-family: 'Open Sans',Arial,Helvetica,sans-serif; padding: 0 5px;">
                         {$domain_address}<br/>
-                        {$domain_phone}
+                        {$domain_phone}<br/>
+                        <br/>
+                        ABN 42 172 211 662
                       </td>
                     </tr>
                   </table>

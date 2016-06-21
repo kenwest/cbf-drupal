@@ -77,7 +77,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
      * This is usually empty, except for event registrations and contributions
      * for Event Fees and Sales.
      */
-    $taxInvoice = '<tr><td>This email serves as a Tax Invoice. Amounts quoted include GST.</td></tr><tr><td>ABN 42 172 211 662</td></tr>';
+    $taxInvoice = '<tr><td>This email serves as a Tax Invoice. Amounts quoted include GST.</td></tr>';
     $isTaxInvoice = FALSE;
     if (isset($params['valueName'])) {
       switch ($params['valueName']) {
