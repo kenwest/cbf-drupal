@@ -55,8 +55,8 @@
                 </td>
               </tr>
               <tr>
-                <td style="padding: 0; text-align: center;">
-                  <img src="http://gpb.citybibleforum.org/sites/gpb/themes/gpbootstrap/email/Crown.png" alt="" border="0" style="max-width: 33%; display: inline;" />
+                <td style="padding: 15px 0 0; text-align: center;">
+                  <img src="http://gpb.citybibleforum.org/sites/gpb/themes/gpbootstrap/email/Crown.png" alt="" border="0" style="max-width: 20%; display: inline;" />
                 </td>
               </tr>
             </table>
