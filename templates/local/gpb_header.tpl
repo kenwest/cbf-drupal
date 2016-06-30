@@ -50,13 +50,13 @@
               <tr>
                 <td style="padding: 0;">
                   <a href="http://gpbwa.org">
-                    <img src="http://gpb.citybibleforum.org/sites/gpb/themes/gpbootstrap/email/GPB_Header.jpg" alt="Governor's Prayer Breakfast" border="0" class="deviceWidth" />
+                    <img src="http://gpbwa.org/wp-content/uploads/2016/06/GPB_Header.jpg" alt="Governor's Prayer Breakfast" border="0" class="deviceWidth" />
                   </a>
                 </td>
               </tr>
               <tr>
                 <td style="padding: 15px 0 0; text-align: center;">
-                  <img src="http://gpb.citybibleforum.org/sites/gpb/themes/gpbootstrap/email/Crown.png" alt="" border="0" style="max-width: 20%; display: inline;" />
+                  <img src="http://gpbwa.org/wp-content/uploads/2016/06/crown.png" alt="" border="0" style="max-width: 20%; display: inline;" />
                 </td>
               </tr>
             </table>
