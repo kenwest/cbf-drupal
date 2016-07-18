@@ -4,6 +4,7 @@
  * This hook is called at the beginning of a Drupal page request.
  */
 function cbf_init() {
+	drupal_add_http_header('P3P', 'CP="POTATO"');
     if (arg(0) == 'node' && arg(1) == 'add') {
         switch (arg(2)) {
             case 'story':
