@@ -857,7 +857,7 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
           }
         }
         if ($src != '') {
-          $pattern = $card;
+          $pattern = $src;
         }
         break;
     }
