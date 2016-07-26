@@ -777,7 +777,10 @@ function cbf_visitor_city_string() {
  * 4  Highlight     Image >= 600px x 316px
  *    Series Image
  *    Image
- * 5  Logo          No matching image fields
+ * 5  Highlight     Image >= 280px wide
+ *    Series Image
+ *    Image
+ * 6  Logo          No matching image fields
  */
 function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
   if (isset($types['node'])) {
@@ -803,7 +806,7 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
           }
         }
         /* Try Option 2 */
-        if ($card == 'summary') {
+        if ($src == '') {
           if (isset($node->field_thumbnail_image['und'][0])) {
             $field = $node->field_thumbnail_image['und'][0];
             if (isset($field['width']) && $field['width'] >= 120 &&
@@ -826,7 +829,8 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
         break;
 
       case 'og:image':
-        /* Option 5 is the default */
+        /* Option 6 is the default */
+      	$src = '';
         /* Try Option 4 */
         foreach ($largeImages as $largeImage) {
           $image = $node->$largeImage;
@@ -834,10 +838,26 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
             $field = $image['und'][0];
             if (isset($field['width']) && $field['width'] >= 600 &&
                 isset($field['height']) && $field['height'] >= 316) {
-              $pattern = "[node:$largeImage]";
+              $src = "[node:$largeImage]";
               break;
             }
           }
+        }
+        /* Try Option 5 */
+        if ($src == '') {
+          foreach ($largeImages as $largeImage) {
+            $image = $node->$largeImage;
+            if (isset($image) && isset($image['und'][0])) {
+              $field = $image['und'][0];
+              if (isset($field['width']) && $field['width'] >= 280) {
+                $src = "[node:$largeImage]";
+                break;
+              }
+            }
+          }
+        }
+        if ($src != '') {
+          $pattern = $card;
         }
         break;
     }
