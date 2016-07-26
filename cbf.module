@@ -756,3 +756,63 @@ function cbf_visitor_city_string() {
 
 	return $cbf_visitor_city;
 }
+
+/*
+ * Populate the metatags for a node's Twitter Card. The preferences are ...
+ *
+ * #  Twitter card type              Source image     Condition
+ *    -----------------------------  ---------------  ------------------------
+ * 1  Summary card with large image  Highlight        Image >= 280px x 150px
+ *                                   Series image
+ *                                   Image
+ * 2  Summary card                   Thumbnail image  Image >= 120px x 120px
+ * 3  Summary card                   Logo             No matching image fields
+ */
+function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
+  switch ($tag_name) {
+    case 'twitter:card':
+    case 'twitter:image:src':
+      if (isset($types['node'])) {
+        $node = $types['node'];
+        /* Option 3 is the default */
+        $card = 'summary';
+        $src = '';
+        /* Try Option 1 */
+        $largeImages = array('field_highlight', 'field_image', 'field_series_image');
+        foreach ($largeImages as $largeImage) {
+          $image = $node->$largeImage;
+          if (isset($image) && isset($image['und'][0])) {
+            $field = $image['und'][0];
+            if (isset($field['width']) && $field['width'] >= 280 &&
+                isset($field['height']) && $field['height'] >= 150) {
+              $card = 'summary_large_image';
+              $src = "[node:$largeImage]";
+              break;
+            }
+          }
+        }
+        /* Try Option 2 */
+        if ($card == 'summary') {
+          if (isset($node->field_thumbnail_image['und'][0])) {
+            $field = $node->field_thumbnail_image['und'][0];
+            if (isset($field['width']) && $field['width'] >= 120 &&
+                isset($field['height']) && $field['height'] >= 120) {
+              $src = "[node:field_thumbnail_image]";
+            }
+          }
+        }
+        /* Update the tag pattern if changed from the default */
+        if ($src != '') {
+          switch ($tag_name) {
+            case 'twitter:card':
+              $pattern = $card;
+              break;
+            case 'twitter:image:src':
+              $pattern = $src;
+              break;
+          }
+        }
+      }
+      break;
+  }
+}
