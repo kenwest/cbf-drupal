@@ -758,27 +758,38 @@ function cbf_visitor_city_string() {
 }
 
 /*
- * Populate the metatags for a node's Twitter Card. The preferences are ...
+ * Populate the metatags for a node's Twitter Card and Facebook Open Graph.
+ *
+ * The Twitter Card preferences are ...
  *
  * #  Twitter card type              Source image     Condition
- *    -----------------------------  ---------------  ------------------------
+ * -  -----------------------------  ---------------  ------------------------
  * 1  Summary card with large image  Highlight        Image >= 280px x 150px
  *                                   Series image
  *                                   Image
  * 2  Summary card                   Thumbnail image  Image >= 120px x 120px
  * 3  Summary card                   Logo             No matching image fields
+ *
+ * The Facebook Open Graph preferences are ...
+ *
+ * #  Source image  Condition
+ * -  ------------  ------------------------
+ * 4  Highlight     Image >= 600px x 316px
+ *    Series Image
+ *    Image
+ * 5  Logo          No matching image fields
  */
 function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
-  switch ($tag_name) {
-    case 'twitter:card':
-    case 'twitter:image:src':
-      if (isset($types['node'])) {
-        $node = $types['node'];
+  if (isset($types['node'])) {
+    $node = $types['node'];
+    $largeImages = array('field_highlight', 'field_image', 'field_series_image');
+    switch ($tag_name) {
+      case 'twitter:card':
+      case 'twitter:image:src':
         /* Option 3 is the default */
         $card = 'summary';
         $src = '';
         /* Try Option 1 */
-        $largeImages = array('field_highlight', 'field_image', 'field_series_image');
         foreach ($largeImages as $largeImage) {
           $image = $node->$largeImage;
           if (isset($image) && isset($image['und'][0])) {
@@ -812,7 +823,23 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
               break;
           }
         }
-      }
-      break;
+        break;
+
+      case 'og:image':
+        /* Option 5 is the default */
+        /* Try Option 4 */
+        foreach ($largeImages as $largeImage) {
+          $image = $node->$largeImage;
+          if (isset($image) && isset($image['und'][0])) {
+            $field = $image['und'][0];
+            if (isset($field['width']) && $field['width'] >= 600 &&
+                isset($field['height']) && $field['height'] >= 316) {
+              $pattern = "[node:$largeImage]";
+              break;
+            }
+          }
+        }
+        break;
+    }
   }
 }
