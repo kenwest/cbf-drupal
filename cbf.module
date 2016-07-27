@@ -41,11 +41,11 @@ function cbf_init() {
  * this website.
  */
 function cbf_form_comment_form_alter(&$form, &$form_state, $form_id) {
-    if (user_is_anonymous()) {
-        if (isset($form['author']['homepage']['#access'])) {
-            $form['author']['homepage']['#access'] = false;
-        }
+  if (user_is_anonymous()) {
+    if (isset($form['author']['homepage']['#access'])) {
+      $form['author']['homepage']['#access'] = false;
     }
+  }
 }
 
 /*
@@ -55,9 +55,9 @@ function cbf_form_comment_form_alter(&$form, &$form_state, $form_id) {
  * those comments being published in the rare case Mollom doesn't stop it.
  */
 function cbf_comment_presave($comment) {
-    if ($comment->subject == 'Add new comment | City Bible Forum') {
-        $comment->status = 0;
-    }
+  if ($comment->subject == 'Add new comment | City Bible Forum') {
+    $comment->status = 0;
+  }
 }
 
 /*
@@ -579,35 +579,79 @@ function computed_field_field_add_to_calendar_display($field, $entity_field_item
   return $entity_field_item['value'];
 }
 
+/*
+ * Implement the rules that assign nodes to domains.
+ *
+ * The rules are followed unless overridden.
+ */
+function cbf_node_presave($node) {
+  $followDomainRules = true;
+
+  if ($followDomainRules) {
+    $domains = domain_list_by_machine_name();
+
+    $node->domain_site = false;
+    $node->domains = array();
+    $weight = DOMAIN_SOURCE_USE_ACTIVE;
+
+    foreach ($domains as $domain) {
+      $match = false;
+      if ($domain['is_default']) {
+        $match = true;
+      }
+      else {
+        foreach ($domain['aliases'] as $alias) {
+          $activity = stristr($alias['pattern'], '.activity.rule', true);
+          if ($activity !== false) {
+            $activity = (int) $activity;
+            if (!empty($node->field_in_activity) && $node->field_in_activity['und'][0]['target_id'] == $activity) {
+              $match = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if ($match) {
+        $node->domains[$domain['domain_id']] = $domain['domain_id'];
+        if ($domain['weight'] > $weight) {
+          $node->domain_source = $domain['domain_id'];
+          $weight = $domain['weight'];
+        }
+      }
+    }
+  }
+}
+
 function cbf_field_attach_presave($entity_type, $entity)
 {
-	if ($entity_type == 'node') {
-		$html_fields = array('body','field_short_form');
-		$attributes = array('summary','value');
-		foreach ($html_fields as $html_field) {
-			if (isset($entity->$html_field)) {
-				$field = & $entity->$html_field;
-				$languages = array_keys($field);
-				foreach ($languages as $language) {
-					$instances = count($field[$language]);
-					for ($instance = 0; $instance < $instances; $instance++) {
-						foreach ($attributes as $attribute) {
-							if (isset($field[$language][$instance][$attribute])) {
-								/*
-								 *  Remove empty paragraphs inserted by CKeditor
-								*/
-								$field[$language][$instance][$attribute]
-										= preg_replace(
-												'!<p>(\r\n\t)*&nbsp;</p>!i',
-												'',
-												$field[$language][$instance][$attribute]);
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+  if ($entity_type == 'node') {
+    $html_fields = array('body','field_short_form');
+    $attributes = array('summary','value');
+    foreach ($html_fields as $html_field) {
+      if (isset($entity->$html_field)) {
+        $field = & $entity->$html_field;
+        $languages = array_keys($field);
+        foreach ($languages as $language) {
+          $instances = count($field[$language]);
+          for ($instance = 0; $instance < $instances; $instance++) {
+            foreach ($attributes as $attribute) {
+              if (isset($field[$language][$instance][$attribute])) {
+                /*
+                 *  Remove empty paragraphs inserted by CKeditor
+                 */
+                $field[$language][$instance][$attribute]
+                    = preg_replace(
+                        '!<p>(\r\n\t)*&nbsp;</p>!i',
+                        '',
+                        $field[$language][$instance][$attribute]);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 /*
@@ -696,65 +740,65 @@ function cbf_cron() {
 	variable_set('cbf_cron_last_run', $current_time);
 }
 
+/*
+ * The Contact module sends emails using the To: address supplied
+ * by the visitor to a citybibleforum.org address. When this is
+ * redirected to a gmail.com address Gmail rightly complains
+ * (Unauthenticated email from yahoo.com is not accepted due to
+ * domain's 550-5.7.1 DMARC policy)
+ *
+ * Change the message headers so the email is sent From the Sender
+ * address (doulos@citybibleforum.org), but the original address
+ * is in the Reply-To header.
+ */
 function cbf_mail_alter(&$message) {
-	/*
-	 * The Contact module sends emails using the To: address supplied
-	 * by the visitor to a citybibleforum.org address. When this is
-	 * redirected to a gmail.com address Gmail rightly complains
-	 * (Unauthenticated email from yahoo.com is not accepted due to
-	 * domain's 550-5.7.1 DMARC policy)
-	 *
-	 * Change the message headers so the email is sent From the Sender
-	 * address (doulos@citybibleforum.org), but the original address
-	 * is in the Reply-To header.
-	 */
-	$message['headers']['Reply-To'] = $message['headers']['From'];
-	$message['headers']['From'] = $message['headers']['Sender'];
+  $message['headers']['Reply-To'] = $message['headers']['From'];
+  $message['headers']['From'] = $message['headers']['Sender'];
 }
 
+/*
+ * The visitor city name is initially unknown, but only needs to be calculated
+ * once per request
+ */
 function cbf_visitor_city_string() {
-	/*
-	 * The visitor city name is initially unknown, but only needs to be calculated
-	 * once per request
-	 */
-	static $cbf_visitor_city = null;
+  static $cbf_visitor_city = null;
 
-	if (!isset($cbf_visitor_city)) {
-		$cbf_visitor_city = false;
+  if (!isset($cbf_visitor_city)) {
+    $cbf_visitor_city = false;
 
-		if (!function_exists('ip_geoloc_get_visitor_location')) {
-			return $cbf_visitor_city;
-		}
+    if (!function_exists('ip_geoloc_get_visitor_location')) {
+      return $cbf_visitor_city;
+    }
 
-		$result = ip_geoloc_get_visitor_location();
+    $result = ip_geoloc_get_visitor_location();
 
-		if (isset($result['country']) && isset($result['administrative_area_level_1'])) {
-			switch ($result['country']) {
-				case 'Australia':
-					switch ($result['administrative_area_level_1']) {
-						case 'New South Wales':
-							$cbf_visitor_city = 'sydney';
-							break;
-						case 'Victoria':
-							$cbf_visitor_city = 'melbourne';
-							break;
-						case 'Queensland':
-							$cbf_visitor_city = 'brisbane';
-							break;
-						case 'South Australia':
-							$cbf_visitor_city = 'adelaide';
-							break;
-						case 'West Australia':
-						case 'Western Australia':
-							$cbf_visitor_city = 'perth';
-							break;
-					}
-					break;
-			}
-		}
-	}
+    if (isset($result['country']) && isset($result['administrative_area_level_1'])) {
+      switch ($result['country']) {
+        case 'Australia':
+          switch ($result['administrative_area_level_1']) {
+            case 'New South Wales':
+              $cbf_visitor_city = 'sydney';
+              break;
+            case 'Victoria':
+              $cbf_visitor_city = 'melbourne';
+              break;
+            case 'Queensland':
+              $cbf_visitor_city = 'brisbane';
+              break;
+            case 'South Australia':
+              $cbf_visitor_city = 'adelaide';
+              break;
+            case 'West Australia':
+            case 'Western Australia':
+              $cbf_visitor_city = 'perth';
+              break;
+          }
+          break;
+      }
+    }
+  }
 
-	return $cbf_visitor_city;
+  return $cbf_visitor_city;
 }
 
 /*
