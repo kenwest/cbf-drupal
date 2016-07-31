@@ -66,33 +66,26 @@ function cbf_comment_presave($comment) {
  * If the event is a repeating event then apply this logic to the first date in the future.
  */
 function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-    $current_time = strtotime('now');
-    $timestamp = 0;
-    foreach ($entity->field_event_date[LANGUAGE_NONE] as $event_occurrence) {
-        $utc_start_time = new DateObject(
-                                $event_occurrence['value'],
-                                'UTC' );
-        $utc_start_time_string = date_format_date(
-                                $utc_start_time,
-                                'custom',
-                               'Y-m-d H:i:s O');
-        $timestamp = strtotime( $utc_start_time_string );
+  $current_time = strtotime('now');
+  $timestamp = 0;
+  $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
+  if ($field_event_date !== false && !empty($field_event_date)) {
+    foreach ($field_event_date as $event_occurrence) {
+      $utc_start_time = new DateObject($event_occurrence['value'], 'UTC');
+      $utc_start_time_string = date_format_date($utc_start_time, 'custom', 'Y-m-d H:i:s O');
+      $timestamp = strtotime($utc_start_time_string);
 
-        $utc_end_time = new DateObject(
-                                $event_occurrence['value2'],
-                                'UTC' );
-        $utc_end_time_string = date_format_date(
-                                $utc_end_time,
-        		                'custom',
-        		                'Y-m-d H:i:s O');
-        $endstamp = strtotime( $utc_end_time_string );
+      $utc_end_time = new DateObject($event_occurrence['value2'], 'UTC');
+      $utc_end_time_string = date_format_date($utc_end_time, 'custom', 'Y-m-d H:i:s O');
+      $endstamp = strtotime($utc_end_time_string);
 
-        if ($endstamp > $current_time) {
-            break;
-        }
+      if ($endstamp > $current_time) {
+        break;
+      }
     }
+  }
 
-    $entity_field[0]['value'] = $timestamp;
+  $entity_field[0]['value'] = $timestamp;
 }
 
 /*
@@ -100,10 +93,8 @@ function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $
  * It returns a string of the form '2011-10-22 22:41:25 +1100'.
  */
 function computed_field_field_sort_order_display($field, $entity_field_item) {
-    $utc_start_time = new DateObject(
-                         $entity_field_item['value'],
-                         'UTC' );
-    return date_format_date($utc_start_time, 'custom', 'Y-m-d H:i:s O');
+  $utc_start_time = new DateObject($entity_field_item['value'], 'UTC');
+  return date_format_date($utc_start_time, 'custom', 'Y-m-d H:i:s O');
 }
 
 /*
@@ -112,24 +103,22 @@ function computed_field_field_sort_order_display($field, $entity_field_item) {
  * If the event is a repeating event then apply this logic to the first date in the future.
  */
 function computed_field_field_next_action_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-    $current_time = strtotime('now');
-    $timestamp = 0;
-    foreach ($entity->field_event_date[LANGUAGE_NONE] as $event_occurrence) {
-        $utc_end_time = new DateObject(
-                                $event_occurrence['value2'],
-                                'UTC' );
-        $utc_end_time_string = date_format_date(
-                                $utc_end_time,
-                                'custom',
-                               'Y-m-d H:i:s O');
-        $timestamp = strtotime( $utc_end_time_string );
+  $current_time = strtotime('now');
+  $timestamp = 0;
+  $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
+  if ($field_event_date !== false && !empty($field_event_date)) {
+    foreach ($field_event_date as $event_occurrence) {
+      $utc_end_time = new DateObject($event_occurrence['value2'], 'UTC');
+      $utc_end_time_string = date_format_date($utc_end_time, 'custom', 'Y-m-d H:i:s O');
+      $timestamp = strtotime($utc_end_time_string);
 
-        if ($timestamp > $current_time) {
-            break;
-        }
+      if ($timestamp > $current_time) {
+        break;
+      }
     }
+  }
 
-    $entity_field[0]['value'] = $timestamp;
+  $entity_field[0]['value'] = $timestamp;
 }
 
 /*
@@ -137,10 +126,8 @@ function computed_field_field_next_action_compute(&$entity_field, $entity_type, 
  * It returns a string of the form '2011-10-22 22:41:25 +1100'.
  */
 function computed_field_field_next_action_display($field, $entity_field_item) {
-    $utc_end_time = new DateObject(
-                         $entity_field_item['value'],
-                         'UTC' );
-    return date_format_date($utc_end_time, 'custom', 'Y-m-d H:i:s O');
+  $utc_end_time = new DateObject($entity_field_item['value'], 'UTC');
+  return date_format_date($utc_end_time, 'custom', 'Y-m-d H:i:s O');
 }
 
 /*
@@ -160,200 +147,169 @@ function computed_field_field_next_action_display($field, $entity_field_item) {
  * Show the start time, unless it is midnight.
  */
 function computed_field_field_date_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-	$current_time = strtotime('now');
-	$next_week    = strtotime('now +1 week');
-	$startstamp   = 0;
-	$endstamp     = 0;
-	$upperlimit   = 0;
-	$previous     = 0;
-	$subsequent   = 0;
-	$date_future  = 'D M jS';
-	$date_past    = 'M jS, Y';
-	$time_format  = 'g.ia';
-	$midnight     = '12.00am';
-	$date_text    = '';
-	$time_text    = '';
+  $current_time = strtotime('now');
+  $next_week    = strtotime('now +1 week');
+  $startstamp   = 0;
+  $endstamp     = 0;
+  $upperlimit   = 0;
+  $previous     = 0;
+  $subsequent   = 0;
+  $date_future  = 'D M jS';
+  $date_past    = 'M jS, Y';
+  $time_format  = 'g.ia';
+  $midnight     = '12.00am';
+  $date_text    = '';
+  $time_text    = '';
 
-	// Calculate the date text from the (non-repeating) Episode Date
-	if ( isset($entity->field_episode_date[LANGUAGE_NONE]) ) {
-		foreach ($entity->field_episode_date[LANGUAGE_NONE] as $episode) {
-			$local_start_time = new DateObject(
-			                        $episode['value'],
-			                        $episode['timezone'] );                        
-			$local_start_time_string = date_format_date(
-			                        $local_start_time,
-			                        'custom',
-		    	                    'Y-m-d H:i:s O');
-			$startstamp = strtotime( $local_start_time_string );
+  // Calculate the date text from the (non-repeating) Episode Date
+  $field_episode_date = field_get_items($entity_type, $entity, 'field_episode_date');
+  if ($field_episode_date !== false && !empty($field_episode_date)) {
+    $episode = $field_episode_date[0];
+    $local_start_time = new DateObject($episode['value'], $episode['timezone']);
+    $local_start_time_string = date_format_date($local_start_time, 'custom', 'Y-m-d H:i:s O');
+    $startstamp = strtotime($local_start_time_string);
 
-			if ($startstamp <= $current_time) {
-				$date_text = date_format_date(
-				                    $local_start_time,
-				                    'custom',
-			    	                $date_past);
-				$time_text = $midnight;
-			}
+    if ($startstamp <= $current_time) {
+      $date_text = date_format_date($local_start_time, 'custom', $date_past);
+      $time_text = $midnight;
+    }
+  }
 
-			break;
-		}
-	}
+  // Calculate the date text from the (perhaps-repeating) Event Date
+  $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
+  if ($field_event_date !== false && !empty($field_event_date)) {
+    foreach ($field_event_date as $event_occurrence) {
+      $utc_start_time = new DateObject($event_occurrence['value'], 'UTC');
+      $utc_start_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));
+      $utc_start_time_string = date_format_date($utc_start_time, 'custom', 'Y-m-d H:i:s O');
+      $startstamp = strtotime($utc_start_time_string);
 
-	// Calculate the date text from the (perhaps-repeating) Event Date
-	if ( isset($entity->field_event_date[LANGUAGE_NONE]) ) {
-		foreach ($entity->field_event_date[LANGUAGE_NONE] as $event_occurrence) {
-			$utc_start_time = new DateObject(
-			                        $event_occurrence['value'],
-		    	                    'UTC' );
-			$utc_start_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));                        
-			$utc_start_time_string = date_format_date(
-			                        $utc_start_time,
-		    	                    'custom',
-		        	                'Y-m-d H:i:s O');
-			$startstamp = strtotime( $utc_start_time_string );
+      $utc_end_time = new DateObject($event_occurrence['value2'], 'UTC');
+      $utc_end_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));
+      $utc_end_time_string = date_format_date($utc_end_time, 'custom', 'Y-m-d H:i:s O');
+      $endstamp = strtotime($utc_end_time_string);
 
-			$utc_end_time = new DateObject(
-			                        $event_occurrence['value2'],
-		    	                    'UTC' );
-			$utc_end_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));                        
-			$utc_end_time_string = date_format_date(
-			                        $utc_end_time,
-		    	                    'custom',
-		        	                'Y-m-d H:i:s O');
-			$endstamp = strtotime( $utc_end_time_string );
+      if ($time_text == '') {
+        $time_text = date_format_date($utc_start_time, 'custom', $time_format);
+        if ($time_text != $midnight) {
+          $time_text .= '-' . date_format_date($utc_end_time, 'custom', $time_format);
+        }
+        $time_text = str_replace('.00', '', $time_text);
+      }
 
-			if ($time_text == '') {
-				$time_text = date_format_date(
-						$utc_start_time,
-						'custom',
-						$time_format);
+      if ($upperlimit == 0 && $endstamp > $current_time) {
+        $upperlimit = $startstamp + ($next_week - $current_time);
+      }
 
-				if ($time_text != $midnight) {
-					$time_text .= '-' . date_format_date(
-					                        $utc_end_time,
-					                        'custom',
-					                        $time_format);
-				}
+      if ($endstamp <= $current_time) {
+        $previous++;
+      }
+      else if ($startstamp >= $upperlimit) {
+        $subsequent++;
+      }
+      else {
+        $start_date_text = date_format_date($utc_start_time, 'custom', $date_future);
+        $end_date_text = date_format_date($utc_end_time, 'custom', $date_future);
 
-				$time_text = str_replace('.00', '', $time_text);
-			}
+        if ($start_date_text == $end_date_text) {
+          $this_date_text = $start_date_text;
+        }
+        else {
+          $this_date_text = $start_date_text . ' to ' . $end_date_text;
+          $time_text = $midnight;
+        }
 
-			if ($upperlimit == 0 && $endstamp > $current_time) {
-				$upperlimit = $startstamp + ($next_week - $current_time);
-			}
+        if ($date_text == '') {
+          $date_text = $this_date_text;
+        }
+        else {
+          $date_text .= ', ' . $this_date_text;
+        }
+      }
+    }
+  }
 
-			if ($endstamp <= $current_time) {
-				$previous++;
-			}
-			else if ($startstamp >= $upperlimit) {
-				$subsequent++;
-			}
-			else {
-				$start_date_text = date_format_date(
-				                $utc_start_time,
-				                'custom',
-			    	            $date_future);
-
-				$end_date_text = date_format_date(
-				                $utc_end_time,
-				                'custom',
-				                $date_future);
-
-				if ($start_date_text == $end_date_text) {
-					$this_date_text = $start_date_text;
-				}
-				else {
-					$this_date_text = $start_date_text . ' to ' . $end_date_text;
-					$time_text = $midnight;
-				}
-
-				if ($date_text == '') {
-					$date_text = $this_date_text;
-				}
-				else {
-					$date_text .= ', ' . $this_date_text;
-				}
-			}
-		}
-	}
-
-	if ($date_text == '') {
-		$entity_field[0]['value'] = '';
-	}
-	else {
-		if ($previous > 0) {
-			$date_text = 'Next on ' . $date_text;
-		}
-		else if ($subsequent > 0) {
-			$date_text = 'Starts on ' . $date_text;
-		}
-		if ($time_text == $midnight) {
-			$entity_field[0]['value'] = $date_text;
-		} else {
-			$entity_field[0]['value'] = $date_text . ', ' . $time_text;
-		}
-	}
+  if ($date_text == '') {
+    $entity_field[0]['value'] = '';
+  }
+  else {
+    if ($previous > 0) {
+      $date_text = 'Next on ' . $date_text;
+    }
+    else if ($subsequent > 0) {
+      $date_text = 'Starts on ' . $date_text;
+    }
+    if ($time_text == $midnight) {
+      $entity_field[0]['value'] = $date_text;
+    } else {
+      $entity_field[0]['value'] = $date_text . ', ' . $time_text;
+    }
+  }
 }
 
 /*
  * This function is called by CCK Computed Field to generate the display text of Field Date Text.
  */
 function computed_field_field_date_text_display($field, $entity_field_item) {
-    return $entity_field_item['value'];
+  return $entity_field_item['value'];
 }
 
 /*
  * This function is called by CCK Computed Field to compute the value of Field Is Audio.
  */
 function computed_field_field_is_audio_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-    if (count($entity->field_content[LANGUAGE_NONE]) > 0) {
-    	$entity_field[0]['value'] = 1;
-    }
-    else {
-    	$entity_field[0]['value'] = 0;
-    }
+  $field_content = field_get_items($entity_type, $entity, 'field_content');
+  if ($field_content !== false && !empty($field_content)) {
+    $entity_field[0]['value'] = 1;
+  }
+  else {
+    $entity_field[0]['value'] = 0;
+  }
 }
 
 /*
  * This function is called by CCK Computed Field to generate the display text of Field Is Audio.
  */
 function computed_field_field_is_audio_display($field, $entity_field_item, $entity_lang, $langcode) {
-    if ($entity_field_item['value'] != 0) {
-    	return 'Yes';
-    }
-    else {
-    	return 'No';
-    }
+  if ($entity_field_item['value'] != 0) {
+    return 'Yes';
+  }
+  else {
+    return 'No';
+  }
 }
 
 /*
  * This function is called by CCK Computed Field to compute the value of Field Is Video.
  */
 function computed_field_field_is_video_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-    if (count($entity->field_video[LANGUAGE_NONE]) > 0) {
-    	$entity_field[0]['value'] = 1;
-    }
-    else {
-    	$entity_field[0]['value'] = 0;
-    }
+  $field_video = field_get_items($entity_type, $entity, 'field_video');
+  if ($field_video !== false && !empty($field_video)) {
+    $entity_field[0]['value'] = 1;
+  }
+  else {
+    $entity_field[0]['value'] = 0;
+  }
 }
 
 /*
  * This function is called by CCK Computed Field to generate the display text of Field Is Video.
  */
 function computed_field_field_is_video_display($field, $entity_field_item, $entity_lang, $langcode) {
-    if ($entity_field_item['value'] != 0) {
-    	return 'Yes';
-    }
-    else {
-    	return 'No';
-    }
+  if ($entity_field_item['value'] != 0) {
+    return 'Yes';
+  }
+  else {
+    return 'No';
+  }
 }
 
 /*
  * This function is called by CCK Computed Field to compute the value of Field Is Text.
 */
 function computed_field_field_is_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-  if (count($entity->field_attachment[LANGUAGE_NONE]) > 0) {
+  $field_attachment = field_get_items($entity_type, $entity, 'field_attachment');
+  if ($field_attachment !== false && !empty($field_attachment)) {
     $entity_field[0]['value'] = 1;
   }
   else {
@@ -377,38 +333,45 @@ function computed_field_field_is_text_display($field, $entity_field_item, $entit
  * This function is called by CCK Computed Field to compute the value of field Add to Calendar.
 */
 function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-  if (isset($entity->field_date_text[LANGUAGE_NONE]) && empty($entity->field_date_text[LANGUAGE_NONE][0]['value'])) {
-    $entity_field[0]['value'] = null; // The event has passed
+  $field_date_text = field_get_items($entity_type, $entity, 'field_date_text');
+  if ($field_date_text !== false && empty($field_date_text[0]['value'])) {
+    $entity_field[0]['value'] = null; // The entity is an event and it has passed
     return;
   }
-  elseif (isset($entity->field_civievent[LANGUAGE_NONE]) && !empty($entity->field_civievent[LANGUAGE_NONE][0])) {
+  $field_civievent = field_get_items($entity_type, $entity, 'field_civievent');
+  if ($field_civievent !== false && !empty($field_civievent[0]['target_id'])) {
     $entity_field[0]['value'] = null; // There is a CiviEvent
     return;
   }
-  elseif (isset($entity->field_publish_calendar[LANGUAGE_NONE]) && empty($entity->field_publish_calendar[LANGUAGE_NONE][0]['value'])) {
-    $entity_field[0]['value'] = null; // The 'Publish calendar' flag has not been ticked
+  $field_publish_calendar = field_get_items($entity_type, $entity, 'field_publish_calendar');
+  if ($field_publish_calendar !== false && empty($field_publish_calendar[0]['value'])) {
+    $entity_field[0]['value'] = null; // The 'Publish calendar' flag has been unticked
     return;
   }
-  $entity_type = $entity->type;
+  $content_type = $entity->type;
   $entity_nid = $entity->nid;
-  if (isset($entity->field_in_activity[LANGUAGE_NONE]) && !empty($entity->field_in_activity[LANGUAGE_NONE][0])) {
-    $entity_activity = $entity->field_in_activity[LANGUAGE_NONE][0]['target_id'];
+  $field_in_activity = field_get_items($entity_type, $entity, 'field_in_activity');
+  if ($field_in_activity !== false && !empty($field_in_activity)) {
+    $entity_activity = $field_in_activity[0]['target_id'];
     $activity = node_load($entity_activity);
-    if (isset($activity->field_publish_calendar[LANGUAGE_NONE]) && empty($activity->field_publish_calendar[LANGUAGE_NONE][0]['value'])) {
+    $field_publish_calendar = field_get_items('node', $activity, 'field_publish_calendar');
+    if ($field_publish_calendar === false || empty($field_publish_calendar[0]['value'])) {
       $entity_activity = 0; // The activity's 'Publish calendar' flag has not been ticked
     }
   }
   else {
     $entity_activity = 0;
   }
-  if (isset($entity->field_event_date[LANGUAGE_NONE])) {
-    $event_count = count($entity->field_event_date[LANGUAGE_NONE]); // a possibly-repeating event
+  $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
+  if ($field_event_date != false) {
+    $event_count = count($field_event_date); // a possibly-repeating event
   }
   else {
     $event_count = 2; // the other cases will have multiple events (at least 2)
   }
-  if (isset($entity->taxonomy_vocabulary_1[LANGUAGE_NONE]) && !empty($entity->taxonomy_vocabulary_1[LANGUAGE_NONE][0])) {
-    $term = taxonomy_term_load($entity->taxonomy_vocabulary_1[LANGUAGE_NONE][0]['tid']);
+  $taxonomy_vocabulary_1 = field_get_items($entity_type, $entity, 'taxonomy_vocabulary_1');
+  if ($taxonomy_vocabulary_1 !== false && !empty($taxonomy_vocabulary_1)) {
+    $term = taxonomy_term_load($taxonomy_vocabulary_1[0]['tid']);
     $city = $term->name;
   }
   else {
@@ -428,19 +391,22 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
   $description = '';
   $startDate = '';
   $endDate = '';
-  if ($entity_type == 'event') {
+  if ($content_type == 'event') {
     if ($event_count == 1) {
       $schemes[] = 'single';
-      $types['single'] = $entity_type;
+      $types['single'] = $content_type;
       $nids['single'] = $entity_nid;
       $title = $entity->title;
-      $description = truncate_utf8($entity->body[LANGUAGE_NONE][0]['value'], 600, TRUE, TRUE);
+      $body = field_get_items($entity_type, $entity, 'body');
+      if ($body !== false && !empty($body)) {
+        $description = truncate_utf8($body[0]['value'], 600, TRUE, TRUE);
+      }
       $startDate = '';
       $endDate = '';
     }
     else {
       $schemes[] = 'multiple';
-      $types['multiple'] = $entity_type;
+      $types['multiple'] = $content_type;
       $nids['multiple'] = $entity_nid;
     }
     if (!empty($entity_activity)) {
@@ -449,9 +415,9 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
       $nids['subscribe'] = $entity_activity;
     }
   }
-  elseif ($entity_type == 'activity') {
+  elseif ($content_type == 'activity') {
     $schemes[] = 'subscribe';
-    $types['subscribe'] = $entity_type;
+    $types['subscribe'] = $content_type;
     $nids['subscribe'] = $entity_nid;
   }
   if (!empty($city)) {
@@ -585,7 +551,7 @@ function computed_field_field_add_to_calendar_display($field, $entity_field_item
  * The rules are followed unless overridden.
  */
 function cbf_node_presave($node) {
-  $followDomainRules = true;
+  $followDomainRules = false;
 
   if ($followDomainRules) {
     $domains = domain_list_by_machine_name();
@@ -604,7 +570,8 @@ function cbf_node_presave($node) {
           $activity = stristr($alias['pattern'], '.activity.rule', true);
           if ($activity !== false) {
             $activity = (int) $activity;
-            if (!empty($node->field_in_activity) && $node->field_in_activity['und'][0]['target_id'] == $activity) {
+            $field_in_activity = field_get_items('node', $node, 'field_in_activity');
+            if ($field_in_activity !== false && $field_in_activity[0]['target_id'] == $activity) {
               $match = true;
               break;
             }
@@ -671,73 +638,73 @@ function cbf_field_attach_presave($entity_type, $entity)
  * The cron time is updated.
  */
 function cbf_cron() {
-	$current_time = strtotime('now');
-	$next_week    = strtotime('now +1 week');
-	$last_run     = variable_get('cbf_cron_last_run', 0);
+  $current_time = strtotime('now');
+  $next_week    = strtotime('now +1 week');
+  $last_run     = variable_get('cbf_cron_last_run', 0);
 
-	if ($last_run == 0) {
-		$query = new EntityFieldQuery();
-		$result = $query->entityCondition('entity_type', 'node')
-				->fieldCondition('field_next_action', 'value', array($last_run), '>')
-				->execute();
-		if (isset($result['node'])) {
-			$nodes = entity_load('node', array_keys($result['node']));
-			foreach ($nodes as $node) {
-				node_save($node);
-			}
-		}
-	}
-	else {
-		/* Clear the date text for past events */
-		$query = new EntityFieldQuery();
-		$result = $query->entityCondition('entity_type', 'node')
-				->fieldCondition('field_next_action', 'value', array($last_run, $current_time), 'BETWEEN')
-				->execute();
-		if (isset($result['node'])) {
-			$nodes = entity_load('node', array_keys($result['node']));
-			foreach ($nodes as $node) {
-				node_save($node);
-			}
-		}
+  if ($last_run == 0) {
+    $query = new EntityFieldQuery();
+    $result = $query->entityCondition('entity_type', 'node')
+        ->fieldCondition('field_next_action', 'value', array($last_run), '>')
+        ->execute();
+    if (isset($result['node'])) {
+      $nodes = entity_load('node', array_keys($result['node']));
+      foreach ($nodes as $node) {
+        node_save($node);
+      }
+    }
+  }
+  else {
+    /* Clear the date text for past events */
+    $query = new EntityFieldQuery();
+    $result = $query->entityCondition('entity_type', 'node')
+        ->fieldCondition('field_next_action', 'value', array($last_run, $current_time), 'BETWEEN')
+        ->execute();
+    if (isset($result['node'])) {
+      $nodes = entity_load('node', array_keys($result['node']));
+      foreach ($nodes as $node) {
+        node_save($node);
+      }
+    }
 
-		/* For events that are 1 week out, change the display
-		$query = new EntityFieldQuery();
-		$result = $query->entityCondition('entity_type', 'node')
-				->fieldCondition('field_next_action', 'value', array($last_run + ($next_week - $current_time), $next_week), 'BETWEEN')
-				->execute();
-		if (isset($result['node'])) {
-			$nodes = entity_load('node', array_keys($result['node']));
-			foreach ($nodes as $node) {
-				node_save($node);
-			}
-		} */
+    /* For events that are 1 week out, change the display
+    $query = new EntityFieldQuery();
+    $result = $query->entityCondition('entity_type', 'node')
+        ->fieldCondition('field_next_action', 'value', array($last_run + ($next_week - $current_time), $next_week), 'BETWEEN')
+        ->execute();
+    if (isset($result['node'])) {
+      $nodes = entity_load('node', array_keys($result['node']));
+      foreach ($nodes as $node) {
+        node_save($node);
+      }
+    } */
 
-		/*
-		 * Set the date text for past episodes. Note that the 'field_episode_date'
-		 * field has 'value' attribute in the DATE_FORMAT_ISO format. The timezone
-		 * is the system default.
-		 */
-		$last_run_formatted = format_date($last_run, 'custom', DATE_FORMAT_ISO);
-		$current_time_formatted = format_date($current_time, 'custom', DATE_FORMAT_ISO);
-		$query = new EntityFieldQuery();
-		$result = $query->entityCondition('entity_type', 'node')
-				->fieldCondition(
-						'field_episode_date',
-						'value',
-						array(
-								$last_run_formatted,
-								$current_time_formatted),
-						'BETWEEN')
-				->execute();
-		if (isset($result['node'])) {
-			$nodes = entity_load('node', array_keys($result['node']));
-			foreach ($nodes as $node) {
-				node_save($node);
-			}
-		}
-	}
+    /*
+     * Set the date text for past episodes. Note that the 'field_episode_date'
+     * field has 'value' attribute in the DATE_FORMAT_ISO format. The timezone
+     * is the system default.
+     */
+    $last_run_formatted = format_date($last_run, 'custom', DATE_FORMAT_ISO);
+    $current_time_formatted = format_date($current_time, 'custom', DATE_FORMAT_ISO);
+    $query = new EntityFieldQuery();
+    $result = $query->entityCondition('entity_type', 'node')
+        ->fieldCondition(
+            'field_episode_date',
+            'value',
+            array(
+                $last_run_formatted,
+                $current_time_formatted),
+            'BETWEEN')
+        ->execute();
+    if (isset($result['node'])) {
+      $nodes = entity_load('node', array_keys($result['node']));
+      foreach ($nodes as $node) {
+        node_save($node);
+      }
+    }
+  }
 
-	variable_set('cbf_cron_last_run', $current_time);
+  variable_set('cbf_cron_last_run', $current_time);
 }
 
 /*
@@ -838,11 +805,10 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
         $src = '';
         /* Try Option 1 */
         foreach ($largeImages as $largeImage) {
-          $image = $node->$largeImage;
-          if (isset($image) && isset($image['und'][0])) {
-            $field = $image['und'][0];
-            if (isset($field['width']) && $field['width'] >= 280 &&
-                isset($field['height']) && $field['height'] >= 150) {
+          $image = field_get_items('node', $node, $largeImage);
+          if ($image !== false && !empty($image)) {
+            if (isset($image[0]['width']) && $image[0]['width'] >= 280 &&
+                isset($image[0]['height']) && $image[0]['height'] >= 150) {
               $card = 'summary_large_image';
               $src = "[node:$largeImage]";
               break;
@@ -851,10 +817,10 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
         }
         /* Try Option 2 */
         if ($src == '') {
-          if (isset($node->field_thumbnail_image['und'][0])) {
-            $field = $node->field_thumbnail_image['und'][0];
-            if (isset($field['width']) && $field['width'] >= 120 &&
-                isset($field['height']) && $field['height'] >= 120) {
+          $image = field_get_items('node', $node, 'field_thumbnail_image');
+          if ($image !== false && !empty($image)) {
+            if (isset($image[0]['width']) && $image[0]['width'] >= 120 &&
+                isset($image[0]['height']) && $image[0]['height'] >= 120) {
               $src = "[node:field_thumbnail_image]";
             }
           }
@@ -874,14 +840,13 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
 
       case 'og:image':
         /* Option 6 is the default */
-      	$src = '';
+        $src = '';
         /* Try Option 4 */
         foreach ($largeImages as $largeImage) {
-          $image = $node->$largeImage;
-          if (isset($image) && isset($image['und'][0])) {
-            $field = $image['und'][0];
-            if (isset($field['width']) && $field['width'] >= 600 &&
-                isset($field['height']) && $field['height'] >= 316) {
+          $image = field_get_items('node', $node, $largeImage);
+          if ($image !== false && !empty($image)) {
+            if (isset($image[0]['width']) && $image[0]['width'] >= 600 &&
+                isset($image[0]['height']) && $image[0]['height'] >= 316) {
               $src = "[node:$largeImage]";
               break;
             }
@@ -890,10 +855,9 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
         /* Try Option 5 */
         if ($src == '') {
           foreach ($largeImages as $largeImage) {
-            $image = $node->$largeImage;
-            if (isset($image) && isset($image['und'][0])) {
-              $field = $image['und'][0];
-              if (isset($field['width']) && $field['width'] >= 280) {
+            $image = field_get_items('node', $node, $largeImage);
+            if ($image !== false && !empty($image)) {
+              if (isset($image[0]['width']) && $image[0]['width'] >= 280) {
                 $src = "[node:$largeImage]";
                 break;
               }
