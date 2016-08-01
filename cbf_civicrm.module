@@ -961,7 +961,7 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
         } elseif (!empty($data['api.participant_payment.get']) && $data['api.participant_payment.get']['count'] > 0) {
           $event_id = $data['api.participant_payment.get']['values'][0]['api.participant.get']['values'][0]['event_id'];
           list($tagId, $name) = _cbf_civicrm_civicrm_event_ministry_centre($event_id);
-          if (isset($name)) {
+          if (!empty($name)) {
             $params['LineItems']['LineItem'][$key]['Tracking']
               = array(
                   'TrackingCategory' =>
