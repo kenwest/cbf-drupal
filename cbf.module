@@ -4,33 +4,32 @@
  * This hook is called at the beginning of a Drupal page request.
  */
 function cbf_init() {
-    if (arg(0) == 'node' && arg(1) == 'add') {
-        switch (arg(2)) {
-            case 'story':
-            case 'blog':
-            case 'episode':
-            case 'event':
-            case 'activity':
-                /*
-                 * This JavaScript sets some defaults when adding new nodes.
-                 *  1. The Summary for the Body displays to encourage entry
-                 *  2. By default a tweet is not sent when the node is created
-                 *  3. Tablefield fields default to plain text
-                 *
-                 * See "How to display summary field on node edit form by default?"
-                 * http://drupal.org/node/1395422#comment-6450618
-                 */
-                $script = 'jQuery(document).ready(function(){
-                    jQuery(".link-edit-summary").click();
-                    jQuery(".field-type-tablefield .filter-wrapper select.filter-list option").each(function() {
-                        this.selected = (this.text == "Plain text");
-                    });
-                });';
-                drupal_add_js($script, 'inline');
-                break;
-        }
+  if (arg(0) == 'node' && arg(1) == 'add') {
+    switch (arg(2)) {
+      case 'story':
+      case 'blog':
+      case 'episode':
+      case 'event':
+      case 'activity':
+        /*
+         * This JavaScript sets some defaults when adding new nodes.
+         *  1. The Summary for the Body displays to encourage entry
+         *  2. Tablefield fields default to plain text
+         *
+         * See "How to display summary field on node edit form by default?"
+         * http://drupal.org/node/1395422#comment-6450618
+         */
+        $script = 'jQuery(document).ready(function(){
+          jQuery(".link-edit-summary").click();
+          jQuery(".field-type-tablefield .filter-wrapper select.filter-list option").each(function() {
+            this.selected = (this.text == "Plain text");
+          });
+        });';
+        drupal_add_js($script, 'inline');
+        break;
     }
-    return array();
+  }
+  return array();
 }
 
 /*
@@ -548,17 +547,29 @@ function computed_field_field_add_to_calendar_display($field, $entity_field_item
 /*
  * Implement the rules that assign nodes to domains.
  *
- * The rules are followed unless overridden.
+ * The rules are followed unless overridden by the user, in which case the
+ * on-screen values are preserved.
+ *
+ * Rules are stored in the domain information ...
+ *
+ *     is_default
+ *
+ *         This rule matches if this is the default domain
+ *
+ *     alias = NNNN.activity.rule
+ *
+ *         NNNN is the node Id for the Activity that corresponds to this domain.
+ *         This rule matches if the node's Activity is NNNN.
  */
 function cbf_node_presave($node) {
-  $followDomainRules = false;
+  $followDomainRules = true;
 
   if ($followDomainRules) {
     $domains = domain_list_by_machine_name();
 
     $node->domain_site = false;
     $node->domains = array();
-    $weight = DOMAIN_SOURCE_USE_ACTIVE;
+    $node->domain_source = DOMAIN_SOURCE_USE_ACTIVE;
 
     foreach ($domains as $domain) {
       $match = false;
@@ -581,11 +592,11 @@ function cbf_node_presave($node) {
 
       if ($match) {
         $node->domains[$domain['domain_id']] = $domain['domain_id'];
-        if ($domain['weight'] > $weight) {
-          $node->domain_source = $domain['domain_id'];
-          $weight = $domain['weight'];
-        }
       }
+    }
+
+    if (count($node->domains) == 1) {
+      $node->domain_source = reset($node->domains);
     }
   }
 }
@@ -699,6 +710,26 @@ function cbf_cron() {
     if (isset($result['node'])) {
       $nodes = entity_load('node', array_keys($result['node']));
       foreach ($nodes as $node) {
+        node_save($node);
+      }
+    }
+
+    /*
+     * Find nodes that were Tweeted using Post to Twitter. Set their status so
+     * they are not tweeted again if any calls are made to node_save().
+     */
+    $query = new EntityFieldQuery();
+    $result = $query->entityCondition('entity_type', 'node')
+        ->fieldCondition('field_post_to_twitter', 'status', 0, '<>')
+        ->execute();
+    if (isset($result['node'])) {
+      $nodes = entity_load('node', array_keys($result['node']));
+      foreach ($nodes as $node) {
+        // Prevent a post being made again to Twitter
+        $langcode = field_language('node', $node, 'field_post_to_twitter');
+        if (isset($node->field_post_to_twitter[$langcode][0])) {
+          $node->field_post_to_twitter[$langcode][0]['status'] = 0;
+        }
         node_save($node);
       }
     }
