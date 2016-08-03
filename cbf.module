@@ -605,11 +605,26 @@ function cbf_node_presave($node) {
   }
 }
 
+/*
+ * CKEditor introduces some unpleasant artifacts into HTML text fields. This
+ * function handles them ...
+ *
+ *   - Empty paragraphs are removed
+ *   - Non-breaking spaces are replaced with plain spaces
+ *
+ * The order of these actions is important as both patterns contain '&nbsp;'.
+ */
 function cbf_field_attach_presave($entity_type, $entity)
 {
   if ($entity_type == 'node') {
-    $html_fields = array('body','field_short_form');
+    $html_fields = array('body', 'field_short_form', 'field_sidebar_content');
     $attributes = array('summary','value');
+    $replacements = array(
+      '!<p>(\r\n\t)*&nbsp;</p>!i' => '',
+      '!&nbsp;!i' => ' ',
+    );
+    $from = array_keys($replacements);
+    $to = array_values($replacements);
     foreach ($html_fields as $html_field) {
       if (isset($entity->$html_field)) {
         $field = & $entity->$html_field;
@@ -619,14 +634,8 @@ function cbf_field_attach_presave($entity_type, $entity)
           for ($instance = 0; $instance < $instances; $instance++) {
             foreach ($attributes as $attribute) {
               if (isset($field[$language][$instance][$attribute])) {
-                /*
-                 *  Remove empty paragraphs inserted by CKeditor
-                 */
                 $field[$language][$instance][$attribute]
-                    = preg_replace(
-                        '!<p>(\r\n\t)*&nbsp;</p>!i',
-                        '',
-                        $field[$language][$instance][$attribute]);
+                  = preg_replace($from, $to, $field[$language][$instance][$attribute]);
               }
             }
           }
