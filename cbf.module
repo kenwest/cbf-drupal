@@ -559,7 +559,7 @@ function computed_field_field_add_to_calendar_display($field, $entity_field_item
  *     alias = NNNN.activity.rule
  *
  *         NNNN is the node Id for the Activity that corresponds to this domain.
- *         This rule matches if the node's Activity is NNNN.
+ *         This rule matches if the node's nid or its Activity is NNNN.
  */
 function cbf_node_presave($node) {
   $followDomainRules = true;
@@ -581,6 +581,10 @@ function cbf_node_presave($node) {
           $activity = stristr($alias['pattern'], '.activity.rule', true);
           if ($activity !== false) {
             $activity = (int) $activity;
+            if ($node->nid == $activity) {
+              $match = true;
+              break;
+            }
             $field_in_activity = field_get_items('node', $node, 'field_in_activity');
             if ($field_in_activity !== false && $field_in_activity[0]['target_id'] == $activity) {
               $match = true;
