@@ -800,8 +800,10 @@ function cbf_visitor_city_string() {
               $cbf_visitor_city = 'adelaide';
               break;
             case 'West Australia':
-            case 'Western Australia':
               $cbf_visitor_city = 'perth';
+              break;
+            case 'Australian Capital Territory':
+              $cbf_visitor_city = 'canberra';
               break;
           }
           break;
