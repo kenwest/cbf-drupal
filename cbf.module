@@ -490,7 +490,7 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
     'subscribe' => 'This and future events like it',
     'city' => "This and future events for $city",
   );
-  $result .= '
+  $result = '
     <ul class="nav">
       <li class="dropdown">
         <a class="dropdown-toggle" data-toggle="dropdown" href="#">Add to calendar</a>
