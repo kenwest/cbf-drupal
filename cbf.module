@@ -560,6 +560,15 @@ function computed_field_field_add_to_calendar_display($field, $entity_field_item
  *
  *         NNNN is the node Id for the Activity that corresponds to this domain.
  *         This rule matches if the node's nid or its Activity is NNNN.
+ *
+ * The rules have the following effects ...
+ *
+ *     domain_site   false (content is not available in all affiliates)
+ *
+ *     domains       contains an entry for each domain that matches a rule
+ *
+ *     domain_source DOMAIN_SOURCE_USE_ACTIVE (don't change domain to a cardinal
+ *                   domain)
  */
 function cbf_node_presave($node) {
   $followDomainRules = true;
