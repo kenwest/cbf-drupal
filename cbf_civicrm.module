@@ -395,14 +395,49 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
     case 'CRM_Contribute_Form_Contribution_Main':
     case 'CRM_Event_Form_Participant':
     case 'CRM_Event_Form_Registration_Register':
-      // The credit card holder is required for CC transactions
-      // Assume that a credit card payment is being made if the CC number is supplied
-      // This test is only required if the Card Holder field exists and is not a required field
+      /*
+       * The credit card holder is required for credit card transactions.
+       * Assume that a credit card payment is being made if the CC number
+       * is supplied. This test is only required if the Card Holder field
+       * exists and is not a required field.
+       */
       if ($form->elementExists('credit_card_holder') && !$form->isElementRequired('credit_card_holder')) {
         $credit_card_number = CRM_Utils_Array::value('credit_card_number', $fields);
         $credit_card_holder = CRM_Utils_Array::value('credit_card_holder', $fields);
         if ($credit_card_number && !$credit_card_holder) {
           $errors['credit_card_holder'] = ts('Card Holder is required if Card Number is supplied');
+        }
+      }
+      /*
+       * Online event registrations:
+       *
+       * Prevent visitors mistakenly entering the cost of a Price Set field,
+       * rather than the number of participants. We do this by putting a
+       * limit on the number that can be selected.
+       * 
+       * Also, prevent visitors trying to register without selecting any
+       * options from a Price Set.
+       */
+      if ($formName == 'CRM_Event_Form_Registration_Register') {
+        if (!empty($form->_priceSetId)) {
+          $registrationLimit = 20;
+          $optionSelected = false;
+          $publicField = false;
+          foreach ($form->_priceSet['fields'] as $priceSetFieldId => $priceSetField) {
+            $submit = "price_$priceSetFieldId";
+            if (!empty($form->_submitValues[$submit])) {
+              $optionSelected = true;
+              if (!empty($priceSetField['is_enter_qty']) && $form->_submitValues[$submit] > $registrationLimit) {
+                $errors[$submit] = ts('To protect our visitors, registrations are limited to ') . $registrationLimit . ts('. To register more, either make a separate registration or contact our office.');
+              }
+            }
+            if ($publicField === false && $priceSetField['visibility'] == 'public') {
+              $publicField = $submit;
+            }
+          }
+          if ($optionSelected === false) {
+            $errors[($publicField === false) ? $submit : $publicField] = ts('No registration options appear to have been selected');
+          }
         }
       }
       break;
