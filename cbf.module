@@ -4,29 +4,35 @@
  * This hook is called at the beginning of a Drupal page request.
  */
 function cbf_init() {
-  if (arg(0) == 'node' && arg(1) == 'add') {
-    switch (arg(2)) {
-      case 'story':
-      case 'blog':
-      case 'episode':
-      case 'event':
-      case 'activity':
-        /*
-         * This JavaScript sets some defaults when adding new nodes.
-         *  1. The Summary for the Body displays to encourage entry
-         *  2. Tablefield fields default to plain text
-         *
-         * See "How to display summary field on node edit form by default?"
-         * http://drupal.org/node/1395422#comment-6450618
-         */
-        $script = 'jQuery(document).ready(function(){
-          jQuery(".link-edit-summary").click();
-          jQuery(".field-type-tablefield .filter-wrapper select.filter-list option").each(function() {
-            this.selected = (this.text == "Plain text");
-          });
-        });';
-        drupal_add_js($script, 'inline');
-        break;
+  if (arg(0) == 'node') {
+    if (arg(1) == 'add') {
+      /*
+       * This JavaScript sets some defaults when adding new nodes.
+       *  1. The Summary for the Body displays to encourage entry
+       *  2. Tablefield fields default to plain text
+       *  3. The File Field source is ICME to encourage reuse
+       *
+       * See "How to display summary field on node edit form by default?"
+       * http://drupal.org/node/1395422#comment-6450618
+       */
+      $script = 'jQuery(document).ready(function(){
+        jQuery(".link-edit-summary").click();
+        jQuery(".field-type-tablefield .filter-wrapper select.filter-list option").each(function() {
+          this.selected = (this.text == "Plain text");
+        });
+        jQuery(".filefield-source-imce").click();
+      });';
+      drupal_add_js($script, 'inline');
+    }
+    elseif (is_numeric(arg(1)) && arg(2) == 'edit') {
+      /*
+       * This JavaScript sets some defaults when editing nodes.
+       *  1. The File Field source is ICME to encourage reuse
+       */
+      $script = 'jQuery(document).ready(function(){
+        jQuery(".filefield-source-imce").click();
+      });';
+      drupal_add_js($script, 'inline');
     }
   }
   return array();
