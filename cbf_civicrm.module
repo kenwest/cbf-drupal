@@ -471,6 +471,17 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
         }
       }
       break;
+
+    case 'CRM_Export_Form_Select':
+      /*
+       * Selecting the 'Export PRIMARY fields' option for many contacts will
+       * create multi-Gb temporary files. Reject this option.
+       */ 
+      $exportOption = CRM_Utils_Array::value('exportOption', $fields);
+      if ($exportOption == 1) {
+        $errors['exportOption'] = ts('Exporting Primary fields on large numbers of contacts can crash the web server. Select the fields you want to export.');
+      }
+      break;
   }
 }
 
