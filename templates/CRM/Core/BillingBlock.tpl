@@ -57,14 +57,14 @@
                 <div class="description">{ts}Enter name on card{/ts}</div>
               </div>
               <div class="clear"></div> 
-            </div>
+             </div>
           {/if}
           {* </KW: CRM-3224> *}
         {/foreach}
       </div>
     </fieldset>
   {/if}
-  {* </KW: CRM-3224> *}
+  {* <KW: CRM-3224 /> *}
 </div>
 {if $profileAddressFields}
   <script type="text/javascript">
