@@ -191,18 +191,6 @@ diff -ur ./CRM/Utils/DeprecatedUtils.php /var/www/citybibleforum/sites/all/modul
          }
          break;
  
-diff -ur ./CRM/Utils/System/Drupal.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Utils/System/Drupal.php
---- ./CRM/Utils/System/Drupal.php	2016-10-05 16:20:36.000000000 +1100
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Utils/System/Drupal.php	2016-10-11 16:20:13.858507193 +1100
-@@ -786,6 +786,8 @@
-    * @inheritDoc
-    */
-   public function setHttpHeader($name, $value) {
-+    // CRM-17965: allow extern/widget.php to boot Drupal
-+    defined('DRUPAL_ROOT') or self::loadBootStrap(NULL, FALSE);
-     drupal_add_http_header($name, $value);
-   }
- 
 diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css
 --- ./css/civicrm.css	2016-10-05 16:20:36.000000000 +1100
 +++ /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css	2016-10-11 16:20:13.858507193 +1100
