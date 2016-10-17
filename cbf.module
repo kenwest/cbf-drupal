@@ -586,6 +586,14 @@ function cbf_node_presave($node) {
     $node->domains = array();
     $node->domain_source = DOMAIN_SOURCE_USE_ACTIVE;
 
+    $field_in_activity = field_get_items('node', $node, 'field_in_activity');
+    if ($field_in_activity === false || empty($field_in_activity[0]['target_id'])) {
+      $node_activity = 0;
+    }
+    else {
+      $node_activity = $field_in_activity[0]['target_id'];
+    }
+
     foreach ($domains as $domain) {
       $match = false;
       if ($domain['is_default']) {
@@ -596,12 +604,7 @@ function cbf_node_presave($node) {
           $activity = stristr($alias['pattern'], '.activity.rule', true);
           if ($activity !== false) {
             $activity = (int) $activity;
-            if ($node->nid == $activity) {
-              $match = true;
-              break;
-            }
-            $field_in_activity = field_get_items('node', $node, 'field_in_activity');
-            if ($field_in_activity !== false && $field_in_activity[0]['target_id'] == $activity) {
+            if ($node->nid == $activity || $node_activity == $activity) {
               $match = true;
               break;
             }
