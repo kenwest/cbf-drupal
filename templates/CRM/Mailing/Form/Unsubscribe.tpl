@@ -60,7 +60,7 @@
         (function(t,e,n,o){var s,c,a;t.SMCX=t.SMCX||[],e.getElementById(o)||(s=e.getElementsByTagName(n),c=s[s.length-1],a=e.createElement(n),a.type="text/javascript",a.async=!0,a.id=o,a.src=["https:"===location.protocol?"https://":"http://","widget.surveymonkey.com/collect/website/js/IJ_2FXZPXyt_2FRG1IGVdRe3FotMk6Np7Z3xRm8Idm4Q7FHjaB7_2FPiPLC6InSuaHjEvP.js"].join(""),c.parentNode.insertBefore(a,c))})(window,document,"script","smcx-sdk");
       {/literal}
     </script>
-    <a style="font-size: 12px; color: #999; text-decoration: none;" href="https://www.surveymonkey.com/s/3GGMJB7" target="_blank">
+    <a style="font-size: 12px; color: #999; text-decoration: none;" href="https://www.surveymonkey.com/s/3GGMJB7" target="_blank" rel="noopener noreferrer">
       Take a survey to help us understand why you are unsubscribing
     </a>
   {/if}

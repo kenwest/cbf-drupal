@@ -482,7 +482,7 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
           break;
       }
       if (!empty($target)) {
-        $results[$scheme] .= '<li><a href="' . $target . '" target="_blank">' . $client . '</a></li>';
+        $results[$scheme] .= '<li><a href="' . $target . '" target="_blank" rel="noopener noreferrer">' . $client . '</a></li>';
       }
     }
   }

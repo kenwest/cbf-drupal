@@ -38,7 +38,7 @@
             <a href="https://twitter.com/share?url={$url|escape:'url'}&amp;text={$title}" id="crm_tweet">
                 <img title="Twitter Tweet Button" src="{$config->userFrameworkResourceURL|replace:'https://':'http://'}/i/tweet.png" width="55px" height="20px"  alt="Tweet Button">
             </a>
-            <a href="https://www.facebook.com/plugins/like.php?href={$url}" target="_blank">
+            <a href="https://www.facebook.com/plugins/like.php?href={$url}" target="_blank" rel="noopener noreferrer">
                 <img title="Facebook Like Button" src="{$config->userFrameworkResourceURL|replace:'https://':'http://'}/i/fblike.png" alt="Facebook Button" />
             </a>
         {else}
