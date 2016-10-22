@@ -629,8 +629,10 @@ function cbf_node_presave($node) {
  *
  *   - Empty paragraphs are removed
  *   - Non-breaking spaces are replaced with plain spaces
+ *   - Ensure target="_blank" attributes have a rel="noopener noreferrer"
+ *     attribute https://medium.com/@jitbit/target-blank-the-most-underestimated-vulnerability-ever-96e328301f4c#.dzwczm21q
  *
- * The order of these actions is important as both patterns contain '&nbsp;'.
+ * The order of these actions is important as the patterns have overlapping content.
  */
 function cbf_field_attach_presave($entity_type, $entity)
 {
@@ -639,7 +641,10 @@ function cbf_field_attach_presave($entity_type, $entity)
     $attributes = array('summary','value');
     $replacements = array(
       '!<p>(\r\n\t)*&nbsp;</p>!i' => '',
-      '!&nbsp;!i' => ' ',
+      '!&nbsp;!i'                 => ' ',
+      '!target="_blank" rel="noopener noreferrer"!i'           => 'target="_blank"',
+      '!target="_blank"!i'                                     => 'rel="noopener noreferrer" target="_blank"',
+      '!rel="noopener noreferrer" rel="noopener noreferrer"!i' => 'rel="noopener noreferrer"',
     );
     $from = array_keys($replacements);
     $to = array_values($replacements);
