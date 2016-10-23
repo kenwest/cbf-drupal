@@ -634,8 +634,7 @@ function cbf_node_presave($node) {
  *
  * The order of these actions is important as the patterns have overlapping content.
  */
-function cbf_field_attach_presave($entity_type, $entity)
-{
+function cbf_field_attach_presave($entity_type, $entity) {
   if ($entity_type == 'node') {
     $html_fields = array('body', 'field_short_form', 'field_sidebar_content');
     $attributes = array('summary','value');
