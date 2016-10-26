@@ -899,7 +899,7 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
             case 'twitter:card':
               $pattern = $card;
               break;
-            case 'twitter:image:src':
+            case 'twitter:image':
               $pattern = $src;
               break;
           }
