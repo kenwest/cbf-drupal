@@ -867,7 +867,7 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
     $largeImages = array('field_highlight', 'field_image', 'field_series_image');
     switch ($tag_name) {
       case 'twitter:card':
-      case 'twitter:image:src':
+      case 'twitter:image':
         /* Option 3 is the default */
         $card = 'summary';
         $src = '';
