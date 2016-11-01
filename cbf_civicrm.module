@@ -571,6 +571,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     $vars['ip']  = $_SERVER['REMOTE_ADDR'];
     $vars['url'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
   }
+  $vars['agent']  = $_SERVER['HTTP_USER_AGENT'];
 
   /*
    * There are a number of annoying errors that get logged. They seem to be due to
@@ -597,6 +598,9 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
       'message' => 'Missing (input )?parameters',
       'url' => '/civicrm/mailing/(optout|unsubscribe)$',
     ),
+    array(
+      'agent' => 'detectify.com',
+    ),
   );
 
   foreach ($ignore as $patternSet) {
@@ -611,6 +615,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
   $vars['ip-details'] = json_decode(file_get_contents("http://ipinfo.io/" . $vars['ip'] . "/json"));
   if (isset($_SESSION)) {
     $vars['session'] = $_SESSION;
+    unset($vars['session']['csrf_token_seed']);
     unset($vars['session']['CiviCRM']['qfPrivateKey']);
   }
 
