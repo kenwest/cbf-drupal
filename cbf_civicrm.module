@@ -599,7 +599,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
       'url' => '/civicrm/mailing/(optout|unsubscribe)$',
     ),
     array(
-      'agent' => 'detectify.com',
+      'agent' => 'detectify\.com',
     ),
   );
 
