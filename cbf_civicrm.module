@@ -1037,34 +1037,37 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
 
 /*
  * Support integer custom fields that map to group ids. These are set with a dummy
- * option of 'None' => '0', which needs to be removed.
+ * option of 0 => 'None', which needs to be removed.
  */
-function cbf_civicrm_civicrm_customFieldOptions($fieldID, &$options, $detailedFormat = false ) {
+function cbf_civicrm_civicrm_fieldOptions($entity, $field, &$options, $params) {
   static $activeMailingLists = null;
 
-  switch ($fieldID) {
-    case 45: // 'Events like this' list
-    case 46: // 'News and updates' list
+  switch ($field) {
+    case 'custom_45': // 'Events like this' list
+    case 'custom_46': // 'News and updates' list
       try {
         if (!isset($activeMailingLists)) {
-          $activeMailingLists = civicrm_api3('Group', 'get', array(
-            'sequential' => 1,
-            'is_active' => 1,
-            'group_type' => 2, // Mailing list
-            'is_hidden' => 0,
-            'options' => array('limit' => 0),
-          ));
+          $activeMailingLists = civicrm_api3(
+            'Group',
+            'get',
+            array(
+              'sequential' => 1,
+              'is_active' => 1,
+              'group_type' => 2, // Mailing list
+              'is_hidden' => 0,
+              'options' => array('limit' => 0),
+            )
+          );
         }
         if ($activeMailingLists['is_error'] != 0) {
           return;
         }
         foreach ($activeMailingLists['values'] as $list) {
-          $detailed_options[$list['id']] = array(
-            'id' => $list['id'],
-            'value' => $list['id'],
-            'label' => $list['title']);
+          $options[$list['id']] = $list['title'];
         }
-        unset($options[0]);
+        if ($options[0] == 'None') {
+          unset($options[0]);
+        }
       } catch (Exception $e) {
         return;
       }
@@ -1072,13 +1075,5 @@ function cbf_civicrm_civicrm_customFieldOptions($fieldID, &$options, $detailedFo
 
     default:
       return;
-  }
-
-  if (isset($detailed_options) && !$detailedFormat ) {
-    foreach ($detailed_options AS $key => $choice) {
-      $options[$choice['value']] = $choice['label'];
-    }
-  } else {
-    $options += $detailed_options;
   }
 }
