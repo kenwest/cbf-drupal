@@ -1,0 +1,511 @@
+From 33dd32c832c916903f40ca696a821e00d115cf91 Mon Sep 17 00:00:00 2001
+From: Edsel <edsel.lopez@jmaconsulting.biz>
+Date: Fri, 29 Jul 2016 21:32:59 +0530
+Subject: [PATCH 01/11] CRM-19153 Fixed future payment dates for future start
+ pledge dates
+
+----------------------------------------
+* CRM-19153: Future pledge start date causes improper future pledge payment dates
+  https://issues.civicrm.org/jira/browse/CRM-19153
+---
+ CRM/Contribute/BAO/Contribution/Utils.php    | 7 ++++++-
+ CRM/Contribute/Form/Contribution/Confirm.php | 7 +++----
+ CRM/Pledge/BAO/Pledge.php                    | 5 ++++-
+ 3 files changed, 13 insertions(+), 6 deletions(-)
+
+diff --git a/CRM/Contribute/BAO/Contribution/Utils.php b/CRM/Contribute/BAO/Contribution/Utils.php
+index ab64536..de4c2e4 100644
+--- a/CRM/Contribute/BAO/Contribution/Utils.php
++++ b/CRM/Contribute/BAO/Contribution/Utils.php
+@@ -85,7 +85,12 @@ public static function processConfirm(
+     $paymentParams['contactID'] = $form->_params['contactID'] = $contactID;
+ 
+     //fix for CRM-16317
+-    $form->_params['receive_date'] = date('YmdHis');
++    if (empty($form->_params['receive_date'])) {
++      $form->_params['receive_date'] = date('YmdHis');
++    }
++    if (!empty($form->_params['start_date'])) {
++      $form->_params['start_date'] = date('YmdHis');
++    }
+     $form->assign('receive_date',
+       CRM_Utils_Date::mysqlToIso($form->_params['receive_date'])
+     );
+diff --git a/CRM/Contribute/Form/Contribution/Confirm.php b/CRM/Contribute/Form/Contribution/Confirm.php
+index 9a43e70..3b7a63d 100644
+--- a/CRM/Contribute/Form/Contribution/Confirm.php
++++ b/CRM/Contribute/Form/Contribution/Confirm.php
+@@ -949,10 +949,9 @@ public static function processFormContribution(
+           $pledgeParams['frequency_day'] = 1;
+         }
+         $pledgeParams['create_date'] = $pledgeParams['start_date'] = $pledgeParams['scheduled_date'] = date("Ymd");
+-        $pledgeBlock = CRM_Pledge_BAO_PledgeBlock::getPledgeBlock($contribution->contribution_page_id);
+-        if (CRM_Utils_Array::value('start_date', $params) || !CRM_Utils_Array::value('is_pledge_start_date_visible', $pledgeBlock)) {
+-          $pledgeStartDate = CRM_Utils_Array::value('start_date', $params, NULL);
+-          $pledgeParams['start_date'] = $pledgeParams['scheduled_date'] = CRM_Pledge_BAO_Pledge::getPledgeStartDate($pledgeStartDate, $pledgeBlock);
++        if (CRM_Utils_Array::value('start_date', $params)) {
++          $pledgeParams['frequency_day'] = intval(date("d", strtotime(CRM_Utils_Array::value('start_date', $params))));
++          $pledgeParams['start_date'] = $pledgeParams['scheduled_date'] = CRM_Utils_Array::value('start_date', $params);
+         }
+         $pledgeParams['status_id'] = $contribution->contribution_status_id;
+         $pledgeParams['max_reminders'] = $form->_values['max_reminders'];
+diff --git a/CRM/Pledge/BAO/Pledge.php b/CRM/Pledge/BAO/Pledge.php
+index 6eb92d2..24ea4a8 100644
+--- a/CRM/Pledge/BAO/Pledge.php
++++ b/CRM/Pledge/BAO/Pledge.php
+@@ -1205,9 +1205,12 @@ public static function getPledgeStartDate($date, $pledgeBlock) {
+     $startDate = (array) json_decode($pledgeBlock['pledge_start_date']);
+     list($field, $value) = each($startDate);
+     if (!CRM_Utils_Array::value('is_pledge_start_date_visible', $pledgeBlock)) {
++      if ($field == 'calendar_month') {
++        $value = self::getPaymentDate($value);
++      }
+       return date('Ymd', strtotime($value));
+     }
+-    if (!CRM_Utils_Array::value('is_pledge_start_date_editable', $pledgeBlock)) {
++    if (!empty($date) && !CRM_Utils_Array::value('is_pledge_start_date_editable', $pledgeBlock)) {
+       return $date;
+     }
+     switch ($field) {
+
+From 12e53254279b8e94878e1c0ad6c26e9094508b17 Mon Sep 17 00:00:00 2001
+From: Edsel <edsel.lopez@jmaconsulting.biz>
+Date: Mon, 15 Aug 2016 13:12:02 +0530
+Subject: [PATCH 02/11] CRM-19153 Bug fixes for start date display & star date
+ calculations
+
+----------------------------------------
+* CRM-19153: Future pledge start date causes improper future pledge payment dates
+  https://issues.civicrm.org/jira/browse/CRM-19153
+---
+ CRM/Contribute/BAO/Contribution/Utils.php    | 2 +-
+ CRM/Contribute/Form/Contribution/Confirm.php | 5 ++---
+ CRM/Pledge/BAO/Pledge.php                    | 4 +++-
+ CRM/Pledge/BAO/PledgeBlock.php               | 2 +-
+ 4 files changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/CRM/Contribute/BAO/Contribution/Utils.php b/CRM/Contribute/BAO/Contribution/Utils.php
+index de4c2e4..d29ef9f 100644
+--- a/CRM/Contribute/BAO/Contribution/Utils.php
++++ b/CRM/Contribute/BAO/Contribution/Utils.php
+@@ -139,7 +139,7 @@ public static function processConfirm(
+         $paymentParams['source'] = $paymentParams['contribution_source'];
+       }
+ 
+-      if ($form->_values['is_recur'] && $contribution->contribution_recur_id) {
++      if ($form->_params['is_recur'] && $contribution->contribution_recur_id) {
+         $paymentParams['contributionRecurID'] = $contribution->contribution_recur_id;
+       }
+       if (isset($paymentParams['contribution_source'])) {
+diff --git a/CRM/Contribute/Form/Contribution/Confirm.php b/CRM/Contribute/Form/Contribution/Confirm.php
+index 3b7a63d..05311f7 100644
+--- a/CRM/Contribute/Form/Contribution/Confirm.php
++++ b/CRM/Contribute/Form/Contribution/Confirm.php
+@@ -951,7 +951,7 @@ public static function processFormContribution(
+         $pledgeParams['create_date'] = $pledgeParams['start_date'] = $pledgeParams['scheduled_date'] = date("Ymd");
+         if (CRM_Utils_Array::value('start_date', $params)) {
+           $pledgeParams['frequency_day'] = intval(date("d", strtotime(CRM_Utils_Array::value('start_date', $params))));
+-          $pledgeParams['start_date'] = $pledgeParams['scheduled_date'] = CRM_Utils_Array::value('start_date', $params);
++          $pledgeParams['start_date'] = $pledgeParams['scheduled_date'] = date('Ymd', strtotime(CRM_Utils_Array::value('start_date', $params)));
+         }
+         $pledgeParams['status_id'] = $contribution->contribution_status_id;
+         $pledgeParams['max_reminders'] = $form->_values['max_reminders'];
+@@ -1093,7 +1093,7 @@ public static function processRecurringContribution(&$form, &$params, $contactID
+ 
+     $recurParams['start_date'] = $recurParams['create_date'] = $recurParams['modified_date'] = date('YmdHis');
+     if (!empty($params['receive_date'])) {
+-      $recurParams['start_date'] = $params['receive_date'];
++      $recurParams['start_date'] = date('YmdHis', strtotime($params['receive_date']));
+     }
+     $recurParams['invoice_id'] = CRM_Utils_Array::value('invoiceID', $params);
+     $recurParams['contribution_status_id'] = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Pending');
+@@ -1110,7 +1110,6 @@ public static function processRecurringContribution(&$form, &$params, $contactID
+ 
+     $campaignId = CRM_Utils_Array::value('campaign_id', $params, CRM_Utils_Array::value('campaign_id', $form->_values));
+     $recurParams['campaign_id'] = $campaignId;
+-
+     $recurring = CRM_Contribute_BAO_ContributionRecur::add($recurParams);
+     if (is_a($recurring, 'CRM_Core_Error')) {
+       CRM_Core_Error::displaySessionError($recurring);
+diff --git a/CRM/Pledge/BAO/Pledge.php b/CRM/Pledge/BAO/Pledge.php
+index 24ea4a8..e4b989a 100644
+--- a/CRM/Pledge/BAO/Pledge.php
++++ b/CRM/Pledge/BAO/Pledge.php
+@@ -1215,7 +1215,9 @@ public static function getPledgeStartDate($date, $pledgeBlock) {
+     }
+     switch ($field) {
+       case 'contribution_date':
+-        $date = date('Ymd');
++        if (empty($date)) {
++          $date = date('Ymd');
++        }
+         break;
+ 
+       case 'calendar_date':
+diff --git a/CRM/Pledge/BAO/PledgeBlock.php b/CRM/Pledge/BAO/PledgeBlock.php
+index 357686b..1419c47 100644
+--- a/CRM/Pledge/BAO/PledgeBlock.php
++++ b/CRM/Pledge/BAO/PledgeBlock.php
+@@ -311,7 +311,7 @@ public static function buildPledgeBlock($form) {
+             case 'contribution_date':
+               $form->addDate('start_date', ts('First installment payment'));
+               $paymentDate = $value = date('d/m/Y');
+-              list($defaults['start_date'], $defaults['start_date_time']) = CRM_Utils_Date::setDateDefaults($value);
++              list($defaults['start_date'], $defaults['start_date_time']) = CRM_Utils_Date::setDateDefaults(NULL);
+               $form->assign('is_date', TRUE);
+               break;
+ 
+
+From d9a9ea3b6f0a53d02e5adfd44731404ff468ec25 Mon Sep 17 00:00:00 2001
+From: Edsel <edsel.lopez@jmaconsulting.biz>
+Date: Tue, 23 Aug 2016 10:16:56 +0530
+Subject: [PATCH 03/11] CRM-19153 BUg fixes for non editable fields
+
+----------------------------------------
+* CRM-19153: Future pledge start date causes improper future pledge payment dates
+  https://issues.civicrm.org/jira/browse/CRM-19153
+---
+ CRM/Contribute/Form/Contribution/Confirm.php | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/CRM/Contribute/Form/Contribution/Confirm.php b/CRM/Contribute/Form/Contribution/Confirm.php
+index 05311f7..3c25a85 100644
+--- a/CRM/Contribute/Form/Contribution/Confirm.php
++++ b/CRM/Contribute/Form/Contribution/Confirm.php
+@@ -1972,7 +1972,8 @@ protected function processFormSubmission($contactID) {
+     // CRM-18854
+     if (CRM_Utils_Array::value('adjust_recur_start_date', $this->_values)) {
+       $pledgeBlock = CRM_Pledge_BAO_PledgeBlock::getPledgeBlock($this->_id);
+-      if (CRM_Utils_Array::value('start_date', $this->_params) || !CRM_Utils_Array::value('is_pledge_start_date_visible', $pledgeBlock)) {
++      if (CRM_Utils_Array::value('start_date', $this->_params) || !CRM_Utils_Array::value('is_pledge_start_date_visible', $pledgeBlock)
++          || !CRM_Utils_Array::value('is_pledge_start_date_editable', $pledgeBlock)) {
+         $pledgeStartDate = CRM_Utils_Array::value('start_date', $this->_params, NULL);
+         $this->_params['receive_date'] = CRM_Pledge_BAO_Pledge::getPledgeStartDate($pledgeStartDate, $pledgeBlock);
+         $recurParams = CRM_Pledge_BAO_Pledge::buildRecurParams($this->_params);
+
+From 27da207f9d0c309eceba2a32d317d9271eb511d4 Mon Sep 17 00:00:00 2001
+From: Edsel <edsel.lopez@jmaconsulting.biz>
+Date: Tue, 23 Aug 2016 20:18:08 +0530
+Subject: [PATCH 04/11] CRM-19153 Bug fix for pledge payment
+
+----------------------------------------
+* CRM-19153: Future pledge start date causes improper future pledge payment dates
+  https://issues.civicrm.org/jira/browse/CRM-19153
+---
+ CRM/Contribute/Form/Contribution/Confirm.php | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CRM/Contribute/Form/Contribution/Confirm.php b/CRM/Contribute/Form/Contribution/Confirm.php
+index 3c25a85..0d11e11 100644
+--- a/CRM/Contribute/Form/Contribution/Confirm.php
++++ b/CRM/Contribute/Form/Contribution/Confirm.php
+@@ -1970,7 +1970,7 @@ protected function processFormSubmission($contactID) {
+     $this->_params['currencyID'] = CRM_Core_Config::singleton()->defaultCurrency;
+ 
+     // CRM-18854
+-    if (CRM_Utils_Array::value('adjust_recur_start_date', $this->_values)) {
++    if (!CRM_Utils_Array::value('pledge_id', $this->_values) && CRM_Utils_Array::value('adjust_recur_start_date', $this->_values)) {
+       $pledgeBlock = CRM_Pledge_BAO_PledgeBlock::getPledgeBlock($this->_id);
+       if (CRM_Utils_Array::value('start_date', $this->_params) || !CRM_Utils_Array::value('is_pledge_start_date_visible', $pledgeBlock)
+           || !CRM_Utils_Array::value('is_pledge_start_date_editable', $pledgeBlock)) {
+
+From 603577b2994dffb2a3b9588af4ac95cf195c0da2 Mon Sep 17 00:00:00 2001
+From: Edsel <edsel.lopez@jmaconsulting.biz>
+Date: Thu, 1 Sep 2016 17:43:05 +0530
+Subject: [PATCH 05/11] CRM-19153 Added unit test for pledge payments
+
+----------------------------------------
+* CRM-19153: Future pledge start date causes improper future pledge payment dates
+  https://issues.civicrm.org/jira/browse/CRM-19153
+---
+ tests/phpunit/api/v3/ContributionPageTest.php | 49 +++++++++++++++++++++++++++
+ 1 file changed, 49 insertions(+)
+
+diff --git a/tests/phpunit/api/v3/ContributionPageTest.php b/tests/phpunit/api/v3/ContributionPageTest.php
+index 442bd34..f291b87 100644
+--- a/tests/phpunit/api/v3/ContributionPageTest.php
++++ b/tests/phpunit/api/v3/ContributionPageTest.php
+@@ -1003,4 +1003,53 @@ public function testSubmitPledgePaymentPaymentProcessorRecurFuturePayment() {
+     $this->assertEquals($recur['contribution_status_id'], 5); // In progress status.
+   }
+ 
++  /**
++   * Test submit pledge payment.
++   *
++   * - test submitting a pledge payment using contribution form.
++   */
++  public function testSubmitPledgePayment() {
++    $this->testSubmitPledgePaymentPaymentProcessorRecurFuturePayment();
++    $pledge = $this->callAPISuccess('pledge', 'getsingle', array());
++    $params = array(
++      'pledge_id' => $pledge['id'],
++    );
++    $submitParams = array(
++      'id' => (int) $pledge['pledge_contribution_page_id'],
++      'pledge_amount' => array(2 => 1),
++      'billing_first_name' => 'Billy',
++      'billing_middle_name' => 'Goat',
++      'billing_last_name' => 'Gruff',
++      'email' => 'billy@goat.gruff',
++      'payment_processor_id' => 1,
++      'credit_card_number' => '4111111111111111',
++      'credit_card_type' => 'Visa',
++      'credit_card_exp_date' => array('M' => 9, 'Y' => 2040),
++      'cvv2' => 123,
++      'pledge_id' => $pledge['id'],
++      'cid' => $pledge['contact_id'],
++      'contact_id' => $pledge['contact_id'],
++      'amount' => 100.00,
++      'is_pledge' => TRUE,
++      'pledge_block_id' => $this->_ids['pledge_block_id'],
++    );
++    $pledgePayment = $this->callAPISuccess('pledge_payment', 'get', $params);
++    $this->assertEquals($pledgePayment['values'][2]['status_id'], 2);
++
++    $this->callAPIAndDocument('contribution_page', 'submit', $submitParams, __FUNCTION__, __FILE__, 'submit contribution page', NULL);
++
++    // Check if contribution created.
++    $contribution = $this->callAPISuccess('contribution', 'getsingle', array(
++      'contribution_page_id' => $pledge['pledge_contribution_page_id'],
++      'contribution_status_id' => 'Completed',
++      'contact_id' => $pledge['contact_id'],
++      'contribution_recur_id' => array('IS NULL' => 1),
++    ));
++
++    $this->assertEquals(100.00, $contribution['total_amount']);
++    $pledgePayment = $this->callAPISuccess('pledge_payment', 'get', $params);
++    $this->assertEquals($pledgePayment['values'][2]['status_id'], 1, "This pledge payment should have been completed");
++    $this->assertEquals($pledgePayment['values'][2]['contribution_id'], $contribution['id']);
++  }
++
+ }
+
+From 31fdc7057e9af6530d4b45432ea991fe2a580bb8 Mon Sep 17 00:00:00 2001
+From: Edsel <edsel.lopez@jmaconsulting.biz>
+Date: Fri, 2 Sep 2016 13:28:25 +0530
+Subject: [PATCH 06/11] CRM-19153 Fixed freeze date display, recurring for
+ weekly installments
+
+----------------------------------------
+* CRM-19153: Future pledge start date causes improper future pledge payment dates
+  https://issues.civicrm.org/jira/browse/CRM-19153
+---
+ CRM/Contribute/Form/ContributionPage/Amount.php | 2 +-
+ CRM/Pledge/BAO/Pledge.php                       | 9 +++------
+ CRM/Pledge/BAO/PledgeBlock.php                  | 2 +-
+ CRM/Pledge/BAO/PledgePayment.php                | 7 +------
+ 4 files changed, 6 insertions(+), 14 deletions(-)
+
+diff --git a/CRM/Contribute/Form/ContributionPage/Amount.php b/CRM/Contribute/Form/ContributionPage/Amount.php
+index b646d04..bb381e6 100644
+--- a/CRM/Contribute/Form/ContributionPage/Amount.php
++++ b/CRM/Contribute/Form/ContributionPage/Amount.php
+@@ -518,7 +518,7 @@ public function postProcess() {
+         'calendar_month' => 'pledge_calendar_month',
+       );
+       if ($params['pledge_default_toggle'] == 'contribution_date') {
+-        $fieldValue = json_encode(array('contribution_date' => date('Ymd')));
++        $fieldValue = json_encode(array('contribution_date' => date('m/d/Y')));
+       }
+       else {
+         foreach ($pledgeDateFields as $key => $pledgeDateField) {
+diff --git a/CRM/Pledge/BAO/Pledge.php b/CRM/Pledge/BAO/Pledge.php
+index e4b989a..c8594c0 100644
+--- a/CRM/Pledge/BAO/Pledge.php
++++ b/CRM/Pledge/BAO/Pledge.php
+@@ -1204,15 +1204,12 @@ public static function buildRecurParams($params) {
+   public static function getPledgeStartDate($date, $pledgeBlock) {
+     $startDate = (array) json_decode($pledgeBlock['pledge_start_date']);
+     list($field, $value) = each($startDate);
+-    if (!CRM_Utils_Array::value('is_pledge_start_date_visible', $pledgeBlock)) {
+-      if ($field == 'calendar_month') {
+-        $value = self::getPaymentDate($value);
+-      }
+-      return date('Ymd', strtotime($value));
+-    }
+     if (!empty($date) && !CRM_Utils_Array::value('is_pledge_start_date_editable', $pledgeBlock)) {
+       return $date;
+     }
++    if (empty($date)) {
++      $date = $value;
++    }
+     switch ($field) {
+       case 'contribution_date':
+         if (empty($date)) {
+diff --git a/CRM/Pledge/BAO/PledgeBlock.php b/CRM/Pledge/BAO/PledgeBlock.php
+index 1419c47..a35796d 100644
+--- a/CRM/Pledge/BAO/PledgeBlock.php
++++ b/CRM/Pledge/BAO/PledgeBlock.php
+@@ -310,7 +310,7 @@ public static function buildPledgeBlock($form) {
+           switch ($field) {
+             case 'contribution_date':
+               $form->addDate('start_date', ts('First installment payment'));
+-              $paymentDate = $value = date('d/m/Y');
++              $paymentDate = $value = date('m/d/Y');
+               list($defaults['start_date'], $defaults['start_date_time']) = CRM_Utils_Date::setDateDefaults(NULL);
+               $form->assign('is_date', TRUE);
+               break;
+diff --git a/CRM/Pledge/BAO/PledgePayment.php b/CRM/Pledge/BAO/PledgePayment.php
+index 6c9e037..5f5043a 100644
+--- a/CRM/Pledge/BAO/PledgePayment.php
++++ b/CRM/Pledge/BAO/PledgePayment.php
+@@ -528,13 +528,8 @@ public static function calculateBaseScheduleDate(&$params) {
+         }
+       }
+       elseif ($params['frequency_unit'] == 'week') {
+-
+-        // for week calculate day of week ie. Sunday,Monday etc. as next payment date
+-        $dayOfWeek = date('w', mktime(0, 0, 0, $date['month'], $date['day'], $date['year']));
+-        $frequencyDay = $params['frequency_day'] - $dayOfWeek;
+-
+         $scheduleDate = explode("-", date('n-j-Y', mktime(0, 0, 0, $date['month'],
+-          $date['day'] + $frequencyDay, $date['year']
++          $date['day'], $date['year']
+         )));
+         $date['month'] = $scheduleDate[0];
+         $date['day'] = $scheduleDate[1];
+
+From 35492321e1b7c23260aa01d953daa33c55e36859 Mon Sep 17 00:00:00 2001
+From: Edsel <edsel.lopez@jmaconsulting.biz>
+Date: Fri, 2 Sep 2016 15:26:07 +0530
+Subject: [PATCH 07/11] CRM-19153 Reverted changes to pledge base start date
+ calculation for week
+
+----------------------------------------
+* CRM-19153: Future pledge start date causes improper future pledge payment dates
+  https://issues.civicrm.org/jira/browse/CRM-19153
+---
+ CRM/Pledge/BAO/PledgePayment.php | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/CRM/Pledge/BAO/PledgePayment.php b/CRM/Pledge/BAO/PledgePayment.php
+index 5f5043a..6c9e037 100644
+--- a/CRM/Pledge/BAO/PledgePayment.php
++++ b/CRM/Pledge/BAO/PledgePayment.php
+@@ -528,8 +528,13 @@ public static function calculateBaseScheduleDate(&$params) {
+         }
+       }
+       elseif ($params['frequency_unit'] == 'week') {
++
++        // for week calculate day of week ie. Sunday,Monday etc. as next payment date
++        $dayOfWeek = date('w', mktime(0, 0, 0, $date['month'], $date['day'], $date['year']));
++        $frequencyDay = $params['frequency_day'] - $dayOfWeek;
++
+         $scheduleDate = explode("-", date('n-j-Y', mktime(0, 0, 0, $date['month'],
+-          $date['day'], $date['year']
++          $date['day'] + $frequencyDay, $date['year']
+         )));
+         $date['month'] = $scheduleDate[0];
+         $date['day'] = $scheduleDate[1];
+
+From cdc7779f174f56864274e71e9bdf04ffeb485b56 Mon Sep 17 00:00:00 2001
+From: Edsel <edsel.lopez@jmaconsulting.biz>
+Date: Fri, 2 Sep 2016 15:48:48 +0530
+Subject: [PATCH 08/11] CRM-19153 Prevented code from creating recurring
+ contribution when pledge not selected
+
+----------------------------------------
+* CRM-19153: Future pledge start date causes improper future pledge payment dates
+  https://issues.civicrm.org/jira/browse/CRM-19153
+---
+ CRM/Contribute/Form/Contribution/Confirm.php | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CRM/Contribute/Form/Contribution/Confirm.php b/CRM/Contribute/Form/Contribution/Confirm.php
+index 0d11e11..f0fdf82 100644
+--- a/CRM/Contribute/Form/Contribution/Confirm.php
++++ b/CRM/Contribute/Form/Contribution/Confirm.php
+@@ -1970,7 +1970,7 @@ protected function processFormSubmission($contactID) {
+     $this->_params['currencyID'] = CRM_Core_Config::singleton()->defaultCurrency;
+ 
+     // CRM-18854
+-    if (!CRM_Utils_Array::value('pledge_id', $this->_values) && CRM_Utils_Array::value('adjust_recur_start_date', $this->_values)) {
++    if (CRM_Utils_Array::value('is_pledge', $this->_params) && !CRM_Utils_Array::value('pledge_id', $this->_values) && CRM_Utils_Array::value('adjust_recur_start_date', $this->_values)) {
+       $pledgeBlock = CRM_Pledge_BAO_PledgeBlock::getPledgeBlock($this->_id);
+       if (CRM_Utils_Array::value('start_date', $this->_params) || !CRM_Utils_Array::value('is_pledge_start_date_visible', $pledgeBlock)
+           || !CRM_Utils_Array::value('is_pledge_start_date_editable', $pledgeBlock)) {
+
+From a7c78cbbf1050243c0fb223e74b9dbb061325ae6 Mon Sep 17 00:00:00 2001
+From: Edsel <edsel.lopez@jmaconsulting.biz>
+Date: Tue, 6 Sep 2016 15:18:39 +0530
+Subject: [PATCH 09/11] CRM-19153 Fixed unit test
+
+----------------------------------------
+* CRM-19153: Future pledge start date causes improper future pledge payment dates
+  https://issues.civicrm.org/jira/browse/CRM-19153
+---
+ tests/phpunit/CRM/Pledge/BAO/PledgeTest.php | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/tests/phpunit/CRM/Pledge/BAO/PledgeTest.php b/tests/phpunit/CRM/Pledge/BAO/PledgeTest.php
+index 1b46347..2e07bb2 100644
+--- a/tests/phpunit/CRM/Pledge/BAO/PledgeTest.php
++++ b/tests/phpunit/CRM/Pledge/BAO/PledgeTest.php
+@@ -148,13 +148,14 @@ public function testGetPledgeStartDate() {
+     $this->assertEquals(date('m/d/Y', strtotime($date)), $paymentDate, "The two dates do not match");
+ 
+     // Try with fixed date
++    $date = NULL;
+     $params = array(
+-      'pledge_start_date' => json_encode(array('contribution_date' => '2016-06-10')),
++      'pledge_start_date' => json_encode(array('calendar_date' => '06/10/2016')),
+       'is_pledge_start_date_visible' => FALSE,
+     );
+ 
+     $date = CRM_Pledge_BAO_Pledge::getPledgeStartDate($date, $params);
+-    $this->assertEquals($date, '20160610', "The two dates do not match");
++    $this->assertEquals(date('m/d/Y', strtotime($date)), '06/10/2016', "The two dates do not match");
+   }
+ 
+ }
+
+From 7e3c24b974161d8094831e19141a24429c3cefc2 Mon Sep 17 00:00:00 2001
+From: Edsel <edsel.lopez@jmaconsulting.biz>
+Date: Tue, 6 Sep 2016 17:48:59 +0530
+Subject: [PATCH 10/11] CRM-19153 Fixed jenkins errors
+
+----------------------------------------
+* CRM-19153: Future pledge start date causes improper future pledge payment dates
+  https://issues.civicrm.org/jira/browse/CRM-19153
+---
+ CRM/Contribute/BAO/Contribution/Utils.php | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CRM/Contribute/BAO/Contribution/Utils.php b/CRM/Contribute/BAO/Contribution/Utils.php
+index d29ef9f..9663001 100644
+--- a/CRM/Contribute/BAO/Contribution/Utils.php
++++ b/CRM/Contribute/BAO/Contribution/Utils.php
+@@ -139,7 +139,7 @@ public static function processConfirm(
+         $paymentParams['source'] = $paymentParams['contribution_source'];
+       }
+ 
+-      if ($form->_params['is_recur'] && $contribution->contribution_recur_id) {
++      if (CRM_Utils_Array::value('is_recur', $form->_params) && $contribution->contribution_recur_id) {
+         $paymentParams['contributionRecurID'] = $contribution->contribution_recur_id;
+       }
+       if (isset($paymentParams['contribution_source'])) {
+
+From 3044f49066aef383f679340c9b453a4036c0158b Mon Sep 17 00:00:00 2001
+From: Edsel <edsel.lopez@jmaconsulting.biz>
+Date: Thu, 8 Sep 2016 12:30:17 +0530
+Subject: [PATCH 11/11] CRM-19153 Fixed unit test
+
+----------------------------------------
+* CRM-19153: Future pledge start date causes improper future pledge payment dates
+  https://issues.civicrm.org/jira/browse/CRM-19153
+---
+ CRM/Contribute/Form/Contribution/Confirm.php | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/CRM/Contribute/Form/Contribution/Confirm.php b/CRM/Contribute/Form/Contribution/Confirm.php
+index f0fdf82..816c38c 100644
+--- a/CRM/Contribute/Form/Contribution/Confirm.php
++++ b/CRM/Contribute/Form/Contribution/Confirm.php
+@@ -1875,6 +1875,7 @@ public static function submit($params) {
+     $form->_fields['billing_last_name'] = 1;
+     // CRM-18854 - Set form values to allow pledge to be created for api test.
+     if (CRM_Utils_Array::value('pledge_block_id', $params)) {
++      $form->_values['pledge_id'] = CRM_Utils_Array::value('pledge_id', $params, NULL);
+       $form->_values['pledge_block_id'] = $params['pledge_block_id'];
+       $pledgeBlock = CRM_Pledge_BAO_PledgeBlock::getPledgeBlock($params['id']);
+       $form->_values['max_reminders'] = $pledgeBlock['max_reminders'];
