@@ -131,6 +131,14 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
       }
     }
 
+    /*
+     * When sending a single email, remove the 'civimailBlock' from the HTML part.
+     * This allows email templates to be used for CiviMails and for sending emails.
+     */
+    if ($context == 'singleEmail') {
+      $htmlMessage = preg_replace('#<!-- civimailBlock -->.*<!-- /civimailBlock -->#is', '', $htmlMessage);
+    }
+
     $params['html'] = $htmlMessage;
   }
 }
