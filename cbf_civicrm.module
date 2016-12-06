@@ -33,9 +33,10 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     $htmlMessage = str_replace(' src="/',   ' src="'.$config->userFrameworkBaseURL,  $htmlMessage);
 
     /*
-     *  Remove empty paragraphs inserted by CKeditor
+     *  Remove empty paragraphs and non-breaking spaces inserted by CKeditor
      */
-    $htmlMessage = preg_replace('!<p>[\r\n\s]*&nbsp;</p>!i', '', $htmlMessage);
+    $htmlMessage = preg_replace('!<p>(\r\n\t)*&nbsp;</p>!i', '', $htmlMessage);
+    $htmlMessage = preg_replace('!&nbsp;!i', ' ', $htmlMessage);
 
     /*
      * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes an issue
