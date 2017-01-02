@@ -1,0 +1,22 @@
+From 3a975512ebd48b88bbbf866615bbfa42a5819df8 Mon Sep 17 00:00:00 2001
+From: Coleman Watts <coleman@civicrm.org>
+Date: Sat, 31 Dec 2016 20:10:09 -0500
+Subject: [PATCH] Add select2 class to loc_event_id
+
+---
+ CRM/Event/Form/ManageEvent/Location.php | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CRM/Event/Form/ManageEvent/Location.php b/CRM/Event/Form/ManageEvent/Location.php
+index 103ec8f..53150eb 100644
+--- a/CRM/Event/Form/ManageEvent/Location.php
++++ b/CRM/Event/Form/ManageEvent/Location.php
+@@ -197,7 +197,7 @@ public function buildQuickForm() {
+       if (!isset($locationEvents[$this->_oldLocBlockId]) || (!$this->_oldLocBlockId)) {
+         $locationEvents = array('' => ts('- select -')) + $locationEvents;
+       }
+-      $this->add('select', 'loc_event_id', ts('Use Location'), $locationEvents);
++      $this->add('select', 'loc_event_id', ts('Use Location'), $locationEvents, FALSE, array('class' => 'crm-select2'));
+     }
+     $this->addElement('advcheckbox', 'is_show_location', ts('Show Location?'));
+     parent::buildQuickForm();
