@@ -574,6 +574,15 @@ function computed_field_field_add_to_calendar_display($field, $entity_field_item
  *                   domain)
  */
 function cbf_node_presave($node) {
+  /*
+   * If saving a node after editing it, clear the block cache so the staff
+   * member editing the node can see the refreshed version of the views
+   * blocks on the page.
+   */
+  if (arg(0) == 'node' && arg(2) == 'edit') {
+    cache_clear_all('*', 'cache_views_data', true);
+  }
+
   $followDomainRules = true;
 
   if ($followDomainRules) {
