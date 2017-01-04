@@ -553,9 +553,6 @@ function computed_field_field_add_to_calendar_display($field, $entity_field_item
 /*
  * Implement the rules that assign nodes to domains.
  *
- * The rules are followed unless overridden by the user, in which case the
- * on-screen values are preserved.
- *
  * Rules are stored in the domain information ...
  *
  *     is_default
@@ -608,6 +605,11 @@ function cbf_node_presave($node) {
               $match = true;
               break;
             }
+          }
+          $audience = stristr($alias['pattern'], '.audience.rule', true);
+          if ($audience !== false) {
+            $match = true;
+            break;
           }
         }
       }
