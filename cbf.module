@@ -575,8 +575,8 @@ function computed_field_field_add_to_calendar_display($field, $entity_field_item
  */
 function cbf_node_presave($node) {
   /*
-   * If saving a node after editing it, clear the block cache so the staff
-   * member editing the node can see the refreshed version of the views
+   * If saving a node after editing it, clear the views data cache so the
+   * staff member editing the node can see the refreshed version of the views
    * blocks on the page.
    */
   if (arg(0) == 'node' && arg(2) == 'edit') {
