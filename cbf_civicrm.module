@@ -560,11 +560,22 @@ function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
 }
 
 /*
- * Allow users with 'edit contributions' permission to create civicrm_account_contact records.
- * This allows them to queue contacts to sync with Xero (from the Contact Summary screen).
+ * Modify API permissions ...
+ *  * Allow users with 'edit contributions' permission to create
+ *    civicrm_account_contact records. This allows them to queue contacts to
+ *    sync with Xero (from the Contact Summary screen).
+ *  * Allow users who are editing events to set the payment processor. To do
+ *    this they need to execute 'getlist' and 'get'. The permission needed is
+ *    either 'administer CiviCRM' (the default) or 'edit all events'.
  */
 function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$permissions) {
   $permissions['account_contact']['create'] = array('access CiviCRM', 'edit contributions');
+  $permissions['payment_processor']['getlist'] =
+  $permissions['payment_processor']['get'] = array(
+    array(
+      'administer CiviCRM',
+      'edit all events',
+    ));
 }
 
 /*
