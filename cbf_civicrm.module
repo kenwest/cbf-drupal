@@ -243,6 +243,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
     case 'CRM_Contribute_Form_Contribution_Main':
     case 'CRM_Event_Form_Participant':
     case 'CRM_Event_Form_Registration_Register':
+    case 'CRM_Financial_Form_Payment':
       if (user_is_anonymous() && isset($_SESSION['CiviCRM']['status'][0]['text'])) {
         $status_text = $_SESSION['CiviCRM']['status'][0]['text'];
         if (stristr($status_text, 'Payment Processor Error') !== false) {
