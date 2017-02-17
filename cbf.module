@@ -973,3 +973,91 @@ function cbf_library_view_topics_string(&$view) {
 
   return implode(' | ', $result);
 }
+
+/*
+ * Implements hook_views_post_execute.
+ *
+ * https://api.drupal.org/api/views/views.api.php/function/hook_views_post_execute/7.x-3.x
+ *
+ *  "This hook is called right after the execute process. The query has been executed,
+ *   but the pre_render() phase has not yet happened for handlers.
+ *
+ *  "Adding output to the view can be accomplished by placing text on $view->attachment_before
+ *   and $view->attachment_after. Altering the content can be achieved by editing the items of
+ *   $view->result"
+ */
+function cbf_views_post_execute(&$view) {
+  switch ($view->name) {
+    /*
+     * The block displays for view 'city_to_event' can be crowded out by Events of a single
+     * Activity. To prevent this, we check if there are multiple Events sharing the same name
+     * and Activity. If that's the case, we 'summarise' those Events: we keep the first and
+     * the rest are removed from the results. The Date Text of that first Event is altered to
+     * include a link to a page of events for the Event's Activity.
+     */
+    case 'city_to_event':
+      if ($view->display_handler->plugin_name == 'block') {
+        /*
+         * $eventsByActivity is an array of arrays. It maps from Activity Id to Event name to
+         * index of the first element of $view->result that has that Activity Id and name.
+         *
+         * $summarised is an array that maps from the Event that will be summarised to the
+         * Event that summarises it. The keys and values are indexes in $view->result.
+         */
+        $eventsByActivity = array();
+        $summarised = array();
+        foreach ($view->result as $r => $result) {
+          /*
+           * Do not summarise Events that aren't part of an Activity
+           */
+          if (!isset($result->field_field_in_activity[0]['raw']['target_id'])) {
+            continue;
+          }
+
+          $activity = $result->field_field_in_activity[0]['raw']['target_id'];
+          $name = $result->node_title;
+
+          /*
+           * Find the event which can summarise this one
+           */
+          $summaryEvent = false;
+          if (!isset($eventsByActivity[$activity])) {
+            $eventsByActivity[$activity] = array();
+          }
+          foreach ($eventsByActivity[$activity] as $n => $i) {
+            if ($n == $name) {
+              $summaryEvent = $i;
+              break;
+            }
+          }
+          if ($summaryEvent !== false) {
+            $summarised[$r] = $summaryEvent;
+          } else {
+            $eventsByActivity[$activity][$name] = $r;
+          }
+        }
+
+        /*
+         * If any events are summarised, remove them from the results and update the Date
+         * Text of the summary event
+         */
+        if (!empty($summarised)) {
+          $alteredResults = array();
+          $otherTimes = 'Other times';
+          foreach ($view->result as $r => $result) {
+            if (!isset($summarised[$r])) {
+              if (isset($result->field_field_date_text[0]['rendered']['#markup']) && in_array($r, $summarised)) {
+                $result->field_field_date_text[0]['rendered']['#markup'] .=
+                  ' <a class="other-times" href="/events/activity/' .
+                  $result->field_field_in_activity[0]['raw']['target_id'] .
+                  '">Other times</a>';
+              }
+              $alteredResults[] = $result;
+            }
+          }
+          $view->result = $alteredResults;
+        }
+      }
+      break;
+  }
+}
