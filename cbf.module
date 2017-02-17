@@ -838,6 +838,9 @@ function cbf_visitor_city_string() {
             case 'Australian Capital Territory':
               $cbf_visitor_city = 'canberra';
               break;
+            case 'Tasmania':
+              $cbf_visitor_city = 'hobart';
+              break;
           }
           break;
       }
