@@ -4,7 +4,7 @@
 </tr>
 <tr>
 <td colspan="2">
-&nbsp;
+&ensp;
 </td>
 </tr>
 <tr>

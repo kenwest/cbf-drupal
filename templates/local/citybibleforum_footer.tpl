@@ -2,7 +2,7 @@
       <table width="100%" border="0" cellpadding="0" cellspacing="0" align="center">
         <tr>
           <td style="height: 30px; font-size: 8px;">
-            &nbsp;
+            &ensp;
           </td>
         </tr>
         <tr>

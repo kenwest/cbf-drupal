@@ -1,6 +1,6 @@
 <tr>
 <td>
-&nbsp;
+&ensp;
 </td>
 </tr>
 <tr>
