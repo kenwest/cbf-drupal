@@ -957,6 +957,9 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
 /*
  * A function to parse the exposed filters on the National Library view,
  * to extract the topics, and return a string containing them.
+ *
+ * This function is invoked by the contextual filter 'Header topics string'
+ * in the page display 'Library' in the view 'National Library'.
  */
 function cbf_library_view_topics_string(&$view) {
   if ( ! isset($view->exposed_input['field_topic_tid']) ) {
