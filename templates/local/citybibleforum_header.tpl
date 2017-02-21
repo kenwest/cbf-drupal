@@ -55,15 +55,9 @@
             <table border="0" cellpadding="0" cellspacing="0" align="right" class="deviceWidth">
               <tr>
                 <td class="center" style="font-size: 11px; color: #333333; font-weight: light; text-align: right; font-family: 'Open Sans',Arial,Helvetica,sans-serif; line-height: 20px; vertical-align: middle; padding: 0;">
-                  <a href="http://citybibleforum.org/city/sydney" style="text-decoration: none; color: #333333;">Sydney</a>
-                  &nbsp;&nbsp;
-                  <a href="http://citybibleforum.org/city/melbourne" style="text-decoration: none; color: #333333;">Melbourne</a>
-                  &nbsp;&nbsp;
-                  <a href="http://citybibleforum.org/city/brisbane" style="text-decoration: none; color: #333333;">Brisbane</a>
-                  &nbsp;&nbsp;
-                  <a href="http://citybibleforum.org/city/perth" style="text-decoration: none; color: #333333;">Perth</a>
-                  &nbsp;&nbsp;
-                  <a href="http://citybibleforum.org/city/adelaide" style="text-decoration: none; color: #333333;">Adelaide</a>
+                  <a href="http://citybibleforum.org/library" style="text-decoration: none; color: #333333;">Library</a>
+                  &ensp;&ensp;
+                  <a href="http://citybibleforum.org/articles" style="text-decoration: none; color: #333333;">Blog</a>
                 </td>
               </tr>
             </table>
@@ -78,7 +72,7 @@
         </tr>
         <tr>
           <td style="height: 15px; font-size: 8px;">
-            &nbsp;
+            &ensp;
           </td>
         </tr>
 
