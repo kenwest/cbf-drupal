@@ -602,6 +602,9 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
    * against elements of the $vars array. If all the patterns in a set match, we
    * simply return 'true'. This tells CiviCRM to abend processing, and nothing
    * is logged.
+   *
+   * Note that the preg_match uses '#' as a pattern delimiter so this should not
+   * be used in a pattern in $ignore.
    */
   $ignore = array(
     array(
@@ -621,6 +624,9 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     ),
     array(
       'agent' => 'detectify\.com',
+    ),
+    array(
+      'message' => 'Error type: Could not find a valid session key',
     ),
   );
 
