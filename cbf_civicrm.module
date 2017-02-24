@@ -568,6 +568,7 @@ function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
  *  * Allow users who are editing events to set the payment processor. To do
  *    this they need to execute 'getlist' and 'get'. The permission needed is
  *    either 'administer CiviCRM' (the default) or 'edit all events'.
+ *  * Allow users to modify price fields
  */
 function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$permissions) {
   $permissions['account_contact']['create'] = array('access CiviCRM', 'edit contributions');
@@ -576,6 +577,13 @@ function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$p
     array(
       'administer CiviCRM',
       'edit all events',
+    ));
+  $permissions['price_field_value']['create'] =
+  $permissions['price_field_value']['update'] = array(
+    array(
+      'administer CiviCRM',
+      'edit all events',
+      'edit contributions',
     ));
 }
 
