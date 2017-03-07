@@ -1091,6 +1091,23 @@ function cbf_views_post_execute(&$view) {
           }
           $view->result = $alteredResults;
         }
+
+        /*
+         * Since we may have summarised multiple events into one, we can't
+         * rely on the view to limit the number of events displayed.
+         */
+        $maximumDisplayed = 5;
+        if (count($view->result) > $maximumDisplayed) {
+          $alteredResults = array();
+          $i = 0;
+          foreach ($view->result as $r => $result) {
+            if ($i++ == $maximumDisplayed) {
+              break;
+            }
+            $alteredResults[] = $result;
+          }
+          $view->result = $alteredResults;
+        }
       }
       break;
   }
