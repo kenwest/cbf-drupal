@@ -1112,3 +1112,28 @@ function cbf_views_post_execute(&$view) {
       break;
   }
 }
+
+/*
+ * An implementation of hook_contextual_links_view_alter
+ *
+ * Alter a contextual links element before it is rendered.
+ *
+ * This hook is invoked by contextual_pre_render_links(). The renderable array
+ * of #type 'contextual_links', containing the entire contextual links data
+ * that is passed in by reference. Further links may be added or existing
+ * links can be altered.
+ */
+function cbf_contextual_links_view_alter(&$element, $items) {
+  /*
+   * With nodes it doesn't make sense for the destination of the contextual
+   * link to be the same node. Eg, 'delete' and 'clone content'. Remove the
+   * destination by removing the query from the link URL.
+   */
+  if (isset($element['#element']['#node'])) {
+    foreach (array('node-delete', 'node-clone-') as $i) {
+      if (!empty($element['#links'][$i]['query'])) {
+        $element['#links'][$i]['query'] = array();
+      }
+    }
+  }
+}
