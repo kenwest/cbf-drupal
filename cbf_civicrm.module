@@ -569,6 +569,7 @@ function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
  *    this they need to execute 'getlist' and 'get'. The permission needed is
  *    either 'administer CiviCRM' (the default) or 'edit all events'.
  *  * Allow users to modify price fields
+ *  * Allow users to access the CSV Import Helper objects
  */
 function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$permissions) {
   $permissions['account_contact']['create'] = array('access CiviCRM', 'edit contributions');
@@ -585,6 +586,7 @@ function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$p
       'edit all events',
       'edit contributions',
     ));
+  $permissions['csv_helper']['default'] = array('access CiviCRM');
 }
 
 /*
