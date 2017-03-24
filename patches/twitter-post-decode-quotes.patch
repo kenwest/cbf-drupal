@@ -1,0 +1,12 @@
+diff --git a/twitter_post/twitter_post.module b/twitter_post/twitter_post.module
+index 09e301b..d527b52 100644
+--- a/twitter_post/twitter_post.module
++++ b/twitter_post/twitter_post.module
+@@ -61,6 +61,7 @@ function twitter_post_entity_insert($entity, $entity_type) {
+           if ($status) {
+             module_load_include('inc', 'twitter');
+             $message = token_replace($message, array($entity_type => $entity));
++            $message = htmlspecialchars_decode($message, ENT_QUOTES);
+             $status = twitter_set_status($twitter_account, $message);
+             if ($status) {
+               drupal_set_message(t('Successfully posted "%node" to Twitter: <a href="@status" target="_blank">@status</a>', array(
