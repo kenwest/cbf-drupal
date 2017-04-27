@@ -104,13 +104,11 @@ function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $
   $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
   if ($field_event_date !== false && !empty($field_event_date)) {
     foreach ($field_event_date as $event_occurrence) {
-      $utc_start_time = new DateObject($event_occurrence['value'], 'UTC');
-      $utc_start_time_string = date_format_date($utc_start_time, 'custom', 'Y-m-d H:i:s O');
-      $timestamp = strtotime($utc_start_time_string);
+      $start_time = new DateObject($event_occurrence['value'], $event_occurrence['timezone']);
+      $timestamp = strtotime($start_time->format('Y-m-d H:i:s O'));
 
-      $utc_end_time = new DateObject($event_occurrence['value2'], 'UTC');
-      $utc_end_time_string = date_format_date($utc_end_time, 'custom', 'Y-m-d H:i:s O');
-      $endstamp = strtotime($utc_end_time_string);
+      $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
+      $endstamp = strtotime($end_time->format('Y-m-d H:i:s O'));
 
       if ($endstamp > $current_time) {
         break;
@@ -126,8 +124,8 @@ function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $
  * It returns a string of the form '2011-10-22 22:41:25 +1100'.
  */
 function computed_field_field_sort_order_display($field, $entity_field_item) {
-  $utc_start_time = new DateObject($entity_field_item['value'], 'UTC');
-  return date_format_date($utc_start_time, 'custom', 'Y-m-d H:i:s O');
+  $start_time = new DateObject($entity_field_item['value'], 'UTC');
+  return $start_time->format('Y-m-d H:i:s O');
 }
 
 /*
@@ -141,9 +139,8 @@ function computed_field_field_next_action_compute(&$entity_field, $entity_type, 
   $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
   if ($field_event_date !== false && !empty($field_event_date)) {
     foreach ($field_event_date as $event_occurrence) {
-      $utc_end_time = new DateObject($event_occurrence['value2'], 'UTC');
-      $utc_end_time_string = date_format_date($utc_end_time, 'custom', 'Y-m-d H:i:s O');
-      $timestamp = strtotime($utc_end_time_string);
+      $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
+      $timestamp = strtotime($end_time->format('Y-m-d H:i:s O'));
 
       if ($timestamp > $current_time) {
         break;
@@ -159,8 +156,8 @@ function computed_field_field_next_action_compute(&$entity_field, $entity_type, 
  * It returns a string of the form '2011-10-22 22:41:25 +1100'.
  */
 function computed_field_field_next_action_display($field, $entity_field_item) {
-  $utc_end_time = new DateObject($entity_field_item['value'], 'UTC');
-  return date_format_date($utc_end_time, 'custom', 'Y-m-d H:i:s O');
+  $end_time = new DateObject($entity_field_item['value'], 'UTC');
+  return $end_time->format('Y-m-d H:i:s O');
 }
 
 /*
@@ -198,12 +195,11 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
   $field_episode_date = field_get_items($entity_type, $entity, 'field_episode_date');
   if ($field_episode_date !== false && !empty($field_episode_date)) {
     $episode = $field_episode_date[0];
-    $local_start_time = new DateObject($episode['value'], $episode['timezone']);
-    $local_start_time_string = date_format_date($local_start_time, 'custom', 'Y-m-d H:i:s O');
-    $startstamp = strtotime($local_start_time_string);
+    $start_time = new DateObject($episode['value'], $episode['timezone']);
+    $startstamp = strtotime($start_time->format('Y-m-d H:i:s O'));
 
     if ($startstamp <= $current_time) {
-      $date_text = date_format_date($local_start_time, 'custom', $date_past);
+      $date_text = $start_time->format($date_past);
       $time_text = $midnight;
     }
   }
@@ -212,20 +208,16 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
   $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
   if ($field_event_date !== false && !empty($field_event_date)) {
     foreach ($field_event_date as $event_occurrence) {
-      $utc_start_time = new DateObject($event_occurrence['value'], 'UTC');
-      $utc_start_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));
-      $utc_start_time_string = date_format_date($utc_start_time, 'custom', 'Y-m-d H:i:s O');
-      $startstamp = strtotime($utc_start_time_string);
+      $start_time = new DateObject($event_occurrence['value'], $event_occurrence['timezone']);
+      $startstamp = strtotime($start_time->format('Y-m-d H:i:s O'));
 
-      $utc_end_time = new DateObject($event_occurrence['value2'], 'UTC');
-      $utc_end_time->setTimezone(new DateTimeZone($event_occurrence['timezone']));
-      $utc_end_time_string = date_format_date($utc_end_time, 'custom', 'Y-m-d H:i:s O');
-      $endstamp = strtotime($utc_end_time_string);
+      $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
+      $endstamp = strtotime($end_time->format('Y-m-d H:i:s O'));
 
       if ($time_text == '') {
-        $time_text = date_format_date($utc_start_time, 'custom', $time_format);
+        $time_text = $start_time->format($time_format);
         if ($time_text != $midnight) {
-          $time_text .= '-' . date_format_date($utc_end_time, 'custom', $time_format);
+          $time_text .= '-' . $end_time->format($time_format);
         }
         $time_text = str_replace('.00', '', $time_text);
       }
@@ -241,8 +233,8 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
         $subsequent++;
       }
       else {
-        $start_date_text = date_format_date($utc_start_time, 'custom', $date_future);
-        $end_date_text = date_format_date($utc_end_time, 'custom', $date_future);
+        $start_date_text = $start_time->format($date_future);
+        $end_date_text = $end_time->format($date_future);
 
         if ($start_date_text == $end_date_text) {
           $this_date_text = $start_date_text;
