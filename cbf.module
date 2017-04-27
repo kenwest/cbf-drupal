@@ -716,7 +716,6 @@ function cbf_field_attach_presave($entity_type, $entity) {
  */
 function cbf_cron() {
   $current_time = strtotime('now');
-  $next_week    = strtotime('now +1 week');
   $last_run     = variable_get('cbf_cron_last_run', 0);
 
   if ($last_run == 0) {
@@ -745,6 +744,7 @@ function cbf_cron() {
     }
 
     /* For events that are 1 week out, change the display
+    $next_week = strtotime('now +1 week');
     $query = new EntityFieldQuery();
     $result = $query->entityCondition('entity_type', 'node')
         ->fieldCondition('field_next_action', 'value', array($last_run + ($next_week - $current_time), $next_week), 'BETWEEN')
