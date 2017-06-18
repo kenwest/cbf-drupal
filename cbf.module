@@ -1080,6 +1080,104 @@ function cbf_library_view_topics_string(&$view) {
 }
 
 /*
+ * Implementation of hook_views_pre_render
+ *   -- Centres the GMap in GMap views
+ *   -- Formats the Description in the RSS feed of the prayer_points view
+ */
+function cbf_views_pre_render(&$view) {
+  $watch = array('city_to_address');
+  $displays = array('block_address');
+
+  if ( in_array($view->name, $watch) ) {
+
+    // Modifies the GMap Macro to ensure that the map gets properly centered.
+    if ( in_array($view->current_display, $displays)
+       && isset($view->result[0]->gmap_lat)
+       && isset($view->result[0]->gmap_lon) ) {
+
+      $macro = $view->display[$view->current_display]->handler->view->style_plugin->options['macro'];
+      if ( !strstr('|center=', $macro) ) {
+        $latlong = "{$view->result[0]->gmap_lat},{$view->result[0]->gmap_lon}";
+
+        $macro  = str_replace(']', ' |center=' . $latlong . ']', $macro);
+        $view->display[$view->current_display]->handler->view->style_plugin->options['macro'] = $macro;
+      }
+    }
+  }
+
+  $watch = array('reaching_city_civicrm_event_gmap');
+  $displays = array('block_address');
+
+  if ( in_array($view->name, $watch) ) {
+
+    // Modifies the GMap Macro to ensure that the map gets properly centered.
+    if ( in_array($view->current_display, $displays)
+       && isset($view->result[0]->civicrm_address_geo_code_1)
+       && isset($view->result[0]->civicrm_address_geo_code_2) ) {
+
+      $macro = $view->display[$view->current_display]->handler->view->style_plugin->options['macro'];
+      if ( !strstr('|center=', $macro) ) {
+        $latlong = "{$view->result[0]->civicrm_address_geo_code_1},{$view->result[0]->civicrm_address_geo_code_2}";
+
+        $macro  = str_replace(']', ' |center=' . $latlong . ']', $macro);
+        $view->display[$view->current_display]->handler->view->style_plugin->options['macro'] = $macro;
+      }
+    }
+  }
+
+  $watch = array('prayer_points');
+  $displays = array('feed');
+
+  if (in_array($view->name, $watch)) {
+    // Sets the Description in the RSS feeds.
+    if (in_array($view->current_display, $displays)) {
+      $lookup = array(
+        'event' => array(
+          'title' => 'An event',
+          'preposition' => ' in ',
+        ),
+        'story' => array(
+          'title' => 'News',
+          'preposition' => ' for ',
+        ),
+        'blog' => array(
+          'title' => 'A blog article',
+          'preposition' => ' for ',
+        ),
+        'episode' => array(
+          'title' => 'A new item in the library',
+          'preposition' => ' for ',
+        ),
+      );
+      foreach ($view->result as $i => $result) {
+        if (isset($lookup[$result->node_type])) {
+          $title = $lookup[$result->node_type]['title'];
+          $city = $result->field_taxonomy_vocabulary_1[0]['rendered']['#markup'];
+          $activity = $result->field_field_in_activity[0]['rendered']['#markup'];
+          $datetext = $result->field_field_date_text[0]['rendered']['#markup'];
+          $prayer = $result->field_field_prayer_point[0]['rendered']['#markup'];
+          if (!empty($city)) {
+            $title .= $lookup[$result->node_type]['preposition'] . $city;
+          }
+          if (!empty($activity)) {
+            if (!empty($city)) {
+              $activity = str_replace(' in ' . $city, '', $activity);
+            }
+            $title .= ' | ' . $activity;
+          }
+          $description = "<p><strong>$title </strong></p>";
+          if (!empty($datetext)) {
+            $description .= "<p><em>$datetext </em></p>";
+          }
+          $description .= "<p>$prayer</p>";
+          $result->field_field_prayer_point[0]['rendered']['#markup'] = $description;
+        }
+      }
+    }
+  }
+}
+
+/*
  * Implements hook_views_post_execute.
  *
  * https://api.drupal.org/api/views/views.api.php/function/hook_views_post_execute/7.x-3.x
