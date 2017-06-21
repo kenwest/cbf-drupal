@@ -35,24 +35,6 @@ function cbf_init() {
       drupal_add_js($script, 'inline');
     }
   }
-  elseif (arg(0) == 'civicrm-event') {
-    if (is_numeric(arg(1)) && arg(2) == 'edit') {
-      /*
-       * This JavaScript sets some defaults when editing CiviCRM Event entities.
-       *  1. Text-area fields default to full HTML
-       *  2. Except the event summary which is Plain Text
-       */
-      $script = 'jQuery(document).ready(function(){
-        jQuery(".text-format-wrapper .filter-wrapper select.filter-list option").each(function() {
-          this.selected = (this.text == "Full HTML");
-        });
-        jQuery(".text-format-wrapper .filter-wrapper .form-item-summary-format select.filter-list option").each(function() {
-          this.selected = (this.text == "Plain text");
-        });
-      });';
-      drupal_add_js($script, 'inline');
-    }
-  }
   return array();
 }
 
@@ -78,6 +60,49 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
             $t = $emsp . $t;
           }
           $form['field_topic_tid']['#options'][$i]->option[$j] = $t;
+        }
+      }
+    }
+  }
+
+  /*
+   * Set the text format for fields.
+   */
+  if ($form['#id'] == 'civicrm-event-form') {
+    $formatTextFields = array(
+      'Textarea' => array(
+        'fields' => array(
+          'summary',
+        ),
+        'actions' => array(
+          '#type' => 'textarea',
+          '#format' => null,
+        ),
+      ),
+      'Full HTML' => array(
+        'fields' => array(
+          'description',
+          'event_full_text',
+          'intro_text',
+          'footer_text',
+          'confirm_text',
+          'confirm_footer_text',
+        ),
+        'actions' => array(
+          'format' => 'full_html',
+          '#format' => null,
+        ),
+      ),
+    );
+    foreach ($formatTextFields as $step) {
+      foreach ($step['fields'] as $field) {
+        foreach ($step['actions'] as $key => $value) {
+          if ($value === null) {
+            unset($form[$field][$key]);
+          }
+          else {
+            $form[$field][$key] = $value;
+          }
         }
       }
     }
