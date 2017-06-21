@@ -134,7 +134,7 @@ class CRM_Admin_Form_Setting_Smtp extends CRM_Admin_Form_Setting {
           }
 
           // set the localhost value, CRM-3153, CRM-9332
-          $params['localhost'] = parse_url(CIVICRM_UF_BASEURL)['host'];
+          $params['localhost'] = 'citybibleforum.org';
 
           // also set the timeout value, lets set it to 30 seconds
           // CRM-7510, CRM-9332
