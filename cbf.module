@@ -1334,3 +1334,24 @@ function cbf_contextual_links_view_alter(&$element, $items) {
     }
   }
 }
+
+/*
+ * An implementation of theme_entity_property()
+ *
+ * Some properties include HTML and the default behaviour is that the entities
+ * are encoded. In these cases, decode them.
+ */
+function cbf_entity_property($variables) {
+  switch ($variables['elements']['#entity_type']) {
+    case 'civicrm_event':
+      switch ($variables['elements']['#property_name']) {
+        case 'description':
+          $variables['content'] = decode_entities($variables['content']);
+          break;
+      }
+      break;
+  }
+  $variables['label_hidden'] = true;
+
+  return theme_entity_property($variables);
+}
