@@ -1,0 +1,22 @@
+--- a/entityreference.module	2017-06-22 11:14:22.733109822 +1000
++++ b/entityreference.module	2017-06-22 11:19:31.055807807 +1000
+@@ -1108,16 +1108,16 @@
+     $entity_labels = $handler->getReferencableEntities($tag_last, $instance['widget']['settings']['match_operator'], 10);
+ 
+     // Loop through the products and convert them into autocomplete output.
+-    foreach ($entity_labels as $values) {
++    foreach ($entity_labels as $contentType => $values) {
+       foreach ($values as $entity_id => $label) {
+-        $key = "$label ($entity_id)";
++        $key = "$label ($entity_id) [$contentType]";
+         // Strip starting/trailing white spaces, line breaks and tags.
+         $key = preg_replace('/\s\s+/', ' ', str_replace("\n", '', trim(decode_entities(strip_tags($key)))));
+         // Names containing commas or quotes must be wrapped in quotes.
+         if (strpos($key, ',') !== FALSE || strpos($key, '"') !== FALSE) {
+           $key = '"' . str_replace('"', '""', $key) . '"';
+         }
+-        $matches[$prefix . $key] = '<div class="reference-autocomplete">' . $label . '</div>';
++        $matches[$prefix . $key] = '<div class="reference-autocomplete">' . $label . ' ['. $contentType . ', '. $entity_id . ']' . '</div>';
+       }
+     }
+   }
