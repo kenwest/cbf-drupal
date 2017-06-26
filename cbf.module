@@ -66,7 +66,8 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
   }
 
   /*
-   * Set the text format for fields.
+   * Set the text format for CiviCRM Event entity properties
+   * which are presented in an HTML editor.
    */
   if ($form['#id'] == 'civicrm-event-form') {
     $formatTextFields = array(
@@ -106,6 +107,90 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
         }
       }
     }
+  }
+
+  /*
+   * When editing a CiviCRM Event entity we need to keep the Drupal and CiviCRM
+   * staff contact fields in sync. If there is a Drupal field, this takes
+   * precedence.
+   *
+   * The CiviCRM custom field for the staff contact is displayed as the text
+   * the text name of the contact, but when the form is saved, the contact
+   * Id is expected.
+   */
+  if ($form['#id'] == 'civicrm-event-form') {
+    $id = null;
+
+    /* Try getting the contact Id from the Drupal field for the staff contact */
+    $drupalContact = $form['field_staff_contact']['und'][0]['contact_id']['#default_value'];
+    if (preg_match('!(.+) \[cid:([0-9]+)\]!', $drupalContact, $matches) === 1) {
+      $id = $matches[2];
+    }
+
+    /* Try getting the contact from CiviCRM */
+    if (empty($id)) {
+    $civicrmContact = $form['custom_62']['#default_value'];
+      if (!empty($civicrmContact)) {
+        $id = _cbf_civicrm_civicrm_contact_id($civicrmContact);
+      }
+    }
+
+    if (!empty($id)) {
+      $form['custom_62']['#default_value'] = $id;
+      if (empty($drupalContact) && !empty($civicrmContact)) {
+        $form['field_staff_contact']['und'][0]['contact_id']['#default_value'] = $civicrmContact . ' [cid:' . $id . ']';
+      }
+    }
+  }
+
+  /*
+   * When editing a CiviCRM Event entity we need to keep the Drupal and CiviCRM
+   * ministry centre fields in sync. If there is a Drupal field, this takes
+   * precedence.
+   */
+  if ($form['#id'] == 'civicrm-event-form') {
+    $drupalId = null;
+
+    /* Try getting the ministry centre from the Drupal field for the staff contact */
+    if (!empty($form['taxonomy_vocabulary_1']['und']['#default_value'][0])) {
+      $drupalId = $form['taxonomy_vocabulary_1']['und']['#default_value'][0];
+    }
+
+    /* Try getting the ministry centre from CiviCRM */
+    if (empty($drupalId)) {
+      list($civicrmId, $civicrmCentre) = _cbf_civicrm_civicrm_event_ministry_centre($form['id']['#default_value']);
+
+      if (!empty($civicrmId)) {
+        $form['taxonomy_vocabulary_1']['und']['#default_value'][0] = array_flip($form['taxonomy_vocabulary_1']['und']['#options'])[$civicrmCentre];
+      }
+    }
+  }
+
+  /*
+   * Add a callback to ensure when the form is submitted thatCiviCRM variables are
+   * overwritten by their Drupal equivalent.
+   */
+  if ($form['#id'] == 'civicrm-event-form') {
+    $form['actions']['submit']['#submit'] = array_merge(
+      array('cbf__civicrm_entity_form_submit'),
+      $form['actions']['submit']['#submit']
+    );
+  }
+}
+
+/*
+ * Callback for form submission.
+ *
+ * Overwrite CiviCRM variables with their Drupal equivalents
+ */
+function cbf__civicrm_entity_form_submit(&$form, &$form_state) {
+  if ($form['#id'] == 'civicrm-event-form') {
+    $form_state['values']['custom_62'] = $form_state['values']['field_staff_contact']['und'][0]['contact_id'];
+    $form_state['values']['custom_25'] = _cbf_civicrm_civicrm_event_ministry_centre_id(
+      $form['taxonomy_vocabulary_1']['und']['#options'][
+        $form_state['values']['taxonomy_vocabulary_1']['und'][0]['tid']
+      ]
+    );
   }
 }
 
