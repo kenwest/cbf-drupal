@@ -129,7 +129,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
     /* Try getting the contact from CiviCRM */
     if (empty($id)) {
-    $civicrmContact = $form['custom_62']['#default_value'];
+      $civicrmContact = $form['custom_62']['#default_value'];
       if (!empty($civicrmContact)) {
         $id = _cbf_civicrm_civicrm_contact_id($civicrmContact);
       }
@@ -167,7 +167,39 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
   }
 
   /*
-   * Add a callback to ensure when the form is submitted thatCiviCRM variables are
+   * When editing a CiviCRM Event entity we need to keep the Drupal and CiviCRM
+   * event dates in sync. If there is a Drupal field, this takes precedence.
+   */
+  if ($form['#id'] == 'civicrm-event-form') {
+    $drupalDate = null;
+
+    /* Try getting the date from the Drupal date field */
+    if (!empty($form['field_event_date']['und'][0]['#default_value'])) {
+      $drupalDate = $form['field_event_date']['und'][0]['#default_value'];
+    }
+
+    /* Try getting the dates from CiviCRM */
+    if (empty($drupalDate)) {
+      $form['field_event_date']['und'][0]['#default_value']['value']
+        = str_replace(
+          ' ',
+          'T',
+          $form['start_date']['#default_value']);
+      $form['field_event_date']['und'][0]['#default_value']['value2']
+        = str_replace(
+          ' ',
+          'T',
+          $form['end_date']['#default_value']);
+      $form['field_event_date']['und'][0]['timezone']['#default_value']
+        = 'Australia/' .
+          $form['taxonomy_vocabulary_1']['und']['#options'][
+            $form['taxonomy_vocabulary_1']['und']['#default_value'][0]
+          ];
+    }
+  }
+
+  /*
+   * Add a callback to ensure when the form is submitted that CiviCRM variables are
    * overwritten by their Drupal equivalent.
    */
   if ($form['#id'] == 'civicrm-event-form') {
@@ -191,6 +223,24 @@ function cbf__civicrm_entity_form_submit(&$form, &$form_state) {
         $form_state['values']['taxonomy_vocabulary_1']['und'][0]['tid']
       ]
     );
+
+    for ($i = 0; ; $i++) {
+      if (!isset($form_state['values']['field_event_date']['und'][$i])) {
+        break;
+      }
+      $last = $form_state['values']['field_event_date']['und'][$i];
+      if (!isset($first)) {
+        $first = $last;
+      }
+    }
+
+    $date = new DateObject($first['value'], $first['timezone']);
+    $form_state['values']['start_date'] = $date->format('Y-m-d H:i');
+
+    $date = new DateObject($last['value2'], $last['timezone']);
+    $form_state['values']['end_date'] = $date->format('Y-m-d H:i');
+
+    $form_state['values']['custom_47'] = $i;
   }
 }
 
@@ -230,7 +280,7 @@ function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $
   $current_time = strtotime('now');
   $timestamp = 0;
   $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
-  if ($field_event_date !== false && !empty($field_event_date)) {
+  if (!empty($field_event_date)) {
     foreach ($field_event_date as $event_occurrence) {
       $start_time = new DateObject($event_occurrence['value'], $event_occurrence['timezone']);
       $timestamp = strtotime($start_time->format('Y-m-d H:i:s O'));
@@ -265,7 +315,7 @@ function computed_field_field_next_action_compute(&$entity_field, $entity_type, 
   $current_time = strtotime('now');
   $timestamp = 0;
   $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
-  if ($field_event_date !== false && !empty($field_event_date)) {
+  if (!empty($field_event_date)) {
     foreach ($field_event_date as $event_occurrence) {
       $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
       $timestamp = strtotime($end_time->format('Y-m-d H:i:s O'));
@@ -321,7 +371,7 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 
   // Calculate the date text from the (non-repeating) Episode Date
   $field_episode_date = field_get_items($entity_type, $entity, 'field_episode_date');
-  if ($field_episode_date !== false && !empty($field_episode_date)) {
+  if (!empty($field_episode_date)) {
     $episode = $field_episode_date[0];
     $start_time = new DateObject($episode['value'], $episode['timezone']);
     $startstamp = strtotime($start_time->format('Y-m-d H:i:s O'));
@@ -334,7 +384,7 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 
   // Calculate the date text from the (perhaps-repeating) Event Date
   $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
-  if ($field_event_date !== false && !empty($field_event_date)) {
+  if (!empty($field_event_date)) {
     foreach ($field_event_date as $event_occurrence) {
       $start_time = new DateObject($event_occurrence['value'], $event_occurrence['timezone']);
       $startstamp = strtotime($start_time->format('Y-m-d H:i:s O'));
@@ -412,7 +462,7 @@ function computed_field_field_date_text_display($field, $entity_field_item) {
  */
 function computed_field_field_is_audio_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
   $field_content = field_get_items($entity_type, $entity, 'field_content');
-  if ($field_content !== false && !empty($field_content)) {
+  if (!empty($field_content)) {
     $entity_field[0]['value'] = 1;
   }
   else {
@@ -437,7 +487,7 @@ function computed_field_field_is_audio_display($field, $entity_field_item, $enti
  */
 function computed_field_field_is_video_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
   $field_video = field_get_items($entity_type, $entity, 'field_video');
-  if ($field_video !== false && !empty($field_video)) {
+  if (!empty($field_video)) {
     $entity_field[0]['value'] = 1;
   }
   else {
@@ -462,7 +512,7 @@ function computed_field_field_is_video_display($field, $entity_field_item, $enti
 */
 function computed_field_field_is_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
   $field_attachment = field_get_items($entity_type, $entity, 'field_attachment');
-  if ($field_attachment !== false && !empty($field_attachment)) {
+  if (!empty($field_attachment)) {
     $entity_field[0]['value'] = 1;
   }
   else {
@@ -933,6 +983,13 @@ function cbf_cron() {
 }
 
 /*
+ * When a comment is made in reply to a comment, and email is sent
+ * to the author of the original comment. If there is no original
+ * comment, the comment is being made directly on the article, but
+ * Drupal still attempts to send an email. The "To" header will in
+ * this case be an unresolved token and will fail to be delivered.
+ * Don't send emails in this case.
+ *
  * The Contact module sends emails using the To: address supplied
  * by the visitor to a citybibleforum.org address. When this is
  * redirected to a gmail.com address Gmail rightly complains
@@ -944,8 +1001,13 @@ function cbf_cron() {
  * is in the Reply-To header.
  */
 function cbf_mail_alter(&$message) {
-  $message['headers']['Reply-To'] = $message['headers']['From'];
-  $message['headers']['From'] = $message['headers']['Sender'];
+  if (strpos($message['to'], '[') !== false) {
+    $message['send'] = false;
+  }
+  else {
+    $message['headers']['Reply-To'] = $message['headers']['From'];
+    $message['headers']['From'] = $message['headers']['Sender'];
+  }
 }
 
 /*
