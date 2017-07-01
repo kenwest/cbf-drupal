@@ -314,16 +314,21 @@ function computed_field_field_sort_order_display($field, $entity_field_item) {
 function computed_field_field_next_action_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
   $current_time = strtotime('now');
   $timestamp = 0;
+  $end_stamp = 0;
   $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
   if (!empty($field_event_date)) {
     foreach ($field_event_date as $event_occurrence) {
       $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
-      $timestamp = strtotime($end_time->format('Y-m-d H:i:s O'));
+      $end_stamp = strtotime($end_time->format('Y-m-d H:i:s O'));
 
-      if ($timestamp > $current_time) {
+      if ($end_stamp > $current_time) {
         break;
       }
     }
+  }
+
+  if ($end_stamp > $current_time) {
+    $timestamp = $end_stamp;
   }
 
   $entity_field[0]['value'] = $timestamp;
@@ -362,12 +367,14 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
   $upperlimit   = 0;
   $previous     = 0;
   $subsequent   = 0;
-  $date_future  = 'D M jS';
-  $date_past    = 'M jS, Y';
+  $date_future  = 'D j M';
+  $date_past    = 'j M, Y';
   $time_format  = 'g.ia';
   $midnight     = '12.00am';
-  $date_text    = '';
-  $time_text    = '';
+  $date_text    = false;
+  $time_text    = false;
+  $first_text   = false;
+  $last_text    = false;
 
   // Calculate the date text from the (non-repeating) Episode Date
   $field_episode_date = field_get_items($entity_type, $entity, 'field_episode_date');
@@ -377,8 +384,8 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
     $startstamp = strtotime($start_time->format('Y-m-d H:i:s O'));
 
     if ($startstamp <= $current_time) {
-      $date_text = $start_time->format($date_past);
-      $time_text = $midnight;
+      $first_text = $start_time->format($date_past);
+      $last_text = $first_text;
     }
   }
 
@@ -392,12 +399,11 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
       $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
       $endstamp = strtotime($end_time->format('Y-m-d H:i:s O'));
 
-      if ($time_text == '') {
+      if ($time_text === false) {
         $time_text = $start_time->format($time_format);
         if ($time_text != $midnight) {
           $time_text .= '-' . $end_time->format($time_format);
         }
-        $time_text = str_replace('.00', '', $time_text);
       }
 
       if ($upperlimit == 0 && $endstamp > $current_time) {
@@ -406,6 +412,10 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
 
       if ($endstamp <= $current_time) {
         $previous++;
+        if ($first_text === false) {
+          $first_text = $start_time->format($date_past);
+        }
+        $last_text = $end_time->format($date_past);
       }
       else if ($startstamp >= $upperlimit) {
         $subsequent++;
@@ -422,7 +432,7 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
           $time_text = $midnight;
         }
 
-        if ($date_text == '') {
+        if ($date_text === false) {
           $date_text = $this_date_text;
         }
         else {
@@ -432,8 +442,13 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
     }
   }
 
-  if ($date_text == '') {
-    $entity_field[0]['value'] = '';
+  if ($date_text === false) {
+    if ($first_text <> $last_text) {
+      $date_text = 'Finished on ' . $last_text;
+    }
+    else {
+      $date_text = $last_text;
+    }
   }
   else {
     if ($previous > 0) {
@@ -442,11 +457,16 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
     else if ($subsequent > 0) {
       $date_text = 'Starts on ' . $date_text;
     }
-    if ($time_text == $midnight) {
-      $entity_field[0]['value'] = $date_text;
-    } else {
-      $entity_field[0]['value'] = $date_text . ', ' . $time_text;
-    }
+  }
+
+  if ($date_text === false) {
+    $entity_field[0]['value'] = '';
+  }
+  if ($time_text === false || $time_text == $midnight) {
+    $entity_field[0]['value'] = $date_text;
+  }
+  else {
+    $entity_field[0]['value'] = $date_text . ', ' . str_replace('.00', '', $time_text);
   }
 }
 
@@ -536,8 +556,8 @@ function computed_field_field_is_text_display($field, $entity_field_item, $entit
  * This function is called by CCK Computed Field to compute the value of field Add to Calendar.
 */
 function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-  $field_date_text = field_get_items($entity_type, $entity, 'field_date_text');
-  if ($field_date_text !== false && empty($field_date_text[0]['value'])) {
+  $field_next_action = field_get_items($entity_type, $entity, 'field_next_action');
+  if ($field_next_action !== false && empty($field_next_action[0]['value'])) {
     $entity_field[0]['value'] = null; // The entity is an event and it has passed
     return;
   }
