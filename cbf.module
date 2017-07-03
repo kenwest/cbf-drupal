@@ -368,7 +368,7 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
   $previous     = 0;
   $subsequent   = 0;
   $date_future  = 'D j M';
-  $date_past    = 'j M, Y';
+  $date_past    = 'j M Y';
   $time_format  = 'g.ia';
   $midnight     = '12.00am';
   $date_text    = false;
