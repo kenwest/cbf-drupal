@@ -915,87 +915,76 @@ function cbf_field_attach_presave($entity_type, $entity) {
 function cbf_cron() {
   $current_time = strtotime('now');
   $last_run     = variable_get('cbf_cron_last_run', 0);
+  $nextActionEntities = array('node', 'civicrm_event');
 
+  /* Set operator and values for filtering 'next action' and 'episode_date' fields */
   if ($last_run == 0) {
-    $query = new EntityFieldQuery();
-    $result = $query->entityCondition('entity_type', 'node')
-        ->fieldCondition('field_next_action', 'value', array($last_run), '>')
-        ->execute();
-    if (isset($result['node'])) {
-      $nodes = entity_load('node', array_keys($result['node']));
-      foreach ($nodes as $node) {
-        node_save($node);
+    $operator = '>';
+    $values = array($last_run);
+    $formatted = array(format_date($last_run, 'custom', DATE_FORMAT_ISO));
+  }
+  else {
+    $operator = 'BETWEEN';
+    $values = array($last_run, $current_time);
+    $formatted = array(
+      format_date($last_run, 'custom', DATE_FORMAT_ISO),
+      format_date($current_time, 'custom', DATE_FORMAT_ISO)
+    );
+  }
+
+  /* Update the date text for events with actions due */
+  $query = new EntityFieldQuery();
+  $result = $query->fieldCondition('field_next_action', 'value', $values, $operator)
+    ->execute();
+  foreach ($result as $entityType => $entities) {
+    $entities = entity_load($entityType, array_keys($entities));
+    foreach ($entities as $entity) {
+      switch ($entityType) {
+        case 'node':
+          node_save($entity);
+          break;
+        case 'civicrm_event':
+          $entity->custom_62 = $entity->custom_62_id;
+          entity_save($entityType, $entity);
+          break;
       }
     }
   }
-  else {
-    /* Clear the date text for past events */
-    $query = new EntityFieldQuery();
-    $result = $query->entityCondition('entity_type', 'node')
-        ->fieldCondition('field_next_action', 'value', array($last_run, $current_time), 'BETWEEN')
-        ->execute();
-    if (isset($result['node'])) {
-      $nodes = entity_load('node', array_keys($result['node']));
-      foreach ($nodes as $node) {
-        node_save($node);
-      }
+
+
+  /*
+   * Set the date text for past episodes. Note that the 'field_episode_date'
+   * field has 'value' attribute in the DATE_FORMAT_ISO format. The timezone
+   * is the system default.
+   */
+  $query = new EntityFieldQuery();
+  $result = $query->entityCondition('entity_type', 'node')
+    ->fieldCondition('field_episode_date', 'value', $formatted, $operator)
+    ->execute();
+  if (isset($result['node'])) {
+    $nodes = entity_load('node', array_keys($result['node']));
+    foreach ($nodes as $node) {
+      node_save($node);
     }
+  }
 
-    /* For events that are 1 week out, change the display
-    $next_week = strtotime('now +1 week');
-    $query = new EntityFieldQuery();
-    $result = $query->entityCondition('entity_type', 'node')
-        ->fieldCondition('field_next_action', 'value', array($last_run + ($next_week - $current_time), $next_week), 'BETWEEN')
-        ->execute();
-    if (isset($result['node'])) {
-      $nodes = entity_load('node', array_keys($result['node']));
-      foreach ($nodes as $node) {
-        node_save($node);
+  /*
+   * Find nodes that were Tweeted using Post to Twitter. Set their status so
+   * they are not tweeted again if any calls are made to node_save().
+   */
+  $query = new EntityFieldQuery();
+  $result = $query->entityCondition('entity_type', 'node')
+    ->fieldCondition('field_post_to_twitter', 'status', 0, '<>')
+    ->execute();
+  if (isset($result['node'])) {
+    $nodes = entity_load('node', array_keys($result['node']));
+    foreach ($nodes as $node) {
+      // Prevent a post being made again to Twitter
+      $langcode = field_language('node', $node, 'field_post_to_twitter');
+      if (isset($node->field_post_to_twitter[$langcode][0])) {
+        $node->field_post_to_twitter[$langcode][0]['status'] = 0;
       }
-    } */
-
-    /*
-     * Set the date text for past episodes. Note that the 'field_episode_date'
-     * field has 'value' attribute in the DATE_FORMAT_ISO format. The timezone
-     * is the system default.
-     */
-    $last_run_formatted = format_date($last_run, 'custom', DATE_FORMAT_ISO);
-    $current_time_formatted = format_date($current_time, 'custom', DATE_FORMAT_ISO);
-    $query = new EntityFieldQuery();
-    $result = $query->entityCondition('entity_type', 'node')
-        ->fieldCondition(
-            'field_episode_date',
-            'value',
-            array(
-                $last_run_formatted,
-                $current_time_formatted),
-            'BETWEEN')
-        ->execute();
-    if (isset($result['node'])) {
-      $nodes = entity_load('node', array_keys($result['node']));
-      foreach ($nodes as $node) {
-        node_save($node);
-      }
-    }
-
-    /*
-     * Find nodes that were Tweeted using Post to Twitter. Set their status so
-     * they are not tweeted again if any calls are made to node_save().
-     */
-    $query = new EntityFieldQuery();
-    $result = $query->entityCondition('entity_type', 'node')
-        ->fieldCondition('field_post_to_twitter', 'status', 0, '<>')
-        ->execute();
-    if (isset($result['node'])) {
-      $nodes = entity_load('node', array_keys($result['node']));
-      foreach ($nodes as $node) {
-        // Prevent a post being made again to Twitter
-        $langcode = field_language('node', $node, 'field_post_to_twitter');
-        if (isset($node->field_post_to_twitter[$langcode][0])) {
-          $node->field_post_to_twitter[$langcode][0]['status'] = 0;
-        }
-        node_save($node);
-      }
+      node_save($node);
     }
   }
 
