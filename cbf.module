@@ -208,6 +208,21 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
       $form['actions']['submit']['#submit']
     );
   }
+
+  /*
+   * Grab the mailing list default from the arguments
+   */
+  if (strpos($form['#id'], 'webform-client-form-') === 0) {
+    if (in_array(
+      'default-via-parameter',
+      $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#attributes']['class'])
+    ) {
+      $params = drupal_get_query_parameters();
+      if (filter_var($params['gid'], FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)))) {
+        $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#default_value'] = array($params['gid']);
+      }
+    }
+  }
 }
 
 /*
