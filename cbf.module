@@ -213,9 +213,12 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
    * Grab the mailing list default from the arguments
    */
   if (strpos($form['#id'], 'webform-client-form-') === 0) {
-    if (in_array(
-      'default-via-parameter',
-      $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#attributes']['class'])
+    if (
+      isset($form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#attributes']['class'])
+      && in_array(
+        'default-via-parameter',
+        $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#attributes']['class']
+      )
     ) {
       $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#size'] = 10;
       $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#options'] =
