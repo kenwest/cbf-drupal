@@ -1541,3 +1541,39 @@ function cbf_entity_property($variables) {
 
   return theme_entity_property($variables);
 }
+
+/*
+ * If the $output string is being displayed on a page associated with a
+ * particular $city, then remove strings of the form ' in $city'.
+ *
+ * Purpose:
+ *    To avoid blocks having repeating references to ' in $city' when
+ *    the page context tells us we are ' in $city'.
+ *
+ * Examples:
+ *  - On the page /city/sydney remove the string ' in Sydney' from
+ *    the 'node'/'title' of Activities listed in views.
+ *  - On the page /city/activity/public-forum don't change the titles
+ *    of sub-activities, which are ' in Sydney', ' in Perth' etc.
+ *
+ * Potential issues:
+ *  - May need to restrict logic to blocks.
+ *  - $output is HTML so may contain ' in $city' as part of the markup.
+ *    This is unlikely given the current conventions for URLs, CSS class
+ *    names etc.
+ */
+function cbf_trim_in_city_string($output) {
+	$city = cbf_city_string();
+	if ($city !== false) {
+		$output = str_replace(' in ' . ucwords($city), '', $output);
+	}
+	return $output;
+}
+
+function cbf_preprocess_html(&$variables) {
+	// Is this page associated with a city? Add a CSS class accordingly.
+	$city = cbf_city_string();
+	if ($city !== false) {
+		$variables['classes_array'][] = 'city-' . $city;
+	}
+}
