@@ -1292,8 +1292,12 @@ function cbf_library_view_topics_string(&$view) {
 
 /*
  * Implementation of hook_views_pre_render
- *   -- Centres the GMap in GMap views
- *   -- Formats the Description in the RSS feed of the prayer_points view
+ *   - Centres the GMap in GMap views
+ *   - Formats the Description in the RSS feed of the prayer_points view
+ *   - Counts the number of rows and adds classes to the view as appropriate
+ *       - views-1-row
+ *       - views-2-rows
+ *       - views-n-rows
  */
 function cbf_views_pre_render(&$view) {
   $watch = array('city_to_address');
@@ -1385,6 +1389,30 @@ function cbf_views_pre_render(&$view) {
         }
       }
     }
+  }
+
+  if (
+    isset($view->display_handler->options)
+    && empty($view->display_handler->options['css_class'])) {
+    switch (count($view->result)) {
+      case 0:
+        $class = '';
+        break;
+
+      case 1:
+        $class = 'views-1-row';
+        break;
+
+      case 2:
+        $class = 'views-2-rows';
+        break;
+
+      default:
+        $class = 'views-n-rows';
+        break;
+    }
+    $view->display_handler->options['defaults']['css_class'] = false;
+    $view->display_handler->options['css_class'] = $class;
   }
 }
 
