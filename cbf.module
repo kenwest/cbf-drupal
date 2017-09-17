@@ -853,6 +853,9 @@ function cbf_node_presave($node) {
       if ($domain['is_default']) {
         $match = true;
       }
+      else if ($node->type == 'webform'  || $node->type == 'contact_webform') {
+        $match = true;
+      }
       else {
         foreach ($domain['aliases'] as $alias) {
           $activity = stristr($alias['pattern'], '.activity.rule', true);
