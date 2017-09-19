@@ -8,15 +8,10 @@ function cbf_init() {
     if (arg(1) == 'add') {
       /*
        * This JavaScript sets some defaults when adding new nodes.
-       *  1. The Summary for the Body displays to encourage entry
-       *  2. Tablefield fields default to plain text
-       *  3. The File Field source is ICME to encourage reuse
-       *
-       * See "How to display summary field on node edit form by default?"
-       * http://drupal.org/node/1395422#comment-6450618
+       *  1. Tablefield fields default to plain text
+       *  2. The File Field source is ICME to encourage reuse
        */
       $script = 'jQuery(document).ready(function(){
-        jQuery(".link-edit-summary").click();
         jQuery(".field-type-tablefield .filter-wrapper select.filter-list option").each(function() {
           this.selected = (this.text == "Plain text");
         });
