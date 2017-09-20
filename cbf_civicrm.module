@@ -437,7 +437,16 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
             $submit = "price_$priceSetFieldId";
             if (!empty($form->_submitValues[$submit])) {
               $optionSelected = true;
-              if (!empty($priceSetField['is_enter_qty']) && $form->_submitValues[$submit] > $registrationLimit) {
+              $participantCount = current($priceSetField['options'])['count'];
+              if (
+                !empty($priceSetField['is_display_amounts']) &&
+                !empty($priceSetField['is_enter_qty']) &&
+                (
+                  !isset($participantCount) ||
+                  $participantCount != '0'
+                ) &&
+                $form->_submitValues[$submit] > $registrationLimit
+              ) {
                 $errors[$submit] = ts('To protect our visitors, registrations are limited to ') . $registrationLimit . ts('. To register more, either make a separate registration or contact our office.');
               }
             }
@@ -490,6 +499,17 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
       $exportOption = CRM_Utils_Array::value('exportOption', $fields);
       if ($exportOption == 1) {
         $errors['exportOption'] = ts('Exporting Primary fields on large numbers of contacts can crash the web server. Select the fields you want to export.');
+      }
+      break;
+
+    case 'CRM_Price_Form_Field':
+      /*
+       * If the Participant Count has been set to zero, unset the error
+       */
+      $participantCount = $form->getSubmitValue('count');
+      $countError = $form->getElementError('count');
+      if ($participantCount == '0' && !empty($countError)) {
+        $form->setElementError('count');
       }
       break;
   }
