@@ -1427,6 +1427,17 @@ function cbf_views_pre_render(&$view) {
  *   $view->result"
  */
 function cbf_views_post_execute(&$view) {
+  /*
+   * Some block displays can be crowded out by Events of a single Activity (eg Bible Shots
+   * runs 4 events at 4 times during the week). These block displays are indicated by having
+   * their CSS class set to 'cbf-merge-events', and are not limited to 5 items (the typical
+   * case) so this logic can work.
+   *
+   * To prevent this crowding out, we check if there are multiple Events sharing the same
+   * name and Activity. If that's the case, we 'summarise' those Events: we keep the first
+   * and the rest are removed from the results. The Date Text of that first Event is altered
+   * to include a link to a page of events for the Event's Activity.
+   */
   if (
     $view->display_handler->get_option('css_class') == "cbf-merge-events" &&
     $view->display_handler->plugin_name == 'block') {
