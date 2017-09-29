@@ -1407,13 +1407,7 @@ function cbf_views_pre_render(&$view) {
       $c = 'views-n-rows';
       break;
   }
-  if (empty($class)) {
-    $class = $c;
-  }
-  else {
-    $class .= ' ' . $c;
-  }
-  $view->display_handler->set_option('css_class', $class);
+  $view->display_handler->set_option('css_class', trim($class . ' ' . $c));
 }
 
 /*
