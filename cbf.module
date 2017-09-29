@@ -1515,6 +1515,27 @@ function cbf_views_post_execute(&$view) {
       $view->result = $alteredResults;
     }
   }
+
+  /*
+   * If a view returns no results, and the 'no results' behaviour is to return
+   * the results of a second view, we want the title of this view to equal that
+   * of the second.
+   */
+  if (
+     empty($view->result) &&
+    !empty($view->empty['view']->options['view_to_insert'])
+  ) {
+    list($view_name, $display_id) = explode(':', $view->empty['view']->options['view_to_insert']);
+    $noResults = views_get_view($view_name);
+    if (
+      !empty($noResults) &&
+      $noResults->access($display_id)
+    ) {
+      $noResults->set_display($display_id);
+      $title = $noResults->get_title();
+      $view->set_title($title);
+    }
+  }
 }
 
 /*
