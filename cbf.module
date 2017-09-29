@@ -1389,29 +1389,31 @@ function cbf_views_pre_render(&$view) {
     }
   }
 
-  if (
-    isset($view->display_handler->options)
-    && empty($view->display_handler->options['css_class'])) {
-    switch (count($view->result)) {
-      case 0:
-        $class = '';
-        break;
+  $class = $view->display_handler->get_option('css_class');
+  switch (count($view->result)) {
+    case 0:
+      $c = '';
+      break;
 
-      case 1:
-        $class = 'views-1-row';
-        break;
+    case 1:
+      $c = 'views-1-row';
+      break;
 
-      case 2:
-        $class = 'views-2-rows';
-        break;
+    case 2:
+      $c = 'views-' . count($view->result) . '-rows';
+      break;
 
-      default:
-        $class = 'views-n-rows';
-        break;
-    }
-    $view->display_handler->options['defaults']['css_class'] = false;
-    $view->display_handler->options['css_class'] = $class;
+    default:
+      $c = 'views-n-rows';
+      break;
   }
+  if (empty($class)) {
+    $class = $c;
+  }
+  else {
+    $class .= ' ' . $c;
+  }
+  $view->display_handler->set_option('css_class', $class);
 }
 
 /*
