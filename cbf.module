@@ -1295,6 +1295,7 @@ function cbf_library_view_topics_string(&$view) {
  *   - Counts the number of rows and adds classes to the view as appropriate
  *       - views-1-row
  *       - views-2-rows
+ *       - views-3-rows
  *       - views-n-rows
  */
 function cbf_views_pre_render(&$view) {
@@ -1400,6 +1401,7 @@ function cbf_views_pre_render(&$view) {
       break;
 
     case 2:
+    case 3:
       $c = 'views-' . count($view->result) . '-rows';
       break;
 
