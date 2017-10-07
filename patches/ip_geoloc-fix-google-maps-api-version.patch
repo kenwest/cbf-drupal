@@ -1,0 +1,11 @@
+--- a/ip_geoloc.module	2017-01-21 11:51:28.000000000 +1100
++++ b/ip_geoloc.module	2017-10-07 22:34:54.427387956 +1100
+@@ -1016,7 +1016,7 @@
+   // Add query params to API url.
+   if (!empty($query)) {
+     // Include version number as it's required for Premium plans.
+-    $query['v'] = '3.26';
++    $query['v'] = '3';
+     $google_api_url .= '?' . drupal_http_build_query($query);
+   }
+   return $google_api_url;
