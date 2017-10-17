@@ -218,6 +218,11 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
       $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#size'] = 10;
       $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#options'] =
         array(
+          'National' => array(
+            1904 => '40 Rockets 2018 by email',
+            1906 => '40 Rockets 2018 by SMS (East coast)',
+            1905 => '40 Rockets 2018 by SMS (West coast)',
+          ),
           'Sydney' => array(
             1 => 'Newsletter',
             1756 => 'The Edge',
