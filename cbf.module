@@ -227,6 +227,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
             1 => 'Newsletter',
             1756 => 'The Edge',
             1658 => 'Bible Shots',
+            1671 => 'Tho Luu Foundation',
           ),
           'Melbourne' => array(
             1813 => 'Melbourne Christians - Life@Work Prayer Network',
