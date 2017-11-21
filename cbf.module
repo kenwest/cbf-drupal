@@ -1628,40 +1628,98 @@ function cbf_preprocess_html(&$variables) {
   }
 }
 
-/**
- * Alter links in the active trail before it is rendered as the breadcrumb.
- *
- * This hook is invoked by menu_get_active_breadcrumb() and allows alteration
- * of the breadcrumb links for the current page, which may be preferred instead
- * of setting a custom breadcrumb via drupal_set_breadcrumb().
- *
- * Implementations should take into account that menu_get_active_breadcrumb()
- * subsequently performs the following adjustments to the active trail *after*
- * this hook has been invoked:
- * - The last link in $active_trail is removed, if its 'href' is identical to
- *   the 'href' of $item. This happens, because the breadcrumb normally does
- *   not contain a link to the current page.
- * - The (second to) last link in $active_trail is removed, if the current $item
- *   is a MENU_DEFAULT_LOCAL_TASK. This happens in order to do not show a link
- *   to the current page, when being on the path for the default local task;
- *   e.g. when being on the path node/%/view, the breadcrumb should not contain
- *   a link to node/%.
- *
- * Each link in the active trail must contain:
- * - title: The localized title of the link.
- * - href: The system path to link to.
- * - localized_options: An array of options to pass to url().
- *
- * @param $active_trail
- *   An array containing breadcrumb links for the current page.
- * @param $item
- *   The menu router item of the current page.
- *
- * @see drupal_set_breadcrumb()
- * @see menu_get_active_breadcrumb()
- * @see menu_get_active_trail()
- * @see menu_set_active_trail()
+/*
+ * Returns HTML for a breadcrumb trail
  */
-function cbf_menu_breadcrumb_alter(&$active_trail, $item) {
-  return;
+function cbf_breadcrumb($variables, $structure) {
+  $breadcrumb = array();
+  $city = cbf_city_string();
+  if (!empty($city)) {
+    $prefix = "/city/$city";
+  }
+  else {
+    $prefix = '/city';
+  }
+
+  foreach ($structure as $context => $components) {
+    switch ($context) {
+      case 'front';
+        if (drupal_is_front_page()) {
+          break 2;
+        }
+        break;
+
+        case 'node';
+        $node = menu_get_object();
+        if (!empty($node)) {
+          $type = $node->type;
+          break 2;
+        }
+        break;
+
+      case 'default';
+        break 2;
+    }
+  }
+
+  foreach ($components as $component => $default) {
+    $new = null;
+    switch ($component) {
+      case 'home';
+        $new = array($component, 'Home', '/');
+        break;
+
+      case 'city';
+        if (!empty($city)) {
+          $new = array($component, ucwords($city), $prefix);
+        }
+        break;
+
+      case 'type';
+        if (!empty($type)) {
+          switch ($type) {
+            case 'event':
+              $new = array($component, 'events', "$prefix/events");
+              break;
+            case 'story':
+              $new = array($component, 'news', "$prefix/news");
+              break;
+            case 'episode':
+              $new = array($component, 'library', '/library');
+              break;
+            case 'blog':
+              $new = array($component, 'blog', '/articles');
+              break;
+            case 'activity':
+              $new = array($component, 'activities', "$prefix/activities");
+              break;
+          }
+        }
+        break;
+    }
+
+    if (!empty($new)) {
+      $breadcrumb[] = $new;
+    }
+    elseif (!empty($default)) {
+      $breadcrumb[] = array($component, $default, null);
+    }
+  }
+
+  if (!empty($breadcrumb)) {
+    $output = '<div class="breadcrumb">';
+    foreach ($breadcrumb as $crumb) {
+      $output .= '<span class="crumb ' . $crumb[0] . '">';
+      if (!empty($crumb[2])) {
+        $output .= '<a href="' . $crumb[2] . '">' . $crumb[1] . '</a>';
+      }
+      else {
+        $output .= $crumb[1];
+      }
+      $output .= '</span>';
+    }
+    $output .= '</div>';
+  }
+
+  return $output;
 }
