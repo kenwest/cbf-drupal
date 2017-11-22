@@ -839,7 +839,6 @@ function cbf_node_presave($node) {
 
     $node->domain_site = false;
     $node->domains = array();
-    $node->domain_source = DOMAIN_SOURCE_USE_ACTIVE;
 
     $field_in_activity = field_get_items('node', $node, 'field_in_activity');
     if ($field_in_activity === false || empty($field_in_activity[0]['target_id'])) {
