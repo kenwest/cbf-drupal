@@ -833,6 +833,13 @@ function cbf_node_presave($node) {
   }
 
   $followDomainRules = true;
+  $allDomainContentTypes = array(
+    'contact_webform' => true,
+    'webform' => true,
+  );
+  $allDomainNodes = array(
+    61 => 'Privacy policy',
+  );
 
   if ($followDomainRules) {
     $domains = domain_list_by_machine_name();
@@ -853,7 +860,10 @@ function cbf_node_presave($node) {
       if ($domain['is_default']) {
         $match = true;
       }
-      else if ($node->type == 'webform'  || $node->type == 'contact_webform') {
+      else if (isset($allDomainContentTypes[$node->type])) {
+        $match = true;
+      }
+      else if (isset($allDomainNodes[$node->nid])) {
         $match = true;
       }
       else {
