@@ -239,6 +239,23 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
       }
     }
   }
+
+  /*
+   * Disable readonly components on CiviCRM forms
+   */
+  if (strpos($form['#id'], 'webform-client-form-') === 0) {
+    foreach ($form['submitted'] as $fieldsetName => $fieldset) {
+      if (preg_match('/^civicrm_.*_fieldset$/', $fieldsetName)) {
+        foreach ($fieldset as $componentName => $component) {
+          if (preg_match('/^civicrm_/', $componentName)) {
+            if (isset($component['#attributes']['readonly'])) {
+              $form['submitted'][$fieldsetName][$componentName]['#disabled'] = true;
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 /*
