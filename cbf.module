@@ -1754,7 +1754,8 @@ function cbf_webform_validation_validators() {
  * Validates that Webform CiviCRM components of type 'civicrm_contact' already exist.
  * If an existing contact is chosen the value captured is a string containing a
  * positive integer. If the component is empty the value captured is empty. Otherwise
- * the value captured is a hyphen followed by the content typed by the user.
+ * the value captured is a hyphen followed by the content typed by the user. As a
+ * special case, ensure values like "--1000" are not interpreted as Contact Ids.
  */
 function cbf_webform_validation_validate($validator_name, $items, $components, $rule) {
   if ($items) {
@@ -1767,7 +1768,10 @@ function cbf_webform_validation_validate($validator_name, $items, $components, $
           ),
         );
         foreach ($items as $key => $value) {
-          if (filter_var($value, FILTER_VALIDATE_INT, $filterOptions) === false) {
+          if (
+            strpos($value, '--') !== false ||
+            filter_var($value, FILTER_VALIDATE_INT, $filterOptions) === false
+          ) {
             $errors[$key] = t('%item is not a valid contact', array('%item' => $components[$key]['name']));
           }
         }
