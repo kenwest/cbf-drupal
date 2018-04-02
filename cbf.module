@@ -1732,3 +1732,47 @@ function cbf_breadcrumb($variables, $structure) {
 
   return $output;
 }
+
+/**
+ * Implements hook_webform_validation_validators()
+ */
+function cbf_webform_validation_validators() {
+  return array(
+    'existing_contact_id' => array(
+      'name' => 'Existing Contact Id',
+      'description' => "Validate the Contact already exists",
+      'component_types' => array(
+        'civicrm_contact',
+      ),
+    )
+  );
+}
+
+/**
+ * Implements hook_webform_validation_validate()
+ *
+ * Validates that Webform CiviCRM components of type 'civicrm_contact' already exist.
+ * If an existing contact is chosen the value captured is a string containing a
+ * positive integer. If the component is empty the value captured is empty. Otherwise
+ * the value captured is a hyphen followed by the content typed by the user.
+ */
+function cbf_webform_validation_validate($validator_name, $items, $components, $rule) {
+  if ($items) {
+    switch ($validator_name) {
+      case 'existing_contact_id':
+        $errors = array();
+        $filterOptions = array(
+          'options' => array(
+            'min_range' => 1,
+          ),
+        );
+        foreach ($items as $key => $value) {
+          if (filter_var($value, FILTER_VALIDATE_INT, $filterOptions) === false) {
+            $errors[$key] = t('%item is not a valid contact', array('%item' => $components[$key]['name']));
+          }
+        }
+        return $errors;
+        break;
+    }
+  }
+}
