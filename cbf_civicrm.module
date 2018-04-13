@@ -723,6 +723,28 @@ function cbf_civicrm_civicrm_pre( $op, $objectName, $id, &$params ) {
         break;
     }
   }
+
+  /*
+   * The payment_processor field on the civicrm-event-form doesn't support
+   * multiselect, but we want people to be able to choose to pay via credit
+   * card or PayPal.
+   *
+   * Until this is resolved, ignore input from this field on this form. This
+   * is signalled by cbf__civicrm_entity_form_submit() which sets the
+   * payment_processor to be one that is never used. It's name is 'Hack for
+   * CiviCRM Event entities' and its number is 15.
+   */
+  if ($objectName == 'Event') {
+    switch ($op) {
+      case 'create':
+      case 'edit':
+        $dummyPaymentProcessor = '15';
+        if ($params['payment_processor'] == $dummyPaymentProcessor) {
+          unset($params['payment_processor']);
+        }
+        break;
+    }
+  }
 }
 
 /*

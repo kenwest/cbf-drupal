@@ -205,6 +205,18 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
   }
 
   /*
+   * The payment_processor field on the civicrm-event-form doesn't support
+   * multiselect, but we want people to be able to choose to pay via credit
+   * card or PayPal.
+   *
+   * Until this is resolved, prevent users accessing this field. They would
+   * need to use the CiviCRM admin interface to set payment processors.
+   */
+  if ($form['#id'] == 'civicrm-event-form') {
+    $form['payment_processor']['#access'] = false;
+  }
+
+  /*
    * Grab the mailing list default from the arguments
    */
   if (strpos($form['#id'], 'webform-client-form-') === 0) {
@@ -242,9 +254,17 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 }
 
 /*
- * Callback for form submission.
+ * Callback for Entity form submission.
  *
  * Overwrite CiviCRM variables with their Drupal equivalents
+ *  - Staff contact (overwrite custom_62)
+ *  - Ministry centre (overwrite custom_25)
+ *  - Event date (set the CiviEvent to start on the first date of a repeating
+ *    event and to finish on the last date of a repeating event)
+ *  - Number of sessions (count of dates overwrites custom_47)
+ *
+ * Prevent Drupal values overwriting their CiviCRM equivalents
+ *  - Payment processor (Drupal form doesn't support multiselect)
  */
 function cbf__civicrm_entity_form_submit(&$form, &$form_state) {
   if ($form['#id'] == 'civicrm-event-form') {
@@ -272,6 +292,20 @@ function cbf__civicrm_entity_form_submit(&$form, &$form_state) {
     $form_state['values']['end_date'] = $date->format('Y-m-d H:i');
 
     $form_state['values']['custom_47'] = $i;
+
+    /*
+     * The payment_processor field on the civicrm-event-form doesn't support
+     * multiselect, but we want people to be able to choose to pay via credit
+     * card or PayPal.
+     *
+     * Until this is resolved, prevent users changing this field. To do this we
+     * send a signal to cbf_civicrm_civicrm_pre() that input from this field on
+     * this form should be ignored. We do this by setting the payment_processor
+     * to be one that is never used. It's name is 'Hack for CiviCRM Event
+     * entities' and its number is 15.
+     */
+    $dummyPaymentProcessor = '15';
+    $form_state['values']['payment_processor'] = $dummyPaymentProcessor;
   }
 }
 
