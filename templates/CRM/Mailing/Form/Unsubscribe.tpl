@@ -54,7 +54,8 @@
       </div>
       <br/>
     </div>
-  {else}
+  {/if}
+  {if $unsubscribed}
     <iframe src="https://docs.google.com/a/citybibleforum.org/forms/d/e/1FAIpQLScj7rcfgLp3UAigwq5xFugFg5snaYpsfM7YFtojs2s0-Y1j9w/viewform?embedded=true&usp=pp_url&entry.547520139&entry.589117676={$email_masked}" width="100%" height="1200" frameborder="0" marginheight="0" marginwidth="0">Optional survey to help us</iframe>
   {/if}
 </div>
