@@ -45,8 +45,6 @@
   </div>
 
 <br/>
-  {if $optedOut}
-    <iframe src="https://docs.google.com/a/citybibleforum.org/forms/d/e/1FAIpQLScj7rcfgLp3UAigwq5xFugFg5snaYpsfM7YFtojs2s0-Y1j9w/viewform?embedded=true&usp=pp_url&entry.547520139&entry.589117676={$email_masked}" width="100%" height="1200" frameborder="0" marginheight="0" marginwidth="0">Optional survey to help us</iframe>
-  {/if}
+  <p>After you opt out please <a href="https://docs.google.com/a/citybibleforum.org/forms/d/e/1FAIpQLScj7rcfgLp3UAigwq5xFugFg5snaYpsfM7YFtojs2s0-Y1j9w/viewform?embedded=true&usp=pp_url&entry.547520139&entry.589117676={$email_masked}">fill in a short survey
+</a> to help us understand why you're leaving.</p>
 </div>
-
