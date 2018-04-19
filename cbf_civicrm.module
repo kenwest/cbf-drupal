@@ -1025,10 +1025,18 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
         break;
       }
 
-      // Include the Transaction Id in the Invoice reference
+      /*
+       * Include the Transaction Id in the Invoice reference
+       * Clean the reference of non-ASCII characters
+       */
       if (!empty($data['trxn_id'])) {
         $params['Reference'] = $data['trxn_id'] . ' - ' . $params['Reference'];
       }
+      $params['Reference'] = filter_var(
+        $params['Reference'],
+        FILTER_SANITIZE_STRING,
+        FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH
+      );
 
       // Ensure there is at least one Line Item in the Invoice
       if (empty($params['LineItems']['LineItem'])) {
