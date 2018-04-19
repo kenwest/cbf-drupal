@@ -1063,7 +1063,11 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
         $local = $data['line_items'][$lineItemKeys[$key]];
 
         // Remove some gumph from the Description
-        $params['LineItems']['LineItem'][$key]['Description'] = $local['label'];
+        $params['LineItems']['LineItem'][$key]['Description'] = filter_var(
+          $local['label'],
+          FILTER_SANITIZE_STRING,
+          FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH
+        );
 
         // Set the Account Code for recurring contributions
         if (!empty($data['contribution_recur_id'])) {
@@ -1104,7 +1108,12 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
 
       // Capture the Purpose if supplied as an extra Line Item
       if (!empty($data['custom_27'])) {
-        $params['LineItems']['LineItem'][] = array('Description' => $data['custom_27']);
+        $params['LineItems']['LineItem'][] = array(
+          'Description' => filter_var(
+            $data['custom_27'],
+            FILTER_SANITIZE_STRING,
+            FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH),
+        );
       }
       break;
   }
