@@ -1851,27 +1851,28 @@ function cbf_entity_viewable($entity, $type, $operation) {
     if (isset($entityTypes[$type]['bundles']) && isset($entityTypes[$type]['bundles'][$entity->type])) {
       $viewables = $entityTypes[$type]['bundles'][$entity->type];
     }
-  }
 
-  /*
-   * The $sourceEntity is the relative URL of the source $entity.
-   * Internally it is used as a 'unique' key to look up the viewable entity
-   * that corresponds to the source entity.
-   */
-  $sourceEntity = $type . '/' . $entity->{$entityTypes[$type]['id']};
+    /*
+     * The $sourceEntityId is the Id of the source $entity.
+     * Internally it is used with source entity $type as a 'unique' key to look
+     * up the viewable entity that corresponds to the source entity.
+     */
+    $sourceEntityId = $entity->{$entityTypes[$type]['id']};
+  }
 
   /*
    * Process each viewable entity that may be associated with the source $entity
    */
   foreach ($viewables as $viewable) {
     /*
-     * Look for the 'unique' viewable entity that corresponds to $sourceEntity
+     * Look for the 'unique' viewable entity that corresponds to the source entity
      * Warn if it is not unique
      */
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'entityform')
       ->entityCondition('bundle', $viewable)
-      ->fieldCondition('field_source_entity', 'value', $sourceEntity, '=')
+      ->fieldCondition('field_source_entity_type', 'value', $type, '=')
+      ->fieldCondition('field_source_entity_id', 'value', $sourceEntityId, '=')
       // Run the query as user 1.
       ->addMetaData('account', user_load(1));
 
@@ -1881,7 +1882,7 @@ function cbf_entity_viewable($entity, $type, $operation) {
     }
     else {
       if (count($result['entityform']) != 1) {
-        watchdog('CBF', "Source entity $sourceEntity has multiple $viewable entities", null, WATCHDOG_ERROR);
+        watchdog('CBF', "Source entity $type/$sourceEntityId has multiple $viewable entities", null, WATCHDOG_ERROR);
       }
       $entityForm = entity_load('entityform', array_keys($result['entityform']));
       $entityForm = reset($entityForm);
@@ -1920,7 +1921,8 @@ function cbf_entity_viewable($entity, $type, $operation) {
        * Set the fields
        */
       $wrapper = entity_metadata_wrapper('entityform', $entityForm);
-      $wrapper->field_source_entity = $sourceEntity;
+      $wrapper->field_source_entity_type = $type;
+      $wrapper->field_source_entity_id = $sourceEntityId;
       foreach ($viewableEntity['fields'] as $name => $value) {
         $wrapper->$name = $value;
       }
