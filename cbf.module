@@ -1810,3 +1810,150 @@ function cbf_webform_validation_validate($validator_name, $items, $components, $
     }
   }
 }
+
+function cbf_entity_insert($entity, $type) {
+  cbf_entity_viewable($entity, $type, 'insert');
+}
+
+function cbf_entity_update($entity, $type) {
+  cbf_entity_viewable($entity, $type, 'update');
+}
+
+function cbf_entity_delete($entity, $type) {
+  cbf_entity_viewable($entity, $type, 'delete');
+}
+
+function cbf_entity_viewable($entity, $type, $operation) {
+  $entityTypes = array(
+    'node' => array(
+      'id' => 'nid',
+      'bundles' => array(
+        'event' => array(
+          'dateable',
+        ),
+      ),
+    ),
+    'civicrm_event' => array(
+      'id' => 'id',
+      'bundles' => array(
+        'civicrm_event' => array(
+          'dateable',
+        ),
+      ),
+    ),
+  );
+
+  /*
+   * Look up entity $type to determine what viewable entities are supported
+   */
+  $viewables = array();
+  if (isset($entityTypes[$type])) {
+    if (isset($entityTypes[$type]['bundles']) && isset($entityTypes[$type]['bundles'][$entity->type])) {
+      $viewables = $entityTypes[$type]['bundles'][$entity->type];
+    }
+  }
+
+  /*
+   * The $sourceEntity is the relative URL of the source $entity.
+   * Internally it is used as a 'unique' key to look up the viewable entity
+   * that corresponds to the source entity.
+   */
+  $sourceEntity = $type . '/' . $entity->{$entityTypes[$type]['id']};
+
+  /*
+   * Process each viewable entity that may be associated with the source $entity
+   */
+  foreach ($viewables as $viewable) {
+    /*
+     * Look for the 'unique' viewable entity that corresponds to $sourceEntity
+     * Warn if it is not unique
+     */
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'entityform')
+      ->entityCondition('bundle', $viewable)
+      ->fieldCondition('field_source_entity', 'value', $sourceEntity, '=')
+      // Run the query as user 1.
+      ->addMetaData('account', user_load(1));
+
+    $result = $query->execute();
+    if (!isset($result['entityform'])) {
+      $entityForm = null;
+    }
+    else {
+      if (count($result['entityform']) != 1) {
+        watchdog('CBF', "Source entity $sourceEntity has multiple $viewable entities", null, WATCHDOG_ERROR);
+      }
+      $entityForm = entity_load('entityform', array_keys($result['entityform']));
+      $entityForm = reset($entityForm);
+    }
+
+    /*
+     * Get the fields from the source $entity
+     */
+    $viewableFunction = "cbf_entity_$viewable";
+    $viewableEntity = $viewableFunction($entity, $type, $operation);
+
+    if (!empty($viewableEntity['fields'])) {
+      /*
+       * This entity has fields that need to be reproduced in a viewable entity
+       */
+
+      /*
+       * If the viewable entity wasn't found, create it
+       */
+      if (empty($entityForm)) {
+        global $user;
+
+        $entityForm = entity_create(
+          'entityform',
+          array(
+            'type' => $viewable,
+            'created' => time(),
+            'changed' => time(),
+            'language' => LANGUAGE_NONE,
+            'uid' => $user->uid
+          )
+        );
+      }
+
+      /*
+       * Set the fields
+       */
+      $wrapper = entity_metadata_wrapper('entityform', $entityForm);
+      $wrapper->field_source_entity = $sourceEntity;
+      foreach ($viewableEntity['fields'] as $name => $value) {
+        $wrapper->$name = $value;
+      }
+
+      $wrapper->save();
+    }
+    else {
+      /*
+       * This entity has no content that needs to be reproduced in a viewable entity
+       * Delete the viewable entity
+       */
+      entity_delete('entityform', $entityForm->entityform_id);
+    }
+  }
+}
+
+function cbf_entity_dateable($entity, $type, $operation) {
+  $return = array();
+
+  switch ($operation) {
+    case 'delete':
+      $return['fields'] = array();
+      break;
+
+    default:
+      $return['fields'] = array(
+        'field_title' => 'Test title',
+        'field_subtitle' => 'Test subtitle',
+        'field_date_text_copy' => 'Tomorrow',
+        'field_in_activity' => 1000,
+      );
+      break;
+  }
+
+  return $return;
+}
