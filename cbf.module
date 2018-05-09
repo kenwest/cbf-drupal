@@ -1934,7 +1934,9 @@ function cbf_entity_viewable($entity, $type, $operation) {
        * This entity has no content that needs to be reproduced in a viewable entity
        * Delete the viewable entity
        */
-      entity_delete('entityform', $entityForm->entityform_id);
+      if (isset($entityForm)) {
+        entity_delete('entityform', $entityForm->entityform_id);
+      }
     }
   }
 }
