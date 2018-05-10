@@ -1962,16 +1962,74 @@ function cbf_entity_dateable($entity, $type, $operation) {
 
   switch ($operation) {
     case 'delete':
-      $return['fields'] = array();
       break;
 
     default:
-      $return['fields'] = array(
-        'field_title' => 'Test title',
-        'field_subtitle' => 'Test subtitle',
-        'field_date_text_copy' => 'Tomorrow',
-        'field_in_activity' => 1000,
+      $return['field_title'] = $entity->title;
+
+      /*
+       * Copy the fields
+       * field_thumbnail_image is a special case because it can default to
+       * the value of field_series_image
+       */
+      $fields = array(
+        'field_subtitle' => array(
+          'field' => 'field_subtitle',
+          'value' => 'value',
+          'default' => '',
+        ),
+        'taxonomy_vocabulary_1' => array(
+          'field' => 'taxonomy_vocabulary_1',
+          'value' => 'tid',
+          'default' => null,
+        ),
+        'taxonomy_vocabulary_3' => array(
+          'field' => 'taxonomy_vocabulary_3',
+          'value' => 'tid',
+          'default' => null,
+        ),
+        'field_in_activity' => array(
+          'field' => 'field_in_activity',
+          'value' => 'target_id',
+          'default' => null,
+        ),
+        'field_event_date' => array(
+          'field' => 'field_event_date',
+          'value' => 'array',
+          'default' => null,
+        ),
+        'field_thumbnail_image' => array(
+          'field' => 'field_thumbnail_image',
+          'value' => 'reset array',
+          'default' => null,
+        ),
+        'field_highlight_location' => array(
+          'field' => 'field_highlight_location',
+          'value' => 'array',
+          'default' => null,
+        ),
       );
+      foreach ($fields as $to => $from) {
+        $field = field_get_items($type, $entity, $from['field']);
+        if (empty($field)) {
+          $return[$to] = $from['default'];
+        }
+        elseif ($from['value'] == 'array') {
+          $return[$to] = $field;
+        }
+        elseif ($from['value'] == 'reset array') {
+          $return[$to] = reset($field);
+        }
+        else {
+          $return[$to] = reset($field)[$from['value']];
+        }
+      }
+      if (empty($return['field_thumbnail_image'])) {
+        $field = field_get_items($type, $entity, 'field_series_image');
+        if (!empty($field)) {
+          $return['field_thumbnail_image'] = reset($field);
+        }
+      }
       break;
   }
 
