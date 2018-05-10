@@ -1827,6 +1827,7 @@ function cbf_entity_viewable($entity, $type, $operation) {
   $entityTypes = array(
     'node' => array(
       'id' => 'nid',
+      'status' => 'status',
       'bundles' => array(
         'event' => array(
           'dateable',
@@ -1858,6 +1859,16 @@ function cbf_entity_viewable($entity, $type, $operation) {
      * up the viewable entity that corresponds to the source entity.
      */
     $sourceEntityId = $entity->{$entityTypes[$type]['id']};
+
+    /*
+     * Check the status of the entity as a shortcut rather than checking the fields
+     */
+    if (isset($entityTypes[$type]['status'])) {
+      $status = !empty($entity->{$entityTypes[$type]['status']});
+    }
+    else {
+      $status = true;
+    }
   }
 
   /*
@@ -1891,8 +1902,13 @@ function cbf_entity_viewable($entity, $type, $operation) {
     /*
      * Get the fields from the source $entity
      */
-    $viewableFunction = "cbf_entity_$viewable";
-    $viewableEntity = $viewableFunction($entity, $type, $operation);
+    if ($status) {
+      $viewableFunction = "cbf_entity_$viewable";
+      $viewableEntity = $viewableFunction($entity, $type, $operation);
+    }
+    else {
+      $viewableEntity = array();
+    }
 
     if (!empty($viewableEntity['fields'])) {
       /*
