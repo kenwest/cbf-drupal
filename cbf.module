@@ -1910,7 +1910,7 @@ function cbf_entity_viewable($entity, $type, $operation) {
       $viewableEntity = array();
     }
 
-    if (!empty($viewableEntity['fields'])) {
+    if (!empty($viewableEntity)) {
       /*
        * This entity has fields that need to be reproduced in a viewable entity
        */
@@ -1939,7 +1939,7 @@ function cbf_entity_viewable($entity, $type, $operation) {
       $wrapper = entity_metadata_wrapper('entityform', $entityForm);
       $wrapper->field_source_entity_type = $type;
       $wrapper->field_source_entity_id = $sourceEntityId;
-      foreach ($viewableEntity['fields'] as $name => $value) {
+      foreach ($viewableEntity as $name => $value) {
         $wrapper->$name = $value;
       }
 
