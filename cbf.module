@@ -2047,6 +2047,12 @@ function cbf_entity_dateable($entity, $type, $operation) {
           if (!empty($field)) {
             $return['field_thumbnail_image'] = reset($field);
           }
+          else {
+            $field = field_get_items($type, $entity, 'field_highlight');
+            if (!empty($field)) {
+               $return['field_thumbnail_image'] = reset($field);
+            }
+          }
         }
       }
       break;
