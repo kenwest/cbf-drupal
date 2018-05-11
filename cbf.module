@@ -1832,6 +1832,9 @@ function cbf_entity_viewable($entity, $type, $operation) {
         'event' => array(
           'dateable',
         ),
+        'story' => array(
+          'dateable',
+        ),
       ),
     ),
     'civicrm_event' => array(
@@ -1998,6 +2001,11 @@ function cbf_entity_dateable($entity, $type, $operation) {
           'value' => 'array',
           'default' => null,
         ),
+        'field_episode_date' => array(
+          'field' => 'field_episode_date',
+          'value' => 'get timestamp',
+          'default' => null,
+        ),
         'field_thumbnail_image' => array(
           'field' => 'field_thumbnail_image',
           'value' => 'reset array',
@@ -2020,6 +2028,11 @@ function cbf_entity_dateable($entity, $type, $operation) {
         elseif ($from['value'] == 'reset array') {
           $return[$to] = reset($field);
         }
+        elseif ($from['value'] == 'get timestamp') {
+          $field = reset($field);
+          $time = new DateObject($field['value'], $field['timezone']);
+          $return[$to] = strtotime($time->format('Y-m-d H:i:s O'));
+        }
         else {
           $return[$to] = reset($field)[$from['value']];
         }
@@ -2028,6 +2041,12 @@ function cbf_entity_dateable($entity, $type, $operation) {
         $field = field_get_items($type, $entity, 'field_series_image');
         if (!empty($field)) {
           $return['field_thumbnail_image'] = reset($field);
+        }
+        else {
+          $field = field_get_items($type, $entity, 'field_image');
+          if (!empty($field)) {
+            $return['field_thumbnail_image'] = reset($field);
+          }
         }
       }
       break;
