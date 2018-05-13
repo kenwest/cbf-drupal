@@ -338,12 +338,24 @@ function cbf_comment_presave($comment) {
 
 /*
  * This function is called by CCK Computed Field to compute the value of Field Sort Order.
- * The value is set to the timestamp of the start date for the Field Event Date.
- * If the event is a repeating event then apply this logic to the first date in the future.
+ * The value is set to the timestamp of the Field Episode Date or the Field Event Date.
+ * The Event date takes preference, though no entity should have both being non-empty.
+ * The timestamp used is the start time.
+ * If the event date is repeating then apply this logic to the first date in the future.
  */
 function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
   $current_time = strtotime('now');
   $timestamp = 0;
+
+  // Calculate the sort order from the (non-repeating) Episode Date
+  $field_episode_date = field_get_items($entity_type, $entity, 'field_episode_date');
+  if (!empty($field_episode_date)) {
+    $episode = reset($field_episode_date);
+    $start_time = new DateObject($episode['value'], $episode['timezone']);
+    $timestamp = strtotime($start_time->format('Y-m-d H:i:s O'));
+  }
+
+  // Calculate the sort order from the (repeating) Event Date
   $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
   if (!empty($field_event_date)) {
     foreach ($field_event_date as $event_occurrence) {
