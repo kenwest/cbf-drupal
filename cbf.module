@@ -342,6 +342,7 @@ function cbf_comment_presave($comment) {
  * The Event date takes preference, though no entity should have both being non-empty.
  * The timestamp used is the start time.
  * If the event date is repeating then apply this logic to the first date in the future.
+ * If no events are in the future, use the date of the last one in the past.
  */
 function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
   $current_time = strtotime('now');
