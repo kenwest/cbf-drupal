@@ -1922,7 +1922,12 @@ function cbf_entity_viewable($entity, $type, $operation) {
     }
     else {
       if (count($result['entityform']) != 1) {
-        watchdog('CBF', "Source entity $type/$sourceEntityId has multiple $viewable entities", null, WATCHDOG_ERROR);
+        watchdog(
+          'CBF',
+          "Source entity $type/$sourceEntityId has multiple $viewable entities",
+          null,
+          WATCHDOG_ERROR
+        );
       }
       $entityForm = entity_load('entityform', array_keys($result['entityform']));
       $entityForm = reset($entityForm);
@@ -1965,14 +1970,24 @@ function cbf_entity_viewable($entity, $type, $operation) {
       /*
        * Set the fields
        */
-      $wrapper = entity_metadata_wrapper('entityform', $entityForm);
-      $wrapper->field_source_entity_type = $type;
-      $wrapper->field_source_entity_id = $sourceEntityId;
-      foreach ($viewableEntity as $name => $value) {
-        $wrapper->$name = $value;
-      }
+      try {
+        $wrapper = entity_metadata_wrapper('entityform', $entityForm);
+        $wrapper->field_source_entity_type = $type;
+        $wrapper->field_source_entity_id = $sourceEntityId;
+        foreach ($viewableEntity as $name => $value) {
+          $wrapper->$name = $value;
+        }
 
-      $wrapper->save();
+        $wrapper->save();
+      }
+      catch (EntityMetadataWrapperException $e) {
+        watchdog(
+          'CBF',
+          "Source entity $type/$sourceEntityId caused exception: " . $e->getMessage(),
+          null,
+          WATCHDOG_ERROR
+        );
+      }
     }
     else {
       /*
@@ -2015,7 +2030,7 @@ function cbf_entity_dateable($entity, $type, $operation) {
         'taxonomy_vocabulary_3' => array(
           'field' => 'taxonomy_vocabulary_3',
           'value' => 'tid',
-          'default' => null,
+          'required' => true,
         ),
         'field_in_activity' => array(
           'field' => 'field_in_activity',
@@ -2046,6 +2061,9 @@ function cbf_entity_dateable($entity, $type, $operation) {
       foreach ($fields as $to => $from) {
         $field = field_get_items($type, $entity, $from['field']);
         if (empty($field)) {
+          if (isset($from['required'])) {
+            return array();
+          }
           $return[$to] = $from['default'];
         }
         elseif ($from['value'] == 'array') {
