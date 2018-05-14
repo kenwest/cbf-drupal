@@ -386,27 +386,40 @@ function computed_field_field_sort_order_display($field, $entity_field_item) {
 
 /*
  * This function is called by CCK Computed Field to compute the value of Field Next Action.
- * The value is set to the timestamp of the end date for the Field Event Date.
- * If the event is a repeating event then apply this logic to the first date in the future.
+ * The value is set to the timestamp of the Field Episode Date or the Field Event Date.
+ * The Event date takes preference, though no entity should have both being non-empty.
+ * The timestamp used is the start time for episodes and the end time for events.
+ * If the event date is repeating then apply this logic to the first date in the future.
+ * If the timestamp is in the past then next action is zero (there is no next action).
  */
 function computed_field_field_next_action_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
   $current_time = strtotime('now');
   $timestamp = 0;
-  $end_stamp = 0;
+
+  // Calculate the next action from the (non-repeating) Episode Date
+  $field_episode_date = field_get_items($entity_type, $entity, 'field_episode_date');
+  if (!empty($field_episode_date)) {
+    $episode = reset($field_episode_date);
+    $start_time = new DateObject($episode['value'], $episode['timezone']);
+    $timestamp = strtotime($start_time->format('Y-m-d H:i:s O'));
+  }
+
+  // Calculate the next action from the (repeating) Event Date
   $field_event_date = field_get_items($entity_type, $entity, 'field_event_date');
   if (!empty($field_event_date)) {
     foreach ($field_event_date as $event_occurrence) {
       $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
-      $end_stamp = strtotime($end_time->format('Y-m-d H:i:s O'));
+      $timestamp = strtotime($end_time->format('Y-m-d H:i:s O'));
 
-      if ($end_stamp > $current_time) {
+      if ($timestamp > $current_time) {
         break;
       }
     }
   }
 
-  if ($end_stamp > $current_time) {
-    $timestamp = $end_stamp;
+  // If the timestamp is in the past, then set the next action to zero (ie, no action)
+  if ($timestamp <= $current_time) {
+    $timestamp = 0;
   }
 
   $entity_field[0]['value'] = $timestamp;
