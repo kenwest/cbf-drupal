@@ -1749,6 +1749,7 @@ function cbf_breadcrumb($variables, $structure) {
     }
   }
 
+  $output = '';
   if (!empty($breadcrumb)) {
     $output = '<div class="breadcrumb">';
     foreach ($breadcrumb as $crumb) {
