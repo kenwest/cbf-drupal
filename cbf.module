@@ -352,8 +352,10 @@ function computed_field_field_sort_order_compute(&$entity_field, $entity_type, $
   $field_episode_date = field_get_items($entity_type, $entity, 'field_episode_date');
   if (!empty($field_episode_date)) {
     $episode = reset($field_episode_date);
-    $start_time = new DateObject($episode['value'], $episode['timezone']);
-    $timestamp = strtotime($start_time->format('Y-m-d H:i:s O'));
+    if (!empty($episode['value'])) {
+      $start_time = new DateObject($episode['value'], $episode['timezone']);
+      $timestamp = strtotime($start_time->format('Y-m-d H:i:s O'));
+    }
   }
 
   // Calculate the sort order from the (repeating) Event Date
@@ -400,8 +402,10 @@ function computed_field_field_next_action_compute(&$entity_field, $entity_type, 
   $field_episode_date = field_get_items($entity_type, $entity, 'field_episode_date');
   if (!empty($field_episode_date)) {
     $episode = reset($field_episode_date);
-    $start_time = new DateObject($episode['value'], $episode['timezone']);
-    $timestamp = strtotime($start_time->format('Y-m-d H:i:s O'));
+    if (!empty($episode['value'])) {
+      $start_time = new DateObject($episode['value'], $episode['timezone']);
+      $timestamp = strtotime($start_time->format('Y-m-d H:i:s O'));
+    }
   }
 
   // Calculate the next action from the (repeating) Event Date
@@ -471,12 +475,14 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
   $field_episode_date = field_get_items($entity_type, $entity, 'field_episode_date');
   if (!empty($field_episode_date)) {
     $episode = $field_episode_date[0];
-    $start_time = new DateObject($episode['value'], $episode['timezone']);
-    $startstamp = strtotime($start_time->format('Y-m-d H:i:s O'));
+    if (!empty($episode['value'])) {
+      $start_time = new DateObject($episode['value'], $episode['timezone']);
+      $startstamp = strtotime($start_time->format('Y-m-d H:i:s O'));
 
-    if ($startstamp <= $current_time) {
-      $first_text = $start_time->format($date_past);
-      $last_text = $first_text;
+      if ($startstamp <= $current_time) {
+        $first_text = $start_time->format($date_past);
+        $last_text = $first_text;
+      }
     }
   }
 
