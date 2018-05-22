@@ -1937,6 +1937,7 @@ function cbf_entity_viewable($entity, $type, $operation) {
   $entityTypes = array(
     'node' => array(
       'id' => 'nid',
+      'type' => 'type',
       'status' => 'status',
       'bundles' => array(
         'event' => array(
@@ -1949,21 +1950,27 @@ function cbf_entity_viewable($entity, $type, $operation) {
     ),
     'civicrm_event' => array(
       'id' => 'id',
-      'bundles' => array(
-        'civicrm_event' => array(
-          'dateable',
-        ),
+      'status' => 'is_public',
+      'viewables' => array(
+        'dateable',
       ),
     ),
   );
 
   /*
    * Look up entity $type to determine what viewable entities are supported
+   * Some entity $type's have bundles
    */
   $viewables = array();
   if (isset($entityTypes[$type])) {
-    if (isset($entityTypes[$type]['bundles']) && isset($entityTypes[$type]['bundles'][$entity->type])) {
-      $viewables = $entityTypes[$type]['bundles'][$entity->type];
+    if (
+      isset($entityTypes[$type]['bundles']) &&
+      isset($entityTypes[$type]['bundles'][$entity->{$entityTypes[$type]['type']}])
+    ) {
+      $viewables = $entityTypes[$type]['bundles'][$entity->{$entityTypes[$type]['type']}];
+    }
+    elseif (isset($entityTypes[$type]['viewables'])) {
+      $viewables = $entityTypes[$type]['viewables'];
     }
 
     /*
@@ -2097,8 +2104,10 @@ function cbf_entity_dateable($entity, $type, $operation) {
 
       /*
        * Copy the fields
-       * field_thumbnail_image is a special case because it can default to
-       * the value of field_series_image
+       * Special cases:
+       *  - field_thumbnail_image can default to other images if not supplied
+       *  - civicrm-event->summary is not a field
+       *  - node->domains is not a field
        */
       $fields = array(
         'field_subtitle' => array(
@@ -2138,6 +2147,11 @@ function cbf_entity_dateable($entity, $type, $operation) {
         ),
         'field_highlight_location' => array(
           'field' => 'field_highlight_location',
+          'value' => 'array',
+          'default' => null,
+        ),
+        'domain_entityform' => array(
+          'field' => 'field_domain',
           'value' => 'array',
           'default' => null,
         ),
@@ -2183,9 +2197,14 @@ function cbf_entity_dateable($entity, $type, $operation) {
           }
         }
       }
-      $return['domain_entityform'] = array();
-      foreach ($entity->domains as $domain) {
-        $return['domain_entityform'][] = array('domain_id' => $domain);
+      if (!empty($entity->summary)) {
+        $return['field_subtitle'] = $entity->summary;
+      }
+      if (!empty($entity->domains)) {
+        $return['domain_entityform'] = array();
+        foreach ($entity->domains as $domain) {
+          $return['domain_entityform'][] = array('domain_id' => $domain);
+        }
       }
       break;
   }
