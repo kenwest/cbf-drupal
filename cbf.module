@@ -2192,7 +2192,7 @@ function cbf_entity_dateable($entity, $type, $operation) {
           else {
             $field = field_get_items($type, $entity, 'field_highlight');
             if (!empty($field)) {
-               $return['field_thumbnail_image'] = reset($field);
+              $return['field_thumbnail_image'] = reset($field);
             }
           }
         }
