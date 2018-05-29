@@ -1083,42 +1083,32 @@ function cbf_field_attach_presave($entity_type, $entity) {
 }
 
 /*
- * This function is called by cron to update the Field Sort Order and Field Date Text:
- *   field_sort_order   - process all nodes that have a Field Sort Order with a value
- *                        between the last time the cron was called and 1 week from now. 
- *   field_episode_date - process all nodes that have a Field Episode Date with a value
- *                        between the last time the cron was called and now. 
- * The Date Text field changes as follows...
- *    - For events...
- *        - if the event is more than 1 week away, the text is weekday day month
- *        - // if the event is less than 1 week away, the text is weekday //
- *        - if the event is in the past, the text is empty
- *    - For episodes, news, blogs...
- *        - if
- * These nodes are simply opened and saved.
- * The cron time is updated.
+ * This function is called by Drupal cron.
+ *
+ * Re-save entities that have a field_next_action which is set to a time between
+ * the previous invocation of cron and this one. This enacts time-sensitive
+ * calculations of computed field values.
+ *
+ * Prevent nodes that were posted to Twitter from being automatically re-posted if
+ * they are edited.
+ *
+ * The time that cron was run is updated for next time.
  */
 function cbf_cron() {
   $current_time = strtotime('now');
   $last_run     = variable_get('cbf_cron_last_run', 0);
-  $nextActionEntities = array('node', 'civicrm_event');
 
-  /* Set operator and values for filtering 'next action' and 'episode_date' fields */
+  /* Set operator and values for filtering field_next_action */
   if ($last_run == 0) {
     $operator = '>';
     $values = array($last_run);
-    $formatted = array(format_date($last_run, 'custom', DATE_FORMAT_ISO));
   }
   else {
     $operator = 'BETWEEN';
     $values = array($last_run, $current_time);
-    $formatted = array(
-      format_date($last_run, 'custom', DATE_FORMAT_ISO),
-      format_date($current_time, 'custom', DATE_FORMAT_ISO)
-    );
   }
 
-  /* Update the date text for events with actions due */
+  /* Update entities with actions due */
   $query = new EntityFieldQuery();
   $result = $query->fieldCondition('field_next_action', 'value', $values, $operator)
     ->execute();
@@ -1134,23 +1124,6 @@ function cbf_cron() {
           entity_save($entityType, $entity);
           break;
       }
-    }
-  }
-
-
-  /*
-   * Set the date text for past episodes. Note that the 'field_episode_date'
-   * field has 'value' attribute in the DATE_FORMAT_ISO format. The timezone
-   * is the system default.
-   */
-  $query = new EntityFieldQuery();
-  $result = $query->entityCondition('entity_type', 'node')
-    ->fieldCondition('field_episode_date', 'value', $formatted, $operator)
-    ->execute();
-  if (isset($result['node'])) {
-    $nodes = entity_load('node', array_keys($result['node']));
-    foreach ($nodes as $node) {
-      node_save($node);
     }
   }
 
