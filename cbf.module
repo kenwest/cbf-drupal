@@ -262,6 +262,13 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
       }
     }
   }
+
+  /*
+   * If the form has a field_event_date element then validate it
+   */
+  if (isset($form['field_event_date'])) {
+    $form['#validate'][] = 'cbf_field_event_date_validate';
+  }
 }
 
 /*
@@ -874,6 +881,32 @@ function computed_field_field_add_to_calendar_display($field, $entity_field_item
     return '';
   }
   return $entity_field_item['value'];
+}
+
+/*
+ * Validate field_event_date elements on forms.
+ *  - an event can't last longer than 3 days. This prevents staff misusing
+ *    Events and CiviCRM Events when they should be using a News Story.
+ */
+function cbf_field_event_date_validate($form, &$form_state) {
+  if (isset($form_state['values']['field_event_date'])) {
+    $duration = 0;
+    foreach (reset($form_state['values']['field_event_date']) as $event_occurrence) {
+      $start_time = new DateObject($event_occurrence['value'], $event_occurrence['timezone']);
+      $startstamp = strtotime($start_time->format('Y-m-d H:i:s O'));
+
+      $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
+      $endstamp = strtotime($end_time->format('Y-m-d H:i:s O'));
+      $duration += $endstamp - $startstamp;
+    }
+    if ($duration > 3 * 24 * 60 * 60) {
+      form_set_error(
+        'field_event_date',
+        'The overall duration of this event is greater than 3 daya. ' .
+        'This doesn\'t seem like an event. ' .
+        'Try a forward dated News Story instead.');
+    }
+  }
 }
 
 /*
