@@ -892,12 +892,14 @@ function cbf_field_event_date_validate($form, &$form_state) {
   if (isset($form_state['values']['field_event_date'])) {
     $duration = 0;
     foreach (reset($form_state['values']['field_event_date']) as $event_occurrence) {
-      $start_time = new DateObject($event_occurrence['value'], $event_occurrence['timezone']);
-      $startstamp = strtotime($start_time->format('Y-m-d H:i:s O'));
+      if (is_array($event_occurrence)) {
+        $start_time = new DateObject($event_occurrence['value'], $event_occurrence['timezone']);
+        $startstamp = strtotime($start_time->format('Y-m-d H:i:s O'));
 
-      $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
-      $endstamp = strtotime($end_time->format('Y-m-d H:i:s O'));
-      $duration += $endstamp - $startstamp;
+        $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
+        $endstamp = strtotime($end_time->format('Y-m-d H:i:s O'));
+        $duration += $endstamp - $startstamp;
+      }
     }
     if ($duration > 3 * 24 * 60 * 60) {
       form_set_error(
