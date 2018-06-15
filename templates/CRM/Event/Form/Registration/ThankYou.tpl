@@ -39,7 +39,7 @@
         2. Checked <br/> details &#x2713;
       </div>
       <div class="progress-bar present">
-        3. Made <br/> payment &#x2713;
+        3. Registered &#x2713;
       </div>
     </div>
   {/if}

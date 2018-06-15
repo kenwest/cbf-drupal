@@ -38,7 +38,7 @@
       2. Check <br/> details
     </div>
     <div class="progress-bar future">
-      3. Make <br/> payment
+      3. Register
     </div>
   </div>
     {if $isOnWaitlist}
