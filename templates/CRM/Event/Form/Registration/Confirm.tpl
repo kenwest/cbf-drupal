@@ -38,7 +38,7 @@
       2. Check <br/> details
     </div>
     <div class="progress-bar future">
-      3. Register
+      3. Register <br/> &nbsp;
     </div>
   </div>
     {if $isOnWaitlist}
