@@ -349,8 +349,28 @@ function cbf_form_comment_form_alter(&$form, &$form_state, $form_id) {
  * those comments being published in the rare case Mollom doesn't stop it.
  */
 function cbf_comment_presave($comment) {
-  if ($comment->subject == 'Add new comment | City Bible Forum') {
-    $comment->status = 0;
+  $subjectPatterns = array(
+    '^Add new comment \\| ',
+  );
+  $bodyPatterns = array();
+  $patterns = array(
+    'viagra',
+    '\\bcialis\\b',
+    '<(br|p)\\/?>',
+  );
+
+  $subject = $comment->subject;
+  $body = $comment->comment_body['und'][0]['value'];
+
+  foreach (array_merge($subjectPatterns, $patterns) as $pattern) {
+    if (preg_match("/$pattern/i", $subject) == 1) {
+      $comment->status = 0;
+    }
+  }
+  foreach (array_merge($bodyPatterns, $patterns) as $pattern) {
+    if (preg_match("/$pattern/i", $body) == 1) {
+      $comment->status = 0;
+    }
   }
 }
 
