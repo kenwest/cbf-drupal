@@ -1,9 +1,9 @@
 <?php
 /*
   +--------------------------------------------------------------------+
-  | CiviCRM version 4.7                                                |
+  | CiviCRM version 5                                                  |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2016                                |
+  | Copyright CiviCRM LLC (c) 2004-2018                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2016
+ * @copyright CiviCRM LLC (c) 2004-2018
  */
 class CRM_Contribute_Form_AdditionalInfo {
 
@@ -96,7 +96,7 @@ class CRM_Contribute_Form_AdditionalInfo {
 
     $attributes = CRM_Core_DAO::getAttribute('CRM_Contribute_DAO_Contribution');
 
-    $form->addDateTime('thankyou_date', ts('Thank-you Sent'), FALSE, array('formatType' => 'activityDateTime'));
+    $form->addField('thankyou_date', array('entity' => 'contribution'), FALSE, FALSE);
 
     // add various amounts
     $nonDeductAmount = &$form->add('text', 'non_deductible_amount', ts('Non-deductible Amount'),
@@ -254,6 +254,10 @@ class CRM_Contribute_Form_AdditionalInfo {
    * @param int $contributionNoteID
    */
   public static function processNote($params, $contactID, $contributionID, $contributionNoteID = NULL) {
+    if (CRM_Utils_System::isNull($params['note']) && $contributionNoteID) {
+      CRM_Core_BAO_Note::del($contributionNoteID);
+      return;
+    }
     //process note
     $noteParams = array(
       'entity_table' => 'civicrm_contribution',
@@ -382,29 +386,11 @@ class CRM_Contribute_Form_AdditionalInfo {
 
     $form->assign('ccContribution', $ccContribution);
     if ($ccContribution) {
-      //build the name.
-      $name = CRM_Utils_Array::value('billing_first_name', $params);
-      if (!empty($params['billing_middle_name'])) {
-        $name .= " {$params['billing_middle_name']}";
-      }
-      $name .= ' ' . CRM_Utils_Array::value('billing_last_name', $params);
-      $name = trim($name);
-      $form->assign('billingName', $name);
-
-      //assign the address formatted up for display
-      $addressParts = array(
-        "street_address" => "billing_street_address-{$form->_bltID}",
-        "city" => "billing_city-{$form->_bltID}",
-        "postal_code" => "billing_postal_code-{$form->_bltID}",
-        "state_province" => "state_province-{$form->_bltID}",
-        "country" => "country-{$form->_bltID}",
-      );
-
-      $addressFields = array();
-      foreach ($addressParts as $name => $field) {
-        $addressFields[$name] = CRM_Utils_Array::value($field, $params);
-      }
-      $form->assign('address', CRM_Utils_Address::format($addressFields));
+      $form->assignBillingName($params);
+      $form->assign('address', CRM_Utils_Address::getFormattedBillingAddressFieldsFromParameters(
+        $params,
+        $form->_bltID
+      ));
 
       $date = CRM_Utils_Date::format($params['credit_card_exp_date']);
       $date = CRM_Utils_Date::mysqlToIso($date);

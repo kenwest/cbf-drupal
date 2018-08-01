@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2016                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,9 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2016
- * $Id$
- *
+ * @copyright CiviCRM LLC (c) 2004-2018
  */
 
 /**
@@ -96,10 +94,10 @@ class CRM_Event_Form_Search extends CRM_Core_Form_Search {
      * we allow the controller to set force/reset externally, useful when we are being
      * driven by the wizard framework
      */
-    $this->_reset = CRM_Utils_Request::retrieve('reset', 'Boolean', CRM_Core_DAO::$_nullObject);
+    $this->_reset = CRM_Utils_Request::retrieve('reset', 'Boolean');
     $this->_force = CRM_Utils_Request::retrieve('force', 'Boolean', $this, FALSE);
     $this->_limit = CRM_Utils_Request::retrieve('limit', 'Positive', $this);
-    $this->_context = CRM_Utils_Request::retrieve('context', 'String', $this, FALSE, 'search');
+    $this->_context = CRM_Utils_Request::retrieve('context', 'Alphanumeric', $this, FALSE, 'search');
     $this->_ssID = CRM_Utils_Request::retrieve('ssID', 'Positive', $this);
     $this->assign("context", $this->_context);
 
@@ -168,11 +166,7 @@ class CRM_Event_Form_Search extends CRM_Core_Form_Search {
    */
   public function buildQuickForm() {
     parent::buildQuickForm();
-    $this->addSortNameField();
-
-    if (CRM_Core_Permission::check('access deleted contacts') and Civi::settings()->get('contact_undelete')) {
-      $this->addElement('checkbox', 'deleted_contacts', ts('Search in Trash') . '<br />' . ts('(deleted contacts)'));
-    }
+    $this->addContactSearchFields();
 
     CRM_Event_BAO_Query::buildSearchForm($this);
 
@@ -229,14 +223,10 @@ class CRM_Event_Form_Search extends CRM_Core_Form_Search {
       $this->assign('participantCount', $participantCount);
       $this->assign('lineItems', $lineItems);
 
-      $permission = CRM_Core_Permission::getPermission();
+      $taskParams['ssID'] = isset($this->_ssID) ? $this->_ssID : NULL;
+      $tasks = CRM_Event_Task::permissionedTaskTitles(CRM_Core_Permission::getPermission(), $taskParams);
 
-      $tasks = CRM_Event_Task::permissionedTaskTitles($permission);
       if (isset($this->_ssID)) {
-        if ($permission == CRM_Core_Permission::EDIT) {
-          $tasks = $tasks + CRM_Event_Task::optionalTaskTitle();
-        }
-
         $savedSearchValues = array(
           'id' => $this->_ssID,
           'name' => CRM_Contact_BAO_SavedSearch::getName($this->_ssID, 'title'),
@@ -270,6 +260,36 @@ class CRM_Event_Form_Search extends CRM_Core_Form_Search {
    */
   protected function getSortNameLabelWithOutEmail() {
     return ts('Participant Name');
+  }
+
+  /**
+   * Get the label for the tag field.
+   *
+   * We do this in a function so the 'ts' wraps the whole string to allow
+   * better translation.
+   *
+   * @return string
+   */
+  protected function getTagLabel() {
+    return ts('Participant Tag(s)');
+  }
+
+  /**
+   * Get the label for the group field.
+   *
+   * @return string
+   */
+  protected function getGroupLabel() {
+    return ts('Participant Group(s)');
+  }
+
+  /**
+   * Get the label for the group field.
+   *
+   * @return string
+   */
+  protected function getContactTypeLabel() {
+    return ts('Participant Contact Type');
   }
 
   /**
@@ -405,17 +425,13 @@ class CRM_Event_Form_Search extends CRM_Core_Form_Search {
     // if this search has been forced
     // then see if there are any get values, and if so over-ride the post values
     // note that this means that GET over-rides POST :)
-    $event = CRM_Utils_Request::retrieve('event', 'Positive',
-      CRM_Core_DAO::$_nullObject
-    );
+    $event = CRM_Utils_Request::retrieve('event', 'Positive');
     if ($event) {
       $this->_formValues['event_id'] = $event;
       $this->_formValues['event_name'] = CRM_Event_PseudoConstant::event($event, TRUE);
     }
 
-    $status = CRM_Utils_Request::retrieve('status', 'String',
-      CRM_Core_DAO::$_nullObject
-    );
+    $status = CRM_Utils_Request::retrieve('status', 'String');
 
     if (isset($status)) {
       if ($status === 'true') {
@@ -433,9 +449,7 @@ class CRM_Event_Form_Search extends CRM_Core_Form_Search {
       $this->_formValues['participant_status_id'] = is_array($statusTypes) ? array('IN' => array_keys($statusTypes)) : $statusTypes;
     }
 
-    $role = CRM_Utils_Request::retrieve('role', 'String',
-      CRM_Core_DAO::$_nullObject
-    );
+    $role = CRM_Utils_Request::retrieve('role', 'String');
 
     if (isset($role)) {
       if ($role === 'true') {
@@ -450,9 +464,7 @@ class CRM_Event_Form_Search extends CRM_Core_Form_Search {
       $this->_formValues['participant_role_id'] = is_array($roleTypes) ? array_keys($roleTypes) : $roleTypes;
     }
 
-    $type = CRM_Utils_Request::retrieve('type', 'Positive',
-      CRM_Core_DAO::$_nullObject
-    );
+    $type = CRM_Utils_Request::retrieve('type', 'Positive');
     if ($type) {
       $this->_formValues['event_type'] = $type;
     }
