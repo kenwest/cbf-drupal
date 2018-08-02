@@ -1735,6 +1735,17 @@ function cbf_views_post_execute(&$view) {
       $view->set_title($title);
     }
   }
+
+  /*
+   * If a field_field_source_entity_type is (say) 'civicrm_event' then any
+   * URL built from it needs to contain 'civicrm-event'.
+   */
+  foreach ($view->result as $r => $result) {
+    if (isset($result->field_field_source_entity_type)) {
+      $result->field_field_source_entity_type[0]['rendered']['#markup']
+        = str_replace('_', '-', $result->field_field_source_entity_type[0]['rendered']['#markup']);
+    }
+  }
 }
 
 /*
