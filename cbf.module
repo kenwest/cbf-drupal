@@ -1642,9 +1642,19 @@ function cbf_views_post_execute(&$view) {
       if (!isset($result->field_field_in_activity[0]['raw']['target_id'])) {
         continue;
       }
-
       $activity = $result->field_field_in_activity[0]['raw']['target_id'];
-      $name = $result->node_title;
+
+      /*
+       * Get the name from the node_title or the field_field_title
+       */
+      if (isset($result->node_title)) {
+        $name = $result->node_title;
+      } elseif (isset($result->field_field_title)) {
+        $name = $result->field_field_title[0]['rendered']['#markup'];
+      } else {
+        continue;
+      }
+
       /*
        * Find the event which can summarise this one
        */
@@ -1723,6 +1733,17 @@ function cbf_views_post_execute(&$view) {
       $noResults->set_display($display_id);
       $title = $noResults->get_title();
       $view->set_title($title);
+    }
+  }
+
+  /*
+   * If a field_field_source_entity_type is (say) 'civicrm_event' then any
+   * URL built from it needs to contain 'civicrm-event'.
+   */
+  foreach ($view->result as $r => $result) {
+    if (isset($result->field_field_source_entity_type)) {
+      $result->field_field_source_entity_type[0]['rendered']['#markup']
+        = str_replace('_', '-', $result->field_field_source_entity_type[0]['rendered']['#markup']);
     }
   }
 }
