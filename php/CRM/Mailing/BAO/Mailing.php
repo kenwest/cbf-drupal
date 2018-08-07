@@ -231,6 +231,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
       $includeFilters = array(
         "mg.group_type = 'Include'",
         'mg.search_id IS NULL',
+        "$contact.do_not_sms = 0",
         "$contact.is_opt_out = 0",
         "$contact.is_deceased <> 1",
         "$entityTable.phone_type_id = " . CRM_Core_PseudoConstant::getKey('CRM_Core_DAO_Phone', 'phone_type_id', 'Mobile'),
