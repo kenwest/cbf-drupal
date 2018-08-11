@@ -116,10 +116,12 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
 
     /*
      * There are occasions when CiviCRM uses an online contribution receipt for
-     * offline purposes. In that case there is no contribution page, so certain
-     * items won't appear on the receipt. The custom field logic is copied from
-     * CRM_Contribute_Form_AdditionalInfo::emailReceipt() and the other items
-     * from the contribution_online_receipt template.
+     * offline purposes. For example, when a recurring contribution is made
+     * offline the eWAY processor will use the online receipt template for all
+     * contributions except the first.
+     *
+     * Since the contribution was not made through a contribution page, certain
+     * items won't appear on the receipt. The HTML for these needs to be generated.
      */
     if (isset($params['valueName'])) {
       switch ($params['valueName']) {
@@ -144,12 +146,19 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   }
 }
 
+/*
+ * Generate the HTML for receipts where the payment was created offline but
+ * uses an online receipt template.
+ *
+ * The custom field logic is copied from CRM_Contribute_Form_AdditionalInfo::emailReceipt()
+ * and the logic for the other items from the contribution_online_receipt
+ * template.
+ */
 function _cbf_civicrm_civicrm_no_contribution_page($params) {
   $headerFormat = '"text-align: left; padding: 4px; border-bottom: 1px solid #999; background-color: #eee;"';
   $labelFormat = '"padding: 4px; border-bottom: 1px solid #999; background-color: #f7f7f7;"';
   $dataFormat = '"padding: 4px; border-bottom: 1px solid #999;"';
   $result = '';
-  $form = null;
 
   try {
     $contribution = civicrm_api3('Contribution', 'get', array(
@@ -163,7 +172,6 @@ function _cbf_civicrm_civicrm_no_contribution_page($params) {
       'Financial Type' => $contribution['values'][0]['financial_type'],
       'Receipt Date' => $contribution['values'][0]['receipt_date'],
       'Paid By' => $contribution['values'][0]['payment_instrument'],
-//      'Transaction ID' => $contribution['values'][0]['trxn_id'],
     );
     if (!empty($contributionInfo['Receipt Date'])) {
       $config = CRM_Core_Config::singleton();
@@ -174,22 +182,11 @@ function _cbf_civicrm_civicrm_no_contribution_page($params) {
         $result .= "<tr><td style=$labelFormat>$label</td><td style=$dataFormat>$data</td></tr>";
       }
     }
-    // Assume this receipt is being sent to an anonymous user. This code emulates
-    // CRM_Core_Permission::customGroup() being called for an anonymous user, and
-    // assumes that anonymous users are not granted the 'access all custom data'
-    // permission. Anonymous users are only shown public custom data groups.
+
     $customGroups = array();
-    $publicGroups = CRM_ACL_BAO_ACL::group(
-      CRM_Core_Permission::VIEW,
-      0,
-      'civicrm_custom_group',
-      CRM_Core_PseudoConstant::get('CRM_Core_DAO_CustomField', 'custom_group_id', array('fresh' => false))
-    );
-    $groupTree = CRM_Core_BAO_CustomGroup::getTree('Contribution', $form);
+    $groupTree = CRM_Core_BAO_CustomGroup::getTree('Contribution', null);
     foreach ($groupTree as $groupID => $group) {
-      if ($groupID == 'info') {
-        continue;
-      } elseif (in_array($groupID, $publicGroups) === false) {
+      if ($groupID == 'info' || empty($group['is_public'])) {
         continue;
       }
       $customGroups[$group['title']] = array();
