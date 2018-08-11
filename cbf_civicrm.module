@@ -76,16 +76,17 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     /*
      * Replace the '<tax-invoice/>' HTML element with the Tax Invoice text.
      * This is usually empty, except for event registrations and contributions
-     * for Event Fees and Sales.
+     * for Event Fees and Sales which have a non-zero value.
      */
     $taxInvoice = '<tr><td>This email serves as a Tax Invoice. Amounts quoted include GST.</td></tr>';
-    $isTaxInvoice = FALSE;
+    $isTaxInvoice = false;
     if (isset($params['valueName'])) {
       switch ($params['valueName']) {
         case 'contribution_offline_receipt':
         case 'contribution_online_receipt':
           if (isset($params['tplParams']['contributionTypeName'])) {
             $financialType = $params['tplParams']['contributionTypeName'];
+            $nonZero = !empty($params['tplParams']['amount']);
           }
           else {
             try {
@@ -94,21 +95,28 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
                 'id' => $params['contributionId'],
               ));
               $financialType = $contribution['values'][0]['financial_type'];
+              $nonZero = !empty(floatval($contribution['values'][0]['total_amount']));
             } catch (CiviCRM_API3_Exception $e) {
               $financialType = '';
+              $nonZero = false;
             }
           }
           switch ($financialType) {
             case 'Event Fee':
             case 'Sales':
-              $isTaxInvoice = TRUE;
+              $isTaxInvoice = $nonZero;
               break;
           }
           break;
 
         case 'event_offline_receipt':
         case 'event_online_receipt':
-          $isTaxInvoice = TRUE;
+          if (isset($params['tplParams']['amount'])) {
+            $isTaxInvoice = !empty($params['tplParams']['amount']);
+          }
+          else {
+            $isTaxInvoice = true;
+          }
           break;
       }
     }
