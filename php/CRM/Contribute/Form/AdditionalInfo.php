@@ -426,26 +426,10 @@ class CRM_Contribute_Form_AdditionalInfo {
       //retrieve custom data
       $customGroup = array();
 
-      // Assume this receipt is being sent to an anonymous user. This code emulates
-      // CRM_Core_Permission::customGroup() being called for an anonymous user, and
-      // assumes that anonymous users are not granted the 'access all custom data'
-      // permission. Anonymous users are only shown public custom data groups.
-      $publicGroups = CRM_ACL_BAO_ACL::group(
-          CRM_Core_Permission::VIEW,
-          0,
-          'civicrm_custom_group',
-          CRM_Core_PseudoConstant::get(
-              'CRM_Core_DAO_CustomField',
-              'custom_group_id',
-              array('fresh' => FALSE)
-          )
-      );
-
       foreach ($form->_groupTree as $groupID => $group) {
         $customFields = $customValues = array();
-        if ($groupID == 'info') {
-          continue;
-        } elseif (in_array($groupID, $publicGroups) === FALSE) {
+        $isPublic = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_CustomGroup', $groupID, 'is_public');
+        if ($groupID == 'info' || !$isPublic) {
           continue;
         }
         foreach ($group['fields'] as $k => $field) {
