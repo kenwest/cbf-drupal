@@ -316,8 +316,11 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         $submit[0]->setValue('Next >>');
       }
 
-      // Prevent the user from editing their name or email during
-      // online donations or registrations
+      /*
+       * Prevent the user from editing their name, email or phone during
+       * online donations or registrations, in the case when the form has
+       * defaults for these.
+       */
       switch ($formName) {
         case 'CRM_Contribute_Form_Contribution_Main':
         case 'CRM_Event_Form_Registration_Register':
