@@ -242,6 +242,8 @@ function _cbf_civicrm_civicrm_no_contribution_page($params) {
  * on CBF payment forms.
  */
 function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
+  _cbf_civicrm_current_form($formName);
+
   switch ($formName) {
 
     case 'CRM_Contribute_Form_Contribution':
@@ -1209,6 +1211,15 @@ function _cbf_civicrm_civicrm_event_ministry_centre_id($name) {
   return false;
 }
 
+function _cbf_civicrm_current_form($formName = null) {
+  $name = &drupal_static(__FUNCTION__);
+
+  if ($formName !== null) {
+    $name = $formName;
+  }
+  return $name;
+}
+
 /*
  * Alter any Facebook tracking pixels that are linked to a CiviCRM path.
  *
@@ -1222,7 +1233,8 @@ function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
       $path = $code['event_path'];
       switch ($path) {
         case 'civicrm/event/register':
-          if (true) {
+          if (_cbf_civicrm_current_form() != 'CRM_Event_Form_Registration_ThankYou'
+              || stripos($_SESSION['CiviCRM']['entryURL'], 'id=1803') === false) {
             $unset = true;
           }
           break;
