@@ -1203,6 +1203,9 @@ function _cbf_civicrm_civicrm_event_ministry_centre_id($name) {
   return false;
 }
 
+/*
+ * Track the CiviCRM form which we are currently processing
+ */
 function _cbf_civicrm_current_form($formName = null) {
   $name = &drupal_static(__FUNCTION__);
 
