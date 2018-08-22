@@ -910,7 +910,9 @@ function computed_field_field_source_entity_alias_compute(&$entity_field, $entit
   $field_source_entity_type = field_get_items($entity_type, $entity, 'field_source_entity_type');
   $field_source_entity_id = field_get_items($entity_type, $entity, 'field_source_entity_id');
   if (!empty($field_source_entity_type) && !empty($field_source_entity_id)) {
-    $entity_field[0]['value'] = drupal_get_path_alias("{$field_source_entity_type[0]['value']}/{$field_source_entity_id[0]['value']}");
+    $path = str_replace('_', '-', $field_source_entity_type[0]['value']);
+    $path .= "/{$field_source_entity_id[0]['value']}";
+    $entity_field[0]['value'] = drupal_get_path_alias($path);
   }
   else {
     $entity_field[0]['value'] = '';
