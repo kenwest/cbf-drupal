@@ -237,11 +237,10 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         "$entityTable.phone_type_id = " . CRM_Core_PseudoConstant::getKey('CRM_Core_DAO_Phone', 'phone_type_id', 'Mobile'),
         "$entityTable.phone IS NOT NULL",
         "$entityTable.phone != ''",
-        "$entityTable.is_primary = 1",
         "mg.mailing_id = #mailingID",
         'temp.contact_id IS null',
       );
-      $order_by = array("$entityTable.is_primary = 1");
+      $order_by = array("$entityTable.is_primary");
     }
     else {
       // Criterias to filter recipients that need to be included
