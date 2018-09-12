@@ -498,6 +498,14 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
       }
       break;
 
+    case 'CRM_Event_Form_ManageEvent_Registration':
+      // Do not allow the Register multiple participants flag to be set
+      $isMultiple = CRM_Utils_Array::value('is_multiple_registrations', $fields);
+      if (!empty($isMultiple)) {
+        $errors['is_multiple_registrations'] = ts('This option is not allowed. Too many user errors a) cannot use Price Sets with this option and b) data quality issues with contacts');
+      }
+      break;
+
     case 'CRM_Export_Form_Select':
       /*
        * Selecting the 'Export PRIMARY fields' option for many contacts will
