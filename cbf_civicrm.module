@@ -502,7 +502,7 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
       // Do not allow the Register multiple participants flag to be set
       $isMultiple = CRM_Utils_Array::value('is_multiple_registrations', $fields);
       if (!empty($isMultiple)) {
-        $errors['is_multiple_registrations'] = ts('This option is not allowed. Too many user errors a) cannot use Price Sets with this option and b) data quality issues with contacts');
+        $errors['is_multiple_registrations'] = ts('This option is not allowed. It causes too many user errors who a) try to use Price Sets with this option and b) do not fix data quality issues after the event');
       }
       break;
 
