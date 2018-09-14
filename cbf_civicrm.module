@@ -39,17 +39,22 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     $htmlMessage = preg_replace('!&nbsp;!i', ' ', $htmlMessage);
 
     /*
-     * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes an issue
-     * for responsive email templates when the email is viewed in Outlook. As these images have
-     * a CSS style setting their width or max-width to 280px, we reinsert the HTML attribute on
-     * images that match that pattern.
+     * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes
+     * an issue for responsive email templates when the email is viewed in Outlook.
+     *
+     * This is resolved by adding a class 'attribute-width-NNN' to the IMG element in
+     * the message template. The NNN is converted into a width="NNN" attribute that
+     * is added to the IMG. The 'attribute-width-NNN' class is otherwise ignored.
+     *
+     * There is a risk that the IMG ends up with 2 width attributes, but these should
+     * have the same value.
      */
-    $htmlMessage = preg_replace('!<img ([^w/>][^>]+width: 280px[^>]+)/>!i', '<img width="280" $1/>', $htmlMessage);
+    $htmlMessage = preg_replace('!<img ([^>]+attribute-width-([0-9]+)[^>]+)/>!i', '<img width="$2" $1/>', $htmlMessage);
 
     /*
-     * The HTML IMGs that have been set to 280px wide will not scale properly if the height
-     * attribute is set. We remove that.
+     * Legacy solution to width attribute stripping by CKeditor
      */
+    $htmlMessage = preg_replace('!<img ([^w/>][^>]+width: 280px[^>]+)/>!i', '<img width="280" $1/>', $htmlMessage);
     $htmlMessage = preg_replace('!<img width="280" ([^>]+)height: [0-9px%]+[;]?([^>]+)/>!i', '<img width="280" $1$2/>', $htmlMessage);
 
     /*
