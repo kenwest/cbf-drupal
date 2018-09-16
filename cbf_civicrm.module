@@ -1261,15 +1261,20 @@ function _cbf_civicrm_current_form($formName = null) {
  * in which we are interested.
  */
 function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
+  $currentForm = _cbf_civicrm_current_form();
   if (!empty($trackingpaths)) {
     foreach ($trackingpaths as $index => $code) {
-      $unset = false;
+      $unset = true;
       $path = $code['event_path'];
+      $baseCodeId = $code['event_base_code_id'];
       switch ($path) {
         case 'civicrm/event/register':
-          if (_cbf_civicrm_current_form() != 'CRM_Event_Form_Registration_ThankYou'
-              || stripos($_SESSION['CiviCRM']['entryURL'], 'id=1803') === false) {
-            $unset = true;
+          if ($currentForm == 'CRM_Event_Form_Registration_ThankYou') {
+            preg_match('![?&]id=([0-9]+)!i', $_SESSION['CiviCRM']['entryURL'], $matches);
+            $eventId = empty($matches[1]) ? null : $matches[1];
+            if ($eventId == 1803 && $baseCodeId == 1) {
+              $unset = false;
+            }
           }
           break;
       }
