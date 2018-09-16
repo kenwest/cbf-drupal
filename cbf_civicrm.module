@@ -278,7 +278,13 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
        */
       if (isset($_SESSION['City Bible Forum']['Card issues'])) {
         if ($_SESSION['City Bible Forum']['Card issues'] > 2) {
-          CRM_Core_Error::debug_log_message('|CiviCRM guard|Credit card issue|anonymous|173.0.81.1');
+          if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+          }
+          else {
+            $ip = $_SERVER['REMOTE_ADDR'];
+          }
+          CRM_Core_Error::debug_log_message("|CiviCRM guard|Credit card issue|anonymous|$ip");
           if ($_SESSION['City Bible Forum']['Card issues'] > 6) {
             CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
           }
