@@ -256,6 +256,9 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
     case 'CRM_Event_Form_Participant':
     case 'CRM_Event_Form_Registration_Register':
     case 'CRM_Financial_Form_Payment':
+      /*
+       * Keep a count of anonymous users' credit card issues in their session
+       */
       if (user_is_anonymous() && isset($_SESSION['CiviCRM']['status'][0]['text'])) {
         $status_text = $_SESSION['CiviCRM']['status'][0]['text'];
         if (stristr($status_text, 'Payment Processor Error') !== false) {
@@ -269,8 +272,17 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         }
       }
 
-      if (isset($_SESSION['City Bible Forum']['Card issues']) && $_SESSION['City Bible Forum']['Card issues'] > 5) {
-        CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
+      /*
+       * If a user has more than 2 credit card issues in a session, log it.
+       * If more than 6 send them to a dead end, assuming they're trying to crack a card.
+       */
+      if (isset($_SESSION['City Bible Forum']['Card issues'])) {
+        if ($_SESSION['City Bible Forum']['Card issues'] > 2) {
+          CRM_Core_Error::debug_log_message('|CiviCRM guard|Credit card issue|anonymous|173.0.81.1');
+          if ($_SESSION['City Bible Forum']['Card issues'] > 6) {
+            CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
+          }
+        }
       }
 
       // End users are getting confused when they enter email addresses with an additional space
