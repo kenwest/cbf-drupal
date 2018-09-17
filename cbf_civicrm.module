@@ -39,17 +39,22 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     $htmlMessage = preg_replace('!&nbsp;!i', ' ', $htmlMessage);
 
     /*
-     * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes an issue
-     * for responsive email templates when the email is viewed in Outlook. As these images have
-     * a CSS style setting their width or max-width to 280px, we reinsert the HTML attribute on
-     * images that match that pattern.
+     * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes
+     * an issue for responsive email templates when the email is viewed in Outlook.
+     *
+     * This is resolved by adding a class 'attribute-width-NNN' to the IMG element in
+     * the message template. The NNN is converted into a width="NNN" attribute that
+     * is added to the IMG. The 'attribute-width-NNN' class is otherwise ignored.
+     *
+     * There is a risk that the IMG ends up with 2 width attributes, but these should
+     * have the same value.
      */
-    $htmlMessage = preg_replace('!<img ([^w/>][^>]+width: 280px[^>]+)/>!i', '<img width="280" $1/>', $htmlMessage);
+    $htmlMessage = preg_replace('!<img ([^>]+attribute-width-([0-9]+)[^>]+)/>!i', '<img width="$2" $1/>', $htmlMessage);
 
     /*
-     * The HTML IMGs that have been set to 280px wide will not scale properly if the height
-     * attribute is set. We remove that.
+     * Legacy solution to width attribute stripping by CKeditor
      */
+    $htmlMessage = preg_replace('!<img ([^w/>][^>]+width: 280px[^>]+)/>!i', '<img width="280" $1/>', $htmlMessage);
     $htmlMessage = preg_replace('!<img width="280" ([^>]+)height: [0-9px%]+[;]?([^>]+)/>!i', '<img width="280" $1$2/>', $htmlMessage);
 
     /*
@@ -76,16 +81,17 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     /*
      * Replace the '<tax-invoice/>' HTML element with the Tax Invoice text.
      * This is usually empty, except for event registrations and contributions
-     * for Event Fees and Sales.
+     * for Event Fees and Sales which have a non-zero value.
      */
     $taxInvoice = '<tr><td>This email serves as a Tax Invoice. Amounts quoted include GST.</td></tr>';
-    $isTaxInvoice = FALSE;
+    $isTaxInvoice = false;
     if (isset($params['valueName'])) {
       switch ($params['valueName']) {
         case 'contribution_offline_receipt':
         case 'contribution_online_receipt':
           if (isset($params['tplParams']['contributionTypeName'])) {
             $financialType = $params['tplParams']['contributionTypeName'];
+            $nonZero = !empty($params['tplParams']['amount']);
           }
           else {
             try {
@@ -94,21 +100,28 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
                 'id' => $params['contributionId'],
               ));
               $financialType = $contribution['values'][0]['financial_type'];
+              $nonZero = !empty(floatval($contribution['values'][0]['total_amount']));
             } catch (CiviCRM_API3_Exception $e) {
               $financialType = '';
+              $nonZero = false;
             }
           }
           switch ($financialType) {
             case 'Event Fee':
             case 'Sales':
-              $isTaxInvoice = TRUE;
+              $isTaxInvoice = $nonZero;
               break;
           }
           break;
 
         case 'event_offline_receipt':
         case 'event_online_receipt':
-          $isTaxInvoice = TRUE;
+          if (isset($params['tplParams']['amount'])) {
+            $isTaxInvoice = !empty($params['tplParams']['amount']);
+          }
+          else {
+            $isTaxInvoice = true;
+          }
           break;
       }
     }
@@ -116,10 +129,12 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
 
     /*
      * There are occasions when CiviCRM uses an online contribution receipt for
-     * offline purposes. In that case there is no contribution page, so certain
-     * items won't appear on the receipt. The custom field logic is copied from
-     * CRM_Contribute_Form_AdditionalInfo::emailReceipt() and the other items
-     * from the contribution_online_receipt template.
+     * offline purposes. For example, when a recurring contribution is made
+     * offline the eWAY processor will use the online receipt template for all
+     * contributions except the first.
+     *
+     * Since the contribution was not made through a contribution page, certain
+     * items won't appear on the receipt. The HTML for these needs to be generated.
      */
     if (isset($params['valueName'])) {
       switch ($params['valueName']) {
@@ -144,12 +159,19 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   }
 }
 
+/*
+ * Generate the HTML for receipts where the payment was created offline but
+ * uses an online receipt template.
+ *
+ * The custom field logic is copied from CRM_Contribute_Form_AdditionalInfo::emailReceipt()
+ * and the logic for the other items from the contribution_online_receipt
+ * template.
+ */
 function _cbf_civicrm_civicrm_no_contribution_page($params) {
   $headerFormat = '"text-align: left; padding: 4px; border-bottom: 1px solid #999; background-color: #eee;"';
   $labelFormat = '"padding: 4px; border-bottom: 1px solid #999; background-color: #f7f7f7;"';
   $dataFormat = '"padding: 4px; border-bottom: 1px solid #999;"';
   $result = '';
-  $form = null;
 
   try {
     $contribution = civicrm_api3('Contribution', 'get', array(
@@ -163,7 +185,6 @@ function _cbf_civicrm_civicrm_no_contribution_page($params) {
       'Financial Type' => $contribution['values'][0]['financial_type'],
       'Receipt Date' => $contribution['values'][0]['receipt_date'],
       'Paid By' => $contribution['values'][0]['payment_instrument'],
-//      'Transaction ID' => $contribution['values'][0]['trxn_id'],
     );
     if (!empty($contributionInfo['Receipt Date'])) {
       $config = CRM_Core_Config::singleton();
@@ -174,22 +195,11 @@ function _cbf_civicrm_civicrm_no_contribution_page($params) {
         $result .= "<tr><td style=$labelFormat>$label</td><td style=$dataFormat>$data</td></tr>";
       }
     }
-    // Assume this receipt is being sent to an anonymous user. This code emulates
-    // CRM_Core_Permission::customGroup() being called for an anonymous user, and
-    // assumes that anonymous users are not granted the 'access all custom data'
-    // permission. Anonymous users are only shown public custom data groups.
+
     $customGroups = array();
-    $publicGroups = CRM_ACL_BAO_ACL::group(
-      CRM_Core_Permission::VIEW,
-      0,
-      'civicrm_custom_group',
-      CRM_Core_PseudoConstant::get('CRM_Core_DAO_CustomField', 'custom_group_id', array('fresh' => false))
-    );
-    $groupTree = CRM_Core_BAO_CustomGroup::getTree('Contribution', $form);
+    $groupTree = CRM_Core_BAO_CustomGroup::getTree('Contribution', null);
     foreach ($groupTree as $groupID => $group) {
-      if ($groupID == 'info') {
-        continue;
-      } elseif (in_array($groupID, $publicGroups) === false) {
+      if ($groupID == 'info' || empty($group['is_public'])) {
         continue;
       }
       $customGroups[$group['title']] = array();
@@ -246,6 +256,9 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
     case 'CRM_Event_Form_Participant':
     case 'CRM_Event_Form_Registration_Register':
     case 'CRM_Financial_Form_Payment':
+      /*
+       * Keep a count of anonymous users' credit card issues in their session
+       */
       if (user_is_anonymous() && isset($_SESSION['CiviCRM']['status'][0]['text'])) {
         $status_text = $_SESSION['CiviCRM']['status'][0]['text'];
         if (stristr($status_text, 'Payment Processor Error') !== false) {
@@ -259,8 +272,23 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         }
       }
 
-      if (isset($_SESSION['City Bible Forum']['Card issues']) && $_SESSION['City Bible Forum']['Card issues'] > 5) {
-        CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
+      /*
+       * If a user has more than 2 credit card issues in a session, log it.
+       * If more than 6 send them to a dead end, assuming they're trying to crack a card.
+       */
+      if (isset($_SESSION['City Bible Forum']['Card issues'])) {
+        if ($_SESSION['City Bible Forum']['Card issues'] > 2) {
+          if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+          }
+          else {
+            $ip = $_SERVER['REMOTE_ADDR'];
+          }
+          CRM_Core_Error::debug_log_message("|CiviCRM guard|Credit card issue|anonymous|$ip");
+          if ($_SESSION['City Bible Forum']['Card issues'] > 6) {
+            CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
+          }
+        }
       }
 
       // End users are getting confused when they enter email addresses with an additional space
@@ -313,8 +341,11 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         $submit[0]->setValue('Next >>');
       }
 
-      // Prevent the user from editing their name or email during
-      // online donations or registrations
+      /*
+       * Prevent the user from editing their name, email or phone during
+       * online donations or registrations, in the case when the form has
+       * defaults for these.
+       */
       switch ($formName) {
         case 'CRM_Contribute_Form_Contribution_Main':
         case 'CRM_Event_Form_Registration_Register':
@@ -487,6 +518,14 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
         elseif ($end <= $start) {
           $errors['end_date'] = ts('End date should be after Start date');
         }
+      }
+      break;
+
+    case 'CRM_Event_Form_ManageEvent_Registration':
+      // Do not allow the Register multiple participants flag to be set
+      $isMultiple = CRM_Utils_Array::value('is_multiple_registrations', $fields);
+      if (!empty($isMultiple)) {
+        $errors['is_multiple_registrations'] = ts('This option is not allowed. It causes too many user errors who a) try to use Price Sets with this option and b) do not fix data quality issues after the event');
       }
       break;
 
@@ -1222,15 +1261,23 @@ function _cbf_civicrm_current_form($formName = null) {
  * in which we are interested.
  */
 function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
+  $currentForm = _cbf_civicrm_current_form();
   if (!empty($trackingpaths)) {
     foreach ($trackingpaths as $index => $code) {
-      $unset = false;
+      $unset = true;
       $path = $code['event_path'];
+      $baseCodeId = $code['event_base_code_id'];
       switch ($path) {
         case 'civicrm/event/register':
-          if (_cbf_civicrm_current_form() != 'CRM_Event_Form_Registration_ThankYou'
-              || stripos($_SESSION['CiviCRM']['entryURL'], 'id=1803') === false) {
-            $unset = true;
+          if ($currentForm == 'CRM_Event_Form_Registration_ThankYou') {
+            preg_match('![?&]id=([0-9]+)!i', $_SESSION['CiviCRM']['entryURL'], $matches);
+            $eventId = empty($matches[1]) ? null : $matches[1];
+            if ($eventId == 1803 && $baseCodeId == 1) {
+              $unset = false;
+            }
+            if ($eventId == 1832 && $baseCodeId == 2) {
+              $unset = false;
+            }
           }
           break;
       }

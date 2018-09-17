@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2016                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2016
+ * @copyright CiviCRM LLC (c) 2004-2018
  */
 
 /**
@@ -70,11 +70,9 @@ class CRM_Utils_Address_BatchUpdate {
    */
   public function run() {
 
-    $config = &CRM_Core_Config::singleton();
-
     // do check for geocoding.
     $processGeocode = FALSE;
-    if (empty($config->geocodeMethod)) {
+    if (!CRM_Utils_GeocodeProvider::getUsableClassName()) {
       if (CRM_Utils_String::strtobool($this->geocoding) === TRUE) {
         $this->returnMessages[] = ts('Error: You need to set a mapping provider under Administer > System Settings > Mapping and Geocoding');
         $this->returnError = 1;
@@ -121,20 +119,19 @@ class CRM_Utils_Address_BatchUpdate {
     }
 
     // do check for parse street address.
-    return $this->processContacts($config, $processGeocode, $parseStreetAddress);
+    return $this->processContacts($processGeocode, $parseStreetAddress);
   }
 
   /**
    * Process contacts.
    *
-   * @param CRM_Core_Config $config
    * @param bool $processGeocode
    * @param bool $parseStreetAddress
    *
    * @return array
    * @throws Exception
    */
-  public function processContacts(&$config, $processGeocode, $parseStreetAddress) {
+  public function processContacts($processGeocode, $parseStreetAddress) {
     // build where clause.
     $clause = array('( 1 )');
     $params = array();
@@ -190,9 +187,6 @@ class CRM_Utils_Address_BatchUpdate {
     $totalGeocoded = $totalAddresses = $totalAddressParsed = 0;
 
     $dao = CRM_Core_DAO::executeQuery($query, $params);
-    if ($processGeocode) {
-      require_once str_replace('_', DIRECTORY_SEPARATOR, $config->geocodeMethod) . '.php';
-    }
 
     $unparseableContactAddress = array();
     while ($dao->fetch()) {
@@ -219,8 +213,7 @@ class CRM_Utils_Address_BatchUpdate {
             usleep(5000000);
           }
 
-          $className = $config->geocodeMethod;
-          $className::format($params, TRUE);
+          CRM_Core_BAO_Address::addGeocoderData($params);
 
           // see if we got a geocode error, in this case we'll trigger a fatal
           // CRM-13760
@@ -228,7 +221,7 @@ class CRM_Utils_Address_BatchUpdate {
             isset($params['geo_code_error']) &&
             $params['geo_code_error'] == 'OVER_QUERY_LIMIT'
           ) {
-            CRM_Core_Error::fatal('Aborting batch geocoding. Hit the over query limit on geocoder.');
+            throw new CRM_Core_Exception('Aborting batch geocoding. Hit the over query limit on geocoder.');
           }
 
           array_shift($params);
@@ -240,10 +233,7 @@ class CRM_Utils_Address_BatchUpdate {
 
         if (isset($params['geo_code_1']) && $params['geo_code_1'] != 'null') {
           $totalGeocoded++;
-          $addressParams['geo_code_1'] = $params['geo_code_1'];
-          $addressParams['geo_code_2'] = $params['geo_code_2'];
-          $addressParams['postal_code'] = $params['postal_code'];
-          $addressParams['postal_code_suffix'] = CRM_Utils_Array::value('postal_code_suffix', $params);
+          $addressParams = $params;
         }
       }
 

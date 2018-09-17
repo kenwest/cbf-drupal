@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2016                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -102,14 +102,14 @@
   {elseif !empty($ccid)}
     {if $lineItem && $priceSetID && !$is_quick_config}
       <div class="header-dark">
-        {ts}Contribution Information{/ts}
+        {ts}Contribution Information{/ts}{if $display_name} &ndash; {$display_name}{/if}
       </div>
       {assign var="totalAmount" value=$pendingAmount}
       {include file="CRM/Price/Page/LineItem.tpl" context="Contribution"}
     {else}
       <div class="display-block">
         <td class="label">{$form.total_amount.label}</td>
-        <td><span>{$form.total_amount.html|crmMoney}</span></td>
+        <td><span>{$form.total_amount.html|crmMoney}&nbsp;&nbsp;{if $taxAmount}{ts 1=$taxTerm 2=$taxAmount|crmMoney}(includes %1 of %2){/ts}{/if}</span></td>
       </div>
     {/if}
   {else}
@@ -173,13 +173,7 @@
           </span>
         {/if}
         <div id="recurHelp" class="description">
-          {ts}Your recurring contribution will be processed automatically.{/ts}
-          {if $is_recur_installments}
-            {ts}You can specify the number of installments, or you can leave the number of installments blank if you want to make an open-ended commitment. In either case, you can choose to cancel at any time.{/ts}
-          {/if}
-          {if $is_email_receipt}
-            {ts}You will receive an email receipt for each recurring contribution.{/ts}
-          {/if}
+          {$recurringHelpText}
         </div>
       </div>
       <div class="clear"></div>
@@ -192,16 +186,18 @@
       <div class="clear"></div>
     </div>
     {/if}
-    {assign var=n value=email-$bltID}
-    <div class="crm-public-form-item crm-section {$form.$n.name}-section">
-      <div class="label">{$form.$n.label}</div>
-      <div class="content">
-        {$form.$n.html}
+    {if $showMainEmail}
+      {assign var=n value=email-$bltID}
+      <div class="crm-public-form-item crm-section {$form.$n.name}-section">
+        <div class="label">{$form.$n.label}</div>
+        <div class="content">
+          {$form.$n.html}
+        </div>
+        <div class="clear"></div>
       </div>
-      <div class="clear"></div>
-    </div>
+    {/if}
 
-    <div class="crm-public-form-item crm-section">
+    <div id='onBehalfOfOrg' class="crm-public-form-item crm-section">
       {include file="CRM/Contribute/Form/Contribution/OnBehalfOf.tpl"}
     </div>
 
@@ -360,16 +356,17 @@
   function toggleRecur( ) {
     var isRecur = cj('input[id="is_recur"]:checked');
     var allowAutoRenew = {/literal}'{$allowAutoRenewMembership}'{literal};
-    if ( allowAutoRenew && cj("#auto_renew") ) {
+    var quickConfig = {/literal}{$quickConfig}{literal};
+    if ( allowAutoRenew && cj("#auto_renew") && quickConfig) {
       showHideAutoRenew( null );
     }
     if (isRecur.val() > 0) {
       cj('#recurHelp').show();
-      cj('#amount_sum_label').text(ts('Regular amount'));
+      cj('#amount_sum_label').text('{/literal}{ts escape='js'}Regular amount{/ts}{literal}');
     }
     else {
       cj('#recurHelp').hide();
-      cj('#amount_sum_label').text(ts('Total amount'));
+      cj('#amount_sum_label').text('{/literal}{ts escape='js'}Total Amount{/ts}{literal}');
     }
   }
 
