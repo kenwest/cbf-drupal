@@ -690,10 +690,17 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
   );
 
   foreach ($ignore as $patternSet) {
+    $guard = false;
     foreach ($patternSet as $element => $pattern) {
-      if (preg_match('#' . $pattern . '#i', $vars[$element]) != 1) {
+      if ($element == 'guard') {
+        $guard = $pattern;
+      }
+      else if (preg_match('#' . $pattern . '#i', $vars[$element]) != 1) {
         continue 2;
       }
+    }
+    if (!empty($guard)) {
+      CRM_Core_Error::debug_log_message("|CiviCRM guard|$guard|anonymous|{$vars['ip']}");
     }
     return true;
   }
