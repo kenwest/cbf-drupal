@@ -1266,16 +1266,17 @@ function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
     foreach ($trackingpaths as $index => $code) {
       $unset = true;
       $path = $code['event_path'];
-      $baseCodeId = $code['event_base_code_id'];
       switch ($path) {
         case 'civicrm/event/register':
           if ($currentForm == 'CRM_Event_Form_Registration_ThankYou') {
-            preg_match('![?&]id=([0-9]+)!i', $_SESSION['CiviCRM']['entryURL'], $matches);
+            preg_match('![?&;]id=([0-9]+)!i', $_SESSION['CiviCRM']['entryURL'], $matches);
             $eventId = empty($matches[1]) ? null : $matches[1];
-            if ($eventId == 1803 && $baseCodeId == 1) {
+            if ($eventId == 1803) {
+              $trackingpaths[$index]['event_base_code_id'] = 1;
               $unset = false;
             }
-            if ($eventId == 1832 && $baseCodeId == 2) {
+            if ($eventId == 1832) {
+              $trackingpaths[$index]['event_base_code_id'] = 1;
               $unset = false;
             }
           }
