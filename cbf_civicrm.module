@@ -1276,7 +1276,7 @@ function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
               $unset = false;
             }
             if ($eventId == 1832) {
-              $trackingpaths[$index]['event_base_code_id'] = 1;
+              $trackingpaths[$index]['event_base_code_id'] = 2;
               $unset = false;
             }
           }
