@@ -687,6 +687,17 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     array(
       'message' => 'Error type: Could not find a valid session key',
     ),
+    array(
+      // Robots trawling templates/CRM/common/paymentBlock.tpl
+      'message' => 'processor_id \(value: \) is not of the type Integer',
+      'url' => '/civicrm/payment/form\?.+&processor_id=$',
+    ),
+    array(
+      // People try to poison our database by unsubscribing or opting out
+      'message' => 'There was an error in your request',
+      'url' => '/civicrm/mailing/(optout|unsubscribe)\?.+',
+      'guard' => 'Mailing unsubscribe issue',
+    ),
   );
 
   foreach ($ignore as $patternSet) {
