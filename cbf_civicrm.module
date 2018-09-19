@@ -698,6 +698,12 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
       'url' => '/civicrm/mailing/(optout|unsubscribe)\?.+',
       'guard' => 'Mailing unsubscribe issue',
     ),
+    array(
+      // Robots trawling an old 'sign Petition' link
+      'message' => 'Petition is no longer active',
+      'url' => '/civicrm/petition/sign\?',
+      'agent' => 'bot'
+    ),
   );
 
   foreach ($ignore as $patternSet) {
