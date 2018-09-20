@@ -2018,9 +2018,11 @@ function cbf_entity_viewable($entity, $type, $operation) {
       'bundles' => array(
         'event' => array(
           'dateable',
+          'highlightable',
         ),
         'story' => array(
           'dateable',
+          'highlightable',
         ),
       ),
     ),
@@ -2029,6 +2031,7 @@ function cbf_entity_viewable($entity, $type, $operation) {
       'status' => 'is_public',
       'viewables' => array(
         'dateable',
+        'highlightable',
       ),
     ),
   );
@@ -2168,122 +2171,236 @@ function cbf_entity_viewable($entity, $type, $operation) {
   }
 }
 
-function cbf_entity_dateable($entity, $type, $operation) {
-  $return = array();
+/*
+ * cbf_entity_viewable_fields() gets the named $fields from the source $entity
+ */
+function cbf_entity_viewable_fields($entity, $type, $fields) {
+  /*
+   * Metadata for the fields in the source $entity. Each of the $fields in
+   * the viewable entity is matched against one of these $fromFields in
+   * the source $entity. The metadata is ...
+   *  - field    - the name of the field in the source $entity
+   *  - value    - controls how the field value is obtained (see below)
+   *  - required - if the retrieved field value is null, and 'required' is
+   *               true, then return a failure (empty result array) so the
+   *               viewable entity will not be created
+   *  - default  - if the retrieved field value is null, and 'required' is
+   *               false, then use the default value
+   */
+  $fromFields = [
+    'field_title' => [
+      'field' => 'field_title',
+      'value' => 'value',
+      'default' => $entity->title,
+    ],
+    'field_subtitle' => [
+      'field' => 'field_subtitle',
+      'value' => 'value',
+      'default' => '',
+    ],
+    'taxonomy_vocabulary_1' => [
+      'field' => 'taxonomy_vocabulary_1',
+      'value' => 'tid',
+      'default' => null,
+    ],
+    'taxonomy_vocabulary_3' => [
+      'field' => 'taxonomy_vocabulary_3',
+      'value' => 'tid',
+      'required' => true,
+    ],
+    'field_activity_category' => [
+      'field' => 'field_activity_category',
+      'value' => 'tid',
+      'default' => null,
+    ],
+    'field_in_activity' => [
+      'field' => 'field_in_activity',
+      'value' => 'target_id',
+      'default' => null,
+    ],
+    'field_event_date' => [
+      'field' => 'field_event_date',
+      'value' => 'array',
+      'default' => null,
+    ],
+    'field_episode_date' => [
+      'field' => 'field_episode_date',
+      'value' => 'get timestamp',
+      'default' => null,
+    ],
+    'field_highlight_dates' => [
+      'field' => 'field_highlight_dates',
+      'value' => 'array',
+      'default' => null,
+    ],
+    'field_thumbnail_image' => [
+      'field' => 'field_thumbnail_image',
+      'value' => 'reset array',
+      'default' => null,
+    ],
+    'field_highlight' => [
+      'field' => 'field_highlight',
+      'value' => 'reset array',
+      'default' => null,
+    ],
+    'field_highlight_location' => [
+      'field' => 'field_highlight_location',
+      'value' => 'array',
+      'default' => null,
+    ],
+    'domain_entityform' => [
+      'field' => 'field_domain',
+      'value' => 'array',
+      'default' => null,
+    ],
+  ];
 
-  switch ($operation) {
-    case 'delete':
-      break;
+  $result = [ ];
 
-    default:
-      $return['field_title'] = $entity->title;
+  foreach ($fields as $to) {
+    $from = $fromFields[$to];
+    $field = field_get_items($type, $entity, $from['field']);
 
+    /*
+     * If the $field in $entity is empty, either fail if the field is required,
+     * or use the default value.
+     */
+    if (empty($field)) {
+      if (isset($from['required'])) {
+        return [ ];
+      }
+      $result[$to] = $from['default'];
+    }
+    else switch ($from['value']) {
       /*
-       * Copy the fields
-       * Special cases:
-       *  - field_thumbnail_image can default to other images if not supplied
-       *  - civicrm-event->summary is not a field
-       *  - node->domains is not a field
+       * The 'value' metadata controls how the $field value is extracted ...
+       *  - 'array'         - all values in the field
+       *  - 'reset array'   - the first element in the value array
+       *  - 'get timestamp' - treat the first element as a date array
+       *  - otherwise the 'value' is interpreted as the name of an element
+       *    in the first element of the value array
        */
-      $fields = array(
-        'field_subtitle' => array(
-          'field' => 'field_subtitle',
-          'value' => 'value',
-          'default' => '',
-        ),
-        'taxonomy_vocabulary_1' => array(
-          'field' => 'taxonomy_vocabulary_1',
-          'value' => 'tid',
-          'default' => null,
-        ),
-        'taxonomy_vocabulary_3' => array(
-          'field' => 'taxonomy_vocabulary_3',
-          'value' => 'tid',
-          'required' => true,
-        ),
-        'field_in_activity' => array(
-          'field' => 'field_in_activity',
-          'value' => 'target_id',
-          'default' => null,
-        ),
-        'field_event_date' => array(
-          'field' => 'field_event_date',
-          'value' => 'array',
-          'default' => null,
-        ),
-        'field_episode_date' => array(
-          'field' => 'field_episode_date',
-          'value' => 'get timestamp',
-          'default' => null,
-        ),
-        'field_thumbnail_image' => array(
-          'field' => 'field_thumbnail_image',
-          'value' => 'reset array',
-          'default' => null,
-        ),
-        'field_highlight_location' => array(
-          'field' => 'field_highlight_location',
-          'value' => 'array',
-          'default' => null,
-        ),
-        'domain_entityform' => array(
-          'field' => 'field_domain',
-          'value' => 'array',
-          'default' => null,
-        ),
-      );
-      foreach ($fields as $to => $from) {
-        $field = field_get_items($type, $entity, $from['field']);
-        if (empty($field)) {
-          if (isset($from['required'])) {
-            return array();
-          }
-          $return[$to] = $from['default'];
-        }
-        elseif ($from['value'] == 'array') {
-          $return[$to] = $field;
-        }
-        elseif ($from['value'] == 'reset array') {
-          $return[$to] = reset($field);
-        }
-        elseif ($from['value'] == 'get timestamp') {
-          $field = reset($field);
-          $time = new DateObject($field['value'], $field['timezone']);
-          $return[$to] = strtotime($time->format('Y-m-d H:i:s O'));
-        }
-        else {
-          $return[$to] = reset($field)[$from['value']];
-        }
-      }
-      if (empty($return['field_thumbnail_image'])) {
-        $field = field_get_items($type, $entity, 'field_series_image');
-        if (!empty($field)) {
-          $return['field_thumbnail_image'] = reset($field);
-        }
-        else {
-          $field = field_get_items($type, $entity, 'field_image');
-          if (!empty($field)) {
-            $return['field_thumbnail_image'] = reset($field);
-          }
-          else {
-            $field = field_get_items($type, $entity, 'field_highlight');
-            if (!empty($field)) {
-              $return['field_thumbnail_image'] = reset($field);
-            }
-          }
-        }
-      }
-      if (!empty($entity->summary)) {
-        $return['field_subtitle'] = $entity->summary;
-      }
-      if (!empty($entity->domains)) {
-        $return['domain_entityform'] = array();
-        foreach ($entity->domains as $domain) {
-          $return['domain_entityform'][] = array('domain_id' => $domain);
-        }
-      }
-      break;
+      case 'array':
+        $result[$to] = $field;
+        break;
+
+      case 'reset array':
+        $result[$to] = reset($field);
+        break;
+
+      case 'get timestamp':
+        $field = reset($field);
+        $time = new DateObject($field['value'], $field['timezone']);
+        $result[$to] = strtotime($time->format('Y-m-d H:i:s O'));
+        break;
+
+      default:
+        $result[$to] = reset($field)[$from['value']];
+        break;
+    }
   }
 
-  return $return;
+  /*
+   * Special case - the thumbnail image is sourced from the available images in
+   * the following order of preference ...
+   *  - field_thumbnail_image
+   *  - field_series_image
+   *  - field_image
+   *  - field_highlight
+   */
+  if (in_array('field_thumbnail_image', $fields) && empty($result['field_thumbnail_image'])) {
+    $field = field_get_items($type, $entity, 'field_series_image');
+    if (!empty($field)) {
+      $result['field_thumbnail_image'] = reset($field);
+    }
+    else {
+      $field = field_get_items($type, $entity, 'field_image');
+      if (!empty($field)) {
+        $result['field_thumbnail_image'] = reset($field);
+      }
+      else {
+        $field = field_get_items($type, $entity, 'field_highlight');
+        if (!empty($field)) {
+          $result['field_thumbnail_image'] = reset($field);
+        }
+      }
+    }
+  }
+
+  /*
+   * Special case - if the source $entity is a civicrm_event its subtitle will
+   * be found in the 'summary' attribute.
+   */
+  if (in_array('field_subtitle', $fields) && !empty($entity->summary)) {
+    $result['field_subtitle'] = $entity->summary;
+  }
+
+  /*
+   * Special case - if the source $entity is a node the 'domains' attribute
+   * hold the domain values
+   */
+  if (in_array('domain_entityform', $fields) && !empty($entity->domains)) {
+    $result['domain_entityform'] = [ ];
+    foreach ($entity->domains as $domain) {
+      $result['domain_entityform'][] = [ 'domain_id' => $domain ];
+    }
+  }
+
+  return $result;
+}
+
+/*
+ * cbf_entity_dateable() gets the needed $fields from the source $entity
+ */
+function cbf_entity_dateable($entity, $type, $operation) {
+  switch ($operation) {
+    case 'delete':
+      return [ ];
+
+    default:
+      return cbf_entity_viewable_fields(
+        $entity,
+        $type,
+        array(
+          "field_title",
+          "field_subtitle",
+          "taxonomy_vocabulary_1",
+          "taxonomy_vocabulary_3",
+          "field_in_activity",
+          "field_event_date",
+          "field_episode_date",
+          "field_thumbnail_image",
+          "field_highlight_location",
+          "domain_entityform",
+        )
+      );
+  }
+}
+
+/*
+ * cbf_entity_dateable() gets the needed $fields from the source $entity
+ */
+function cbf_entity_highlightable($entity, $type, $operation) {
+  switch ($operation) {
+    case 'delete':
+      return [ ];
+
+    default:
+      return cbf_entity_viewable_fields(
+        $entity,
+        $type,
+        array(
+          "field_title",
+          "field_subtitle",
+          "taxonomy_vocabulary_1",
+          "taxonomy_vocabulary_3",
+          "field_in_activity",
+          "field_highlight",
+          "field_highlight_location",
+          "field_activity_category",
+          "field_highlight_dates",
+          "domain_entityform",
+        )
+      );
+  }
 }
