@@ -1295,23 +1295,13 @@ function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
           if ($currentForm == 'CRM_Event_Form_Registration_ThankYou') {
             preg_match('![?&;]id=([0-9]+)!i', $_SESSION['CiviCRM']['entryURL'], $matches);
             $eventId = empty($matches[1]) ? null : $matches[1];
-            if (empty($path[1])) {
-              if ($eventId == 1803) {
-                $unset = false;
-              }
-              if ($eventId == 1832) {
-                $unset = false;
-              }
-            }
-            else {
-              if ($eventId == $path[1]) {
-                /*
-                 * Preserve this tracking path
-                 * Prevent the default tracking path rule removing it
-                 */
-                $unset = false;
-                $trackingpaths[$index]['event_path'] = $path[0];
-              }
+            if (!empty($path[1]) && $eventId == $path[1]) {
+              /*
+               * Preserve this tracking path
+               * Prevent the default tracking path rule removing it
+               */
+              $unset = false;
+              $trackingpaths[$index]['event_path'] = $path[0];
             }
           }
           break;
