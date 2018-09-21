@@ -665,46 +665,52 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
    * Note that the preg_match uses '#' as a pattern delimiter so this should not
    * be used in a pattern in $ignore.
    */
-  $ignore = array(
-    array(
+  $ignore = [
+    [
       'message' => 'Invalid value passed to getPayment function',
       'url' => '/civicrm/event/register.*id=[0-9][0-9][0-9]($|[^0-9])',
-    ),
-    array(
+    ],
+    [
       'message' => 'id .* POST .* GET .* is not of the type Positive',
-    ),
-    array(
+    ],
+    [
       'message' => 'Invalid form parameters',
       'url' => '/civicrm/mailing/forward$',
-    ),
-    array(
+    ],
+    [
       'message' => 'Missing (input )?parameters',
       'url' => '/civicrm/mailing/(optout|unsubscribe)$',
-    ),
-    array(
+    ],
+    [
       'agent' => 'detectify\.com',
-    ),
-    array(
+    ],
+    [
       'message' => 'Error type: Could not find a valid session key',
-    ),
-    array(
+    ],
+    [
       // Robots trawling templates/CRM/common/paymentBlock.tpl
       'message' => 'processor_id \(value: \) is not of the type Integer',
       'url' => '/civicrm/payment/form\?.+&processor_id=$',
-    ),
-    array(
+    ],
+    [
       // People try to poison our database by unsubscribing or opting out
       'message' => 'There was an error in your request',
       'url' => '/civicrm/mailing/(optout|unsubscribe)\?.+',
       'guard' => 'Mailing unsubscribe issue',
-    ),
-    array(
+    ],
+    [
       // Robots trawling an old 'sign Petition' link
       'message' => 'Petition is no longer active',
       'url' => '/civicrm/petition/sign\?',
-      'agent' => 'bot'
-    ),
-  );
+      'agent' => 'bot',
+    ],
+    [
+      // Robots trawling a registration link
+      'message' => 'Could not find valid value for id',
+      'url' => '/civicrm/event/register$',
+      'agent' => 'bot',
+    ],
+  ];
 
   foreach ($ignore as $patternSet) {
     $guard = false;
