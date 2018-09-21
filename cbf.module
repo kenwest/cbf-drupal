@@ -2010,49 +2010,49 @@ function cbf_entity_delete($entity, $type) {
 }
 
 function cbf_entity_viewable($entity, $type, $operation) {
-  $entityTypes = array(
-    'node' => array(
+  $entityTypes = [
+    'node' => [
       'id' => 'nid',
       'type' => 'type',
       'status' => 'status',
-      'bundles' => array(
-        'activity' => array(
+      'bundles' => [
+        'activity' => [
           'highlightable',
-        ),
-        'blog' => array(
+        ],
+        'blog' => [
           'highlightable',
-        ),
-        'episode' => array(
+        ],
+        'episode' => [
           'highlightable',
-        ),
-        'event' => array(
+        ],
+        'event' => [
           'dateable',
           'highlightable',
-        ),
-        'page' => array(
+        ],
+        'page' => [
           'highlightable',
-        ),
-        'story' => array(
+        ],
+        'story' => [
           'dateable',
           'highlightable',
-        ),
-      ),
-    ),
-    'civicrm_event' => array(
+        ],
+      ],
+    ],
+    'civicrm_event' => [
       'id' => 'id',
       'status' => 'is_public',
-      'viewables' => array(
+      'viewables' => [
         'dateable',
         'highlightable',
-      ),
-    ),
-  );
+      ],
+    ],
+  ];
 
   /*
    * Look up entity $type to determine what viewable entities are supported
    * Some entity $type's have bundles
    */
-  $viewables = array();
+  $viewables = [ ];
   if (isset($entityTypes[$type])) {
     if (
       isset($entityTypes[$type]['bundles']) &&
@@ -2139,13 +2139,13 @@ function cbf_entity_viewable($entity, $type, $operation) {
 
         $entityForm = entity_create(
           'entityform',
-          array(
+          [
             'type' => $viewable,
             'created' => time(),
             'changed' => time(),
             'language' => LANGUAGE_NONE,
-            'uid' => $user->uid
-          )
+            'uid' => $user->uid,
+          ]
         );
       }
 
