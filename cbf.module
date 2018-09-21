@@ -2118,9 +2118,9 @@ function cbf_entity_viewable($entity, $type, $operation) {
     /*
      * Get the fields from the source $entity
      */
-    if ($status) {
+    if ($status && $operation != 'delete') {
       $viewableFunction = "cbf_entity_$viewable";
-      $viewableEntity = $viewableFunction($entity, $type, $operation);
+      $viewableEntity = $viewableFunction($entity, $type);
     }
     else {
       $viewableEntity = array();
@@ -2364,55 +2364,43 @@ function cbf_entity_viewable_fields($entity, $type, $fields) {
 /*
  * cbf_entity_dateable() gets the needed $fields from the source $entity
  */
-function cbf_entity_dateable($entity, $type, $operation) {
-  switch ($operation) {
-    case 'delete':
-      return [ ];
-
-    default:
-      return cbf_entity_viewable_fields(
-        $entity,
-        $type,
-        array(
-          "field_title",
-          "field_subtitle",
-          "taxonomy_vocabulary_1",
-          "taxonomy_vocabulary_3",
-          "field_in_activity",
-          "field_event_date",
-          "field_episode_date",
-          "field_thumbnail_image",
-          "field_highlight_location",
-          "domain_entityform",
-        )
-      );
-  }
+function cbf_entity_dateable($entity, $type) {
+  return cbf_entity_viewable_fields(
+    $entity,
+    $type,
+    array(
+      "field_title",
+      "field_subtitle",
+      "taxonomy_vocabulary_1",
+      "taxonomy_vocabulary_3",
+      "field_in_activity",
+      "field_event_date",
+      "field_episode_date",
+      "field_thumbnail_image",
+      "field_highlight_location",
+      "domain_entityform",
+    )
+  );
 }
 
 /*
  * cbf_entity_dateable() gets the needed $fields from the source $entity
  */
-function cbf_entity_highlightable($entity, $type, $operation) {
-  switch ($operation) {
-    case 'delete':
-      return [ ];
-
-    default:
-      return cbf_entity_viewable_fields(
-        $entity,
-        $type,
-        array(
-          "field_title",
-          "field_subtitle",
-          "taxonomy_vocabulary_1",
-          "taxonomy_vocabulary_3",
-          "field_in_activity",
-          "field_highlight",
-          "field_highlight_location",
-          "field_activity_category",
-          "field_highlight_dates",
-          "domain_entityform",
-        )
-      );
-  }
+function cbf_entity_highlightable($entity, $type) {
+  return cbf_entity_viewable_fields(
+    $entity,
+    $type,
+    array(
+      "field_title",
+      "field_subtitle",
+      "taxonomy_vocabulary_1",
+      "taxonomy_vocabulary_3",
+      "field_in_activity",
+      "field_highlight",
+      "field_highlight_location",
+      "field_activity_category",
+      "field_highlight_dates",
+      "domain_entityform",
+    )
+  );
 }
