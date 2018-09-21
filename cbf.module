@@ -2123,7 +2123,7 @@ function cbf_entity_viewable($entity, $type, $operation) {
       $viewableEntity = $viewableFunction($entity, $type);
     }
     else {
-      $viewableEntity = array();
+      $viewableEntity = [ ];
     }
 
     if (!empty($viewableEntity)) {
@@ -2368,7 +2368,7 @@ function cbf_entity_dateable($entity, $type) {
   return cbf_entity_viewable_fields(
     $entity,
     $type,
-    array(
+    [
       "field_title",
       "field_subtitle",
       "taxonomy_vocabulary_1",
@@ -2379,7 +2379,7 @@ function cbf_entity_dateable($entity, $type) {
       "field_thumbnail_image",
       "field_highlight_location",
       "domain_entityform",
-    )
+    ]
   );
 }
 
@@ -2390,7 +2390,7 @@ function cbf_entity_highlightable($entity, $type) {
   return cbf_entity_viewable_fields(
     $entity,
     $type,
-    array(
+    [
       "field_title",
       "field_subtitle",
       "taxonomy_vocabulary_1",
@@ -2401,6 +2401,6 @@ function cbf_entity_highlightable($entity, $type) {
       "field_activity_category",
       "field_highlight_dates",
       "domain_entityform",
-    )
+    ]
   );
 }
