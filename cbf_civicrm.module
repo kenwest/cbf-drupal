@@ -710,6 +710,11 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
       'url' => '/civicrm/event/register$',
       'agent' => 'bot',
     ],
+    [
+      // People who register and re-visit the Thankyou page
+      'message' => 'Could not find valid value for id',
+      'url' => '/civicrm/event/register\?_qf_ThankYou_display=true&qfKey=',
+    ],
   ];
 
   foreach ($ignore as $patternSet) {
