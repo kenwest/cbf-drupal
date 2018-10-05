@@ -52,15 +52,6 @@
                 </td>
               </tr>
             </table>
-            <table border="0" cellpadding="0" cellspacing="0" align="right" class="deviceWidth">
-              <tr>
-                <td class="center" style="font-size: 11px; color: #333333; font-weight: light; text-align: right; font-family: 'Open Sans',Arial,Helvetica,sans-serif; line-height: 20px; vertical-align: middle; padding: 0;">
-                  <a href="http://citybibleforum.org/library" style="text-decoration: none; color: #333333;">Library</a>
-                  &ensp;&ensp;
-                  <a href="http://citybibleforum.org/articles" style="text-decoration: none; color: #333333;">Blog</a>
-                </td>
-              </tr>
-            </table>
           </td>
         </tr>
       </table>
