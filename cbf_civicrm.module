@@ -715,6 +715,12 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
       'message' => 'Could not find valid value for id',
       'url' => '/civicrm/event/register\?_qf_ThankYou_display=true&qfKey=',
     ],
+    [
+      // People who are attempting to hack trackable URLs
+      'message' => 'One of parameters .* is not of the type Integer',
+      'url' => '/sites/all/modules/civicrm/extern/url\.php',
+      'guard' => 'Trackable URL issue',
+    ],
   ];
 
   foreach ($ignore as $patternSet) {
