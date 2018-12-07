@@ -1307,6 +1307,7 @@ function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
     foreach ($trackingpaths as $index => $code) {
       $unset = true;
       $path = explode('|', $code['event_path']);
+      $matches = null;
       switch ($path[0]) {
         case 'civicrm/event/register':
           if ($currentForm == 'CRM_Event_Form_Registration_ThankYou') {
@@ -1318,13 +1319,29 @@ function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
                * Prevent the default tracking path rule removing it
                */
               $unset = false;
-              $trackingpaths[$index]['event_path'] = $path[0];
+            }
+          }
+          break;
+
+        case 'civicrm/contribute/transact':
+          if ($currentForm == 'CRM_Contribute_Form_Contribution_ThankYou') {
+            preg_match('![?&;]id=([0-9]+)!i', $_SESSION['CiviCRM']['entryURL'], $matches);
+            $eventId = empty($matches[1]) ? null : $matches[1];
+            if (!empty($path[1]) && $eventId == $path[1]) {
+              /*
+               * Preserve this tracking path
+               * Prevent the default tracking path rule removing it
+               */
+              $unset = false;
             }
           }
           break;
       }
       if ($unset) {
         unset($trackingpaths[$index]);
+      }
+      else {
+        $trackingpaths[$index]['event_path'] = $path[0];
       }
     }
   }
