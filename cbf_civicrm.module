@@ -734,7 +734,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
       }
     }
     if (!empty($guard)) {
-      CRM_Core_Error::debug_log_message("|CiviCRM guard|$guard|anonymous|{$vars['ip']}");
+      CRM_Core_Error::debug_log_message("|CiviCRM guard|$guard|anonymous|{$vars['ip']}|{$vars['url']}");
     }
     return true;
   }
