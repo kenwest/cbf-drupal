@@ -935,7 +935,6 @@ function computed_field_field_source_entity_alias_display($field, $entity_field_
  *    Events and CiviCRM Events when they should be using a News Story.
  */
 function cbf_field_event_date_validate($form, &$form_state) {
-  return; // Turn this off temporarily
   if (isset($form_state['values']['field_event_date'])) {
     $duration = 0;
     foreach (reset($form_state['values']['field_event_date']) as $event_occurrence) {
