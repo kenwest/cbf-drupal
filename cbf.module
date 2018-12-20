@@ -1708,8 +1708,7 @@ function cbf_views_post_execute(&$view) {
      * Text of the summary event
      */
     if (!empty($summarised)) {
-      $alteredResults = array();
-      $otherTimes = 'Other times';
+      $alteredResults = [];
       foreach ($view->result as $r => $result) {
         if (!isset($summarised[$r])) {
           if (isset($result->field_field_date_text[0]['rendered']['#markup']) && in_array($r, $summarised)) {
@@ -1730,7 +1729,7 @@ function cbf_views_post_execute(&$view) {
      */
     $maximumDisplayed = 5;
     if (count($view->result) > $maximumDisplayed) {
-      $alteredResults = array();
+      $alteredResults = [];
       $i = 0;
       foreach ($view->result as $r => $result) {
         if ($i++ == $maximumDisplayed) {
