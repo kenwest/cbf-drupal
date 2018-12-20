@@ -1649,7 +1649,7 @@ function cbf_views_post_execute(&$view) {
    * to include a link to a page of events for the Event's Activity.
    */
   if (
-    $view->display_handler->get_option('css_class') == "cbf-merge-events" &&
+    preg_match('/(^| )cbf-merge-events($| )/i', $view->display_handler->get_option('css_class')) == 1 &&
     $view->display_handler->plugin_name == 'block') {
     /*
      * $eventsByActivity is an array of arrays. It maps from Activity Id to Event name to
