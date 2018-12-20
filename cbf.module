@@ -1670,10 +1670,12 @@ function cbf_views_post_execute(&$view) {
       $activity = $result->field_field_in_activity[0]['raw']['target_id'];
 
       /*
-       * Get the name from the node_title or the field_field_title
+       * Get the title
        */
       if (isset($result->node_title)) {
         $name = $result->node_title;
+      } elseif (isset($result->civicrm_event_title)) {
+        $name = $result->civicrm_event_title;
       } elseif (isset($result->field_field_title)) {
         $name = $result->field_field_title[0]['rendered']['#markup'];
       } else {
