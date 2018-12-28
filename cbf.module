@@ -1711,11 +1711,8 @@ function cbf_views_post_execute(&$view) {
       $alteredResults = [];
       foreach ($view->result as $r => $result) {
         if (!isset($summarised[$r])) {
-          if (isset($result->field_field_date_text[0]['rendered']['#markup']) && in_array($r, $summarised)) {
-            $result->field_field_date_text[0]['rendered']['#markup'] .=
-              ' <a class="other-times" href="/events/activity/' .
-              $result->field_field_in_activity[0]['raw']['target_id'] .
-              '">Other times</a>';
+          if (in_array($r, $summarised)) {
+            $result->__cbf_merge_events = drupal_get_path_alias("node/" . $result->field_field_in_activity[0]['raw']['target_id']);
           }
           $alteredResults[] = $result;
         }
