@@ -967,10 +967,14 @@ function cbf_field_event_date_validate($form, &$form_state) {
  *         NNNN is the node Id for the Activity that corresponds to this domain.
  *         This rule matches if the node's nid or its Activity is NNNN.
  *
- *     alias = christian.audience.rule
+ *     alias = christian.audience.rule |
+ *             all.audience.rule
  *
  *         Always matches.
- *         @TODO: Add a rule for the General audience.
+ *
+ *     alias = general.audience.rule
+ *
+ *         Matches content for a General audience.
  *
  * The rules have the following effects on nodes...
  *
@@ -1026,6 +1030,24 @@ function cbf_entity_presave($entity, $type) {
       $node_activity = $field_in_activity[0]['target_id'];
     }
 
+    $audienceTerm = field_get_items($type, $entity, 'taxonomy_vocabulary_3');
+    if ($audienceTerm === false || empty($audienceTerm[0]['tid'])) {
+      $entityAudience = '';
+    }
+    else {
+      switch ($audienceTerm[0]['tid']) {
+        case '47':
+          $entityAudience = 'christian';
+          break;
+        case '48':
+          $entityAudience = 'general';
+          break;
+        default:
+          $entityAudience = '';
+          break;
+      }
+    }
+
     foreach ($domains as $domain) {
       $match = false;
       if ($type == 'node') {
@@ -1047,8 +1069,14 @@ function cbf_entity_presave($entity, $type) {
         }
         $audience = stristr($alias['pattern'], '.audience.rule', true);
         if ($audience !== false) {
-          $match = true;
-          break;
+          if (
+            $audience == 'all' ||
+            $audience == 'christian' ||
+            strcasecmp($audience, $entityAudience) == 0
+          ) {
+            $match = true;
+            break;
+          }
         }
       }
 
