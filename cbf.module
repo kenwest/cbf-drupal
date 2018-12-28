@@ -958,35 +958,49 @@ function cbf_field_event_date_validate($form, &$form_state) {
 }
 
 /*
- * Implement the rules that assign nodes to domains.
+ * Implement the rules that assign entities to domains.
  *
  * Rules are stored in the domain information ...
- *
- *     is_default
- *
- *         This rule matches if this is the default domain
  *
  *     alias = NNNN.activity.rule
  *
  *         NNNN is the node Id for the Activity that corresponds to this domain.
  *         This rule matches if the node's nid or its Activity is NNNN.
  *
- * The rules have the following effects ...
+ *     alias = christian.audience.rule
+ *
+ *         Always matches.
+ *         @TODO: Add a rule for the General audience.
+ *
+ * The rules have the following effects on nodes...
  *
  *     domain_site   false (content is not available in all affiliates)
- *
  *     domains       contains an entry for each domain that matches a rule
- *
  *     domain_source DOMAIN_SOURCE_USE_ACTIVE (don't change domain to a cardinal
- *                   domain)
+ *                   domain) EXCEPT when the node appears in only one domain
+ *
+ * The rules have the following effects on CiviCRM Events...
+ *
+ *     field_domain  false (content is not available in all affiliates)
  */
-function cbf_node_presave($node) {
+function cbf_entity_presave($entity, $type) {
+  switch ($type) {
+    case 'node':
+      $url0 = 'node';
+      break;
+    case 'civicrm_event':
+      $url0 = 'civicrm-event';
+      break;
+    default:
+      return;
+  }
+
   /*
-   * If saving a node after editing it, clear the views data cache so the
+   * If saving an entity after editing it, clear the views data cache so the
    * staff member editing the node can see the refreshed version of the views
    * blocks on the page.
    */
-  if (arg(0) == 'node' && arg(2) == 'edit') {
+  if (arg(0) == $url0 && arg(2) == 'edit') {
     cache_clear_all('*', 'cache_views_data', true);
   }
 
@@ -1002,82 +1016,7 @@ function cbf_node_presave($node) {
   if ($followDomainRules) {
     $domains = domain_list_by_machine_name();
 
-    $node->domain_site = false;
-    $node->domains = array();
-
-    $field_in_activity = field_get_items('node', $node, 'field_in_activity');
-    if ($field_in_activity === false || empty($field_in_activity[0]['target_id'])) {
-      $node_activity = 0;
-    }
-    else {
-      $node_activity = $field_in_activity[0]['target_id'];
-    }
-
-    foreach ($domains as $domain) {
-      $match = false;
-      if ($domain['is_default']) {
-        $match = true;
-      }
-      else if (isset($allDomainContentTypes[$node->type])) {
-        $match = true;
-      }
-      else if (isset($allDomainNodes[$node->nid])) {
-        $match = true;
-      }
-      else {
-        foreach ($domain['aliases'] as $alias) {
-          $activity = stristr($alias['pattern'], '.activity.rule', true);
-          if ($activity !== false) {
-            $activity = (int) $activity;
-            if ($node->nid == $activity || $node_activity == $activity) {
-              $match = true;
-              break;
-            }
-          }
-          $audience = stristr($alias['pattern'], '.audience.rule', true);
-          if ($audience !== false) {
-            $match = true;
-            break;
-          }
-        }
-      }
-
-      if ($match) {
-        $node->domains[$domain['domain_id']] = $domain['domain_id'];
-      }
-    }
-
-    if (count($node->domains) == 1) {
-      $node->domain_source = reset($node->domains);
-    }
-  }
-}
-
-/*
- * Implement the rules that assign a civicrm_event to domains.
- *
- * See cbf_node_presave() for explanation
- */
-function cbf_entity_presave($entity, $type) {
-  if ($type != 'civicrm_event') {
-    return;
-  }
-
-  /*
-   * If saving an entity after editing it, clear the views data cache so the
-   * staff member editing the node can see the refreshed version of the views
-   * blocks on the page.
-   */
-  if (arg(0) == str_replace('_', '-', $type) && arg(2) == 'edit') {
-    cache_clear_all('*', 'cache_views_data', true);
-  }
-
-  $followDomainRules = true;
-
-  if ($followDomainRules) {
-    $domains = domain_list_by_machine_name();
-
-    $matches = array();
+    $matches = [];
 
     $field_in_activity = field_get_items($type, $entity, 'field_in_activity');
     if ($field_in_activity === false || empty($field_in_activity[0]['target_id'])) {
@@ -1089,33 +1028,53 @@ function cbf_entity_presave($entity, $type) {
 
     foreach ($domains as $domain) {
       $match = false;
-      if ($domain['is_default']) {
-        $match = true;
+      if ($type == 'node') {
+        if (isset($allDomainContentTypes[$entity->type])) {
+          $match = true;
+        }
+        else if (isset($allDomainNodes[$entity->nid])) {
+          $match = true;
+        }
       }
-      else {
-        foreach ($domain['aliases'] as $alias) {
-          $activity = stristr($alias['pattern'], '.activity.rule', true);
-          if ($activity !== false) {
-            $activity = (int) $activity;
-            if ($node_activity == $activity) {
-              $match = true;
-              break;
-            }
-          }
-          $audience = stristr($alias['pattern'], '.audience.rule', true);
-          if ($audience !== false) {
+      foreach ($domain['aliases'] as $alias) {
+        $activity = stristr($alias['pattern'], '.activity.rule', true);
+        if ($activity !== false) {
+          $activity = (int) $activity;
+          if ($node_activity == $activity || ($type == 'node' && $entity->nid == $activity)) {
             $match = true;
             break;
           }
         }
+        $audience = stristr($alias['pattern'], '.audience.rule', true);
+        if ($audience !== false) {
+          $match = true;
+          break;
+        }
       }
 
       if ($match) {
-        $matches[] = array('domain_id' => $domain['domain_id']);
+        $matches[] = ['domain_id' => $domain['domain_id']];
       }
     }
 
-    $entity->field_domain[field_language($type, $entity, 'field_domain')] = $matches;
+    switch ($type) {
+      case 'node':
+        $entity->domain_site = false;
+        $entity->domains = [];
+        foreach ($matches as $domain) {
+          $entity->domains[$domain['domain_id']] = $domain['domain_id'];
+        }
+        if (count($entity->domains) == 1) {
+          $entity->domain_source = reset($entity->domains);
+        }
+        else {
+          $entity->domain_source = DOMAIN_SOURCE_USE_ACTIVE;
+        }
+        break;
+      case 'civicrm_event':
+        $entity->field_domain[field_language($type, $entity, 'field_domain')] = $matches;
+        break;
+    }
   }
 }
 
