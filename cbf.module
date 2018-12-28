@@ -1687,7 +1687,7 @@ function cbf_views_post_execute(&$view) {
        */
       $summaryEvent = false;
       if (!isset($eventsByActivity[$activity])) {
-        $eventsByActivity[$activity] = array();
+        $eventsByActivity[$activity] = [];
       }
       foreach ($eventsByActivity[$activity] as $n => $i) {
         if ($n == $name) {
