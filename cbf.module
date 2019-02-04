@@ -664,7 +664,7 @@ function computed_field_field_is_video_display($field, $entity_field_item, $enti
 
 /*
  * This function is called by CCK Computed Field to compute the value of Field Is Text.
-*/
+ */
 function computed_field_field_is_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
   $field_attachment = field_get_items($entity_type, $entity, 'field_attachment');
   if (!empty($field_attachment)) {
@@ -672,6 +672,43 @@ function computed_field_field_is_text_compute(&$entity_field, $entity_type, $ent
   }
   else {
     $entity_field[0]['value'] = 0;
+  }
+}
+
+/*
+ * This function is called by CCK Computed Field to generate the display text of Field Resource Type.
+ */
+function computed_field_field_resource_type_display($field, $entity_field_item, $entity_lang, $langcode) {
+  switch ($entity_field_item['value']) {
+    case 'video':
+      return '<i class="fa fa-fw fa-youtube-play"></i>';
+    case 'audio':
+      return '<i class="fa fa-fw fa-microphone"></i>';
+    case 'text':
+      return '<i class="fa fa-fw fa-file-pdf-o"></i>';
+    default:
+      return '';
+  }
+}
+
+/*
+ * This function is called by CCK Computed Field to compute the value of Field Resource Type.
+*/
+function computed_field_field_resource_type_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+  $field_video = field_get_items($entity_type, $entity, 'field_video');
+  $field_content = field_get_items($entity_type, $entity, 'field_content');
+  $field_attachment = field_get_items($entity_type, $entity, 'field_attachment');
+  if (!empty($field_video)) {
+    $entity_field[0]['value'] = 'video';
+  }
+  elseif (!empty($field_content)) {
+    $entity_field[0]['value'] = 'audio';
+  }
+  elseif (!empty($field_attachment)) {
+    $entity_field[0]['value'] = 'text';
+  }
+  else {
+    $entity_field[0]['value'] = '';
   }
 }
 
