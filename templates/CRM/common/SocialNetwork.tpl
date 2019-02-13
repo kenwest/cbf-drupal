@@ -57,10 +57,6 @@
                 <iframe src="https://www.facebook.com/plugins/like.php?app_id=240719639306341&amp;href={$url|escape:'url'}&amp;send=false&amp;layout=standard&amp;show_faces=false&amp;action=like&amp;colorscheme=light" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:300px; height:30px;" allowTransparency="true">
                 </iframe>
             </div>
-            <div class="label">
-              <script src="https://platform.linkedin.com/in.js" type="text/javascript"></script>
-              <script type="IN/Share" data-url={$url} data-counter="right"></script>
-            </div>
         {/if}
     </div>
     {if $pageURL}
