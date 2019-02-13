@@ -50,9 +50,6 @@
                 style="width:100px; height:20px;">
                 </iframe>
             </div>
-            <div class="label">
-                <g:plusone href={$url}></g:plusone>
-            </div>
             <div class="label" style="width:300px;">
                 <iframe src="https://www.facebook.com/plugins/like.php?app_id=240719639306341&amp;href={$url|escape:'url'}&amp;send=false&amp;layout=standard&amp;show_faces=false&amp;action=like&amp;colorscheme=light" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:300px; height:30px;" allowTransparency="true">
                 </iframe>
