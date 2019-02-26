@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -376,6 +376,18 @@ abstract class CRM_Core_Payment {
   }
 
   /**
+   * Does this processor support updating billing info for recurring contributions through code.
+   *
+   * If the processor returns true then it must be possible to update billing info from within CiviCRM
+   * that will be updated at the payment processor.
+   *
+   * @return bool
+   */
+  protected function supportsUpdateSubscriptionBillingInfo() {
+    return method_exists(CRM_Utils_System::getClassName($this), 'updateSubscriptionBillingInfo');
+  }
+
+  /**
    * Can recurring contributions be set against pledges.
    *
    * In practice all processors that use the baseIPN function to finish transactions or
@@ -590,7 +602,7 @@ abstract class CRM_Core_Payment {
    * @return array
    */
   public function getEditableRecurringScheduleFields() {
-    if (method_exists($this, 'changeSubscriptionAmount')) {
+    if ($this->supports('changeSubscriptionAmount')) {
       return array('amount');
     }
   }
@@ -682,7 +694,6 @@ abstract class CRM_Core_Payment {
         'htmlType' => 'text',
         'name' => 'credit_card_number',
         'title' => ts('Card Number'),
-        'cc_field' => TRUE,
         'attributes' => array(
           'size' => 20,
           'maxlength' => 20,
@@ -690,12 +701,12 @@ abstract class CRM_Core_Payment {
           'class' => 'creditcard',
         ),
         'is_required' => TRUE,
+        // 'description' => '16 digit card number', // If you enable a description field it will be shown below the field on the form
       ),
       'cvv2' => array(
         'htmlType' => 'text',
         'name' => 'cvv2',
         'title' => ts('Security Code'),
-        'cc_field' => TRUE,
         'attributes' => array(
           'size' => 5,
           'maxlength' => 10,
@@ -714,7 +725,6 @@ abstract class CRM_Core_Payment {
         'htmlType' => 'date',
         'name' => 'credit_card_exp_date',
         'title' => ts('Expiration Date'),
-        'cc_field' => TRUE,
         'attributes' => CRM_Core_SelectValues::date('creditCard'),
         'is_required' => TRUE,
         'rules' => array(
@@ -724,12 +734,12 @@ abstract class CRM_Core_Payment {
             'rule_parameters' => TRUE,
           ),
         ),
+        'extra' => ['class' => 'crm-form-select'],
       ),
       'credit_card_type' => array(
         'htmlType' => 'select',
         'name' => 'credit_card_type',
         'title' => ts('Card Type'),
-        'cc_field' => TRUE,
         'attributes' => $creditCardType,
         'is_required' => FALSE,
       ),
@@ -737,7 +747,6 @@ abstract class CRM_Core_Payment {
         'htmlType' => 'text',
         'name' => 'account_holder',
         'title' => ts('Account Holder'),
-        'cc_field' => TRUE,
         'attributes' => array(
           'size' => 20,
           'maxlength' => 34,
@@ -750,7 +759,6 @@ abstract class CRM_Core_Payment {
         'htmlType' => 'text',
         'name' => 'bank_account_number',
         'title' => ts('Bank Account Number'),
-        'cc_field' => TRUE,
         'attributes' => array(
           'size' => 20,
           'maxlength' => 34,
@@ -770,7 +778,6 @@ abstract class CRM_Core_Payment {
         'htmlType' => 'text',
         'name' => 'bank_identification_number',
         'title' => ts('Bank Identification Number'),
-        'cc_field' => TRUE,
         'attributes' => array(
           'size' => 20,
           'maxlength' => 11,
@@ -789,7 +796,6 @@ abstract class CRM_Core_Payment {
         'htmlType' => 'text',
         'name' => 'bank_name',
         'title' => ts('Bank Name'),
-        'cc_field' => TRUE,
         'attributes' => array(
           'size' => 20,
           'maxlength' => 64,
@@ -803,7 +809,6 @@ abstract class CRM_Core_Payment {
         'name' => 'check_number',
         'title' => ts('Check Number'),
         'is_required' => FALSE,
-        'cc_field' => TRUE,
         'attributes' => NULL,
       ),
       'pan_truncation' => array(
@@ -811,7 +816,6 @@ abstract class CRM_Core_Payment {
         'name' => 'pan_truncation',
         'title' => ts('Last 4 digits of the card'),
         'is_required' => FALSE,
-        'cc_field' => TRUE,
         'attributes' => array(
           'size' => 4,
           'maxlength' => 4,
@@ -825,6 +829,13 @@ abstract class CRM_Core_Payment {
             'rule_parameters' => NULL,
           ),
         ),
+      ),
+      'payment_token' => array(
+        'htmlType' => 'hidden',
+        'name' => 'payment_token',
+        'title' => ts('Authorization token'),
+        'is_required' => FALSE,
+        'attributes' => ['size' => 10, 'autocomplete' => 'off', 'id' => 'payment_token'],
       ),
     );
   }
@@ -1156,7 +1167,7 @@ abstract class CRM_Core_Payment {
   }
 
   /**
-   * Process payment - this function wraps around both doTransferPayment and doDirectPayment.
+   * Process payment - this function wraps around both doTransferCheckout and doDirectPayment.
    *
    * The function ensures an exception is thrown & moves some of this logic out of the form layer and makes the forms
    * more agnostic.
@@ -1385,6 +1396,9 @@ abstract class CRM_Core_Payment {
       $extension_instance_found = TRUE;
     }
 
+    // Call IPN postIPNProcess hook to allow for custom processing of IPN data.
+    $IPNParams = array_merge($_GET, $_REQUEST);
+    CRM_Utils_Hook::postIPNProcess($IPNParams);
     if (!$extension_instance_found) {
       $message = "No extension instances of the '%1' payment processor were found.<br />" .
         "%2 method is unsupported in legacy payment processors.";
@@ -1453,18 +1467,24 @@ abstract class CRM_Core_Payment {
     // Set URL
     switch ($action) {
       case 'cancel':
+        if (!$this->supports('cancelRecurring')) {
+          return NULL;
+        }
         $url = 'civicrm/contribute/unsubscribe';
         break;
 
       case 'billing':
         //in notify mode don't return the update billing url
-        if (!$this->isSupported('updateSubscriptionBillingInfo')) {
+        if (!$this->supports('updateSubscriptionBillingInfo')) {
           return NULL;
         }
         $url = 'civicrm/contribute/updatebilling';
         break;
 
       case 'update':
+        if (!$this->supports('changeSubscriptionAmount') && !$this->supports('editRecurringContribution')) {
+          return NULL;
+        }
         $url = 'civicrm/contribute/updaterecur';
         break;
     }
@@ -1509,7 +1529,7 @@ INNER JOIN civicrm_contribution con ON ( con.contribution_recur_id = rec.id )
     }
 
     // Else login URL
-    if ($this->isSupported('accountLoginURL')) {
+    if ($this->supports('accountLoginURL')) {
       return $this->accountLoginURL();
     }
 
@@ -1556,6 +1576,18 @@ INNER JOIN civicrm_contribution con ON ( con.contribution_recur_id = rec.id )
   }
 
   /**
+   * Does this processor support changing the amount for recurring contributions through code.
+   *
+   * If the processor returns true then it must be possible to update the amount from within CiviCRM
+   * that will be updated at the payment processor.
+   *
+   * @return bool
+   */
+  protected function supportsChangeSubscriptionAmount() {
+    return method_exists(CRM_Utils_System::getClassName($this), 'changeSubscriptionAmount');
+  }
+
+  /**
    * Checks if payment processor supports recurring contributions
    *
    * @return bool
@@ -1565,6 +1597,17 @@ INNER JOIN civicrm_contribution con ON ( con.contribution_recur_id = rec.id )
       return TRUE;
     }
     return FALSE;
+  }
+
+  /**
+   * Checks if payment processor supports an account login URL
+   * TODO: This is checked by self::subscriptionURL but is only used if no entityID is found.
+   * TODO: It is implemented by AuthorizeNET, any others?
+   *
+   * @return bool
+   */
+  protected function supportsAccountLoginURL() {
+    return method_exists(CRM_Utils_System::getClassName($this), 'accountLoginURL');
   }
 
   /**
