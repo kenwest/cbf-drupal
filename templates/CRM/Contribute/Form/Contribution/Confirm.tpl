@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2018                                |
+ | Copyright CiviCRM LLC (c) 2004-2019                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -81,7 +81,7 @@
                     <strong> -------------------------------------------</strong><br />
                     {ts}Total{/ts}: <strong>{$amount+$minimum_fee|crmMoney}</strong><br />
                 {elseif $amount }
-                    {ts}Amount{/ts}: <strong>{$amount|crmMoney} {if $amount_level } &ndash; {$amount_level} {/if}</strong>
+                    {ts}Amount{/ts}: <strong>{$amount|crmMoney} {if $amount_level }<span class='crm-price-amount-label'> &ndash; {$amount_level}</span>{/if}</strong>
                 {else}
                     {$membership_name} {ts}Membership{/ts}: <strong>{$minimum_fee|crmMoney}</strong>
                 {/if}
@@ -90,7 +90,7 @@
                   {ts 1=$taxTerm}Total %1 Amount{/ts}: <strong>{$totalTaxAmount|crmMoney} </strong><br />
                 {/if}
 		{if $amount}
-                    {if $installments}{ts}Installment Amount{/ts}{else}{ts}Total Amount{/ts}{/if}: <strong>{$amount|crmMoney}{if $amount_level } &ndash; {$amount_level}{/if}</strong>
+                    {if $installments}{ts}Installment Amount{/ts}{else}{ts}Total Amount{/ts}{/if}: <strong>{$amount|crmMoney}{if $amount_level }<span class='crm-price-amount-label'> &ndash; {$amount_level}</span>{/if}</strong>
                 {else}
                     {$membership_name} {ts}Membership{/ts}: <strong>{$minimum_fee|crmMoney}</strong>
                 {/if}
@@ -146,13 +146,13 @@
     </div>
     {/if}
 
-    {if $onbehalfProfile|@count}
+    {if $onbehalfProfile && $onbehalfProfile|@count}
       <div class="crm-group onBehalf_display-group label-left crm-profile-view">
          {include file="CRM/UF/Form/Block.tpl" fields=$onbehalfProfile prefix='onbehalf'}
       </div>
     {/if}
 
-    {if $honoreeProfileFields|@count}
+    {if $honoreeProfileFields && $honoreeProfileFields|@count}
         <div class="crm-group honor_block-group">
             <div class="header-dark">
                 {$soft_credit_type}
@@ -258,9 +258,9 @@
                 {/if}
             {else}
                 <div class="crm-section no-label credit_card_details-section">
-                  <div class="content">{$credit_card_type}</div>
+                  <div class="content">{$credit_card_type|escape}</div>
                   <div class="clear"></div>
-                  <div class="content">{$credit_card_number}</div>
+                  <div class="content">{$credit_card_number|escape}</div>
                   <div class="clear"></div>
                   <div class="content">{$credit_card_holder}</div>	{* <KW: CRM-3224/> *}
                   <div class="clear"></div>
