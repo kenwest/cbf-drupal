@@ -1,0 +1,162 @@
+From a718097461522485ece488b56859b26142010b0f Mon Sep 17 00:00:00 2001
+From: Jon Goldberg <jon@megaphonetech.com>
+Date: Sat, 5 Jan 2019 15:46:25 -0500
+Subject: [PATCH 1/2] core#644 - extract function to return correct mailbox
+ header
+
+---
+ CRM/Contact/Form/Task/EmailCommon.php |  8 +-------
+ CRM/Member/Form/MembershipRenewal.php |  2 +-
+ CRM/Utils/Mail.php                    | 21 +++++++++++++++++++++
+ 3 files changed, 23 insertions(+), 8 deletions(-)
+
+diff --git a/CRM/Contact/Form/Task/EmailCommon.php b/CRM/Contact/Form/Task/EmailCommon.php
+index 1b0e7f4b472..1dd47fcc5c5 100644
+--- a/CRM/Contact/Form/Task/EmailCommon.php
++++ b/CRM/Contact/Form/Task/EmailCommon.php
+@@ -400,13 +400,7 @@ public static function submit(&$form, $formValues) {
+     // dev/core#357 User Emails are keyed by their id so that the Signature is able to be added
+     // If we have had a contact email used here the value returned from the line above will be the
+     // numerical key where as $from for use in the sendEmail in Activity needs to be of format of "To Name" <toemailaddress>
+-    if (is_numeric($from)) {
+-      $result = civicrm_api3('Email', 'get', [
+-        'id' => $from,
+-        'return' => ['contact_id.display_name', 'email'],
+-      ]);
+-      $from = '"' . $result['values'][$from]['contact_id.display_name'] . '" <' . $result['values'][$from]['email'] . '>';
+-    }
++    $from = CRM_Utils_Mail::mailboxHeader($from);
+     $subject = $formValues['subject'];
+ 
+     // CRM-13378: Append CC and BCC information at the end of Activity Details and format cc and bcc fields
+diff --git a/CRM/Member/Form/MembershipRenewal.php b/CRM/Member/Form/MembershipRenewal.php
+index 138576eb2f9..5ea6a46e9d7 100644
+--- a/CRM/Member/Form/MembershipRenewal.php
++++ b/CRM/Member/Form/MembershipRenewal.php
+@@ -661,7 +661,7 @@ protected function submit() {
+ 
+     if (!empty($this->_params['send_receipt'])) {
+ 
+-      $receiptFrom = $this->_params['from_email_address'];
++      $receiptFrom = CRM_Utils_Mail::mailboxHeader($this->_params['from_email_address']);
+ 
+       if (!empty($this->_params['payment_instrument_id'])) {
+         $paymentInstrument = CRM_Contribute_PseudoConstant::paymentInstrument();
+diff --git a/CRM/Utils/Mail.php b/CRM/Utils/Mail.php
+index eebb06319e3..f3c01898801 100644
+--- a/CRM/Utils/Mail.php
++++ b/CRM/Utils/Mail.php
+@@ -577,4 +577,25 @@ public static function format($fields) {
+     return $formattedEmail;
+   }
+ 
++  /**
++   * When passed a value, returns the value if it's non-numeric.
++   * If it's numeric, look up the display name and email of the corresponding
++   * contact ID in RFC822 format.
++   *
++   * @param string $header
++   * @return string
++   *   The RFC822-formatted email header (display name + address)
++   */
++  public static function mailboxHeader($header) {
++    if (is_numeric($header)) {
++      $result = civicrm_api3('Email', 'get', [
++        'id' => $header,
++        'return' => ['contact_id.display_name', 'email'],
++        'sequential' => 1,
++      ])['values'][0];
++      $header = '"' . $result['contact_id.display_name'] . '" <' . $result['email'] . '>';
++    }
++    return $header;
++  }
++
+ }
+
+From 4335f2297df8e0f82ff301f187f49a3eb1a1afd4 Mon Sep 17 00:00:00 2001
+From: Jon Goldberg <jon@megaphonetech.com>
+Date: Sun, 6 Jan 2019 16:02:55 -0500
+Subject: [PATCH 2/2] rename function and vars; move fix to common mail sending
+ function
+
+---
+ CRM/Contact/Form/Task/EmailCommon.php |  2 +-
+ CRM/Core/BAO/MessageTemplate.php      |  5 +++++
+ CRM/Member/Form/MembershipRenewal.php |  2 +-
+ CRM/Utils/Mail.php                    | 13 +++++++------
+ 4 files changed, 14 insertions(+), 8 deletions(-)
+
+diff --git a/CRM/Contact/Form/Task/EmailCommon.php b/CRM/Contact/Form/Task/EmailCommon.php
+index 1dd47fcc5c5..bc9f59326fe 100644
+--- a/CRM/Contact/Form/Task/EmailCommon.php
++++ b/CRM/Contact/Form/Task/EmailCommon.php
+@@ -400,7 +400,7 @@ public static function submit(&$form, $formValues) {
+     // dev/core#357 User Emails are keyed by their id so that the Signature is able to be added
+     // If we have had a contact email used here the value returned from the line above will be the
+     // numerical key where as $from for use in the sendEmail in Activity needs to be of format of "To Name" <toemailaddress>
+-    $from = CRM_Utils_Mail::mailboxHeader($from);
++    $from = CRM_Utils_Mail::formatFromAddress($from);
+     $subject = $formValues['subject'];
+ 
+     // CRM-13378: Append CC and BCC information at the end of Activity Details and format cc and bcc fields
+diff --git a/CRM/Core/BAO/MessageTemplate.php b/CRM/Core/BAO/MessageTemplate.php
+index e006f463db8..ff6813e7160 100644
+--- a/CRM/Core/BAO/MessageTemplate.php
++++ b/CRM/Core/BAO/MessageTemplate.php
+@@ -389,6 +389,11 @@ public static function sendTemplate($params) {
+ 
+     CRM_Utils_Hook::alterMailParams($params, 'messageTemplate');
+ 
++    // Core#644 - handle contact ID passed as "From".
++    if (isset($params['from'])) {
++      $params['from'] = CRM_Utils_Mail::formatFromAddress($params['from']);
++    }
++
+     if ((!$params['groupName'] ||
+         !$params['valueName']
+       ) &&
+diff --git a/CRM/Member/Form/MembershipRenewal.php b/CRM/Member/Form/MembershipRenewal.php
+index 5ea6a46e9d7..138576eb2f9 100644
+--- a/CRM/Member/Form/MembershipRenewal.php
++++ b/CRM/Member/Form/MembershipRenewal.php
+@@ -661,7 +661,7 @@ protected function submit() {
+ 
+     if (!empty($this->_params['send_receipt'])) {
+ 
+-      $receiptFrom = CRM_Utils_Mail::mailboxHeader($this->_params['from_email_address']);
++      $receiptFrom = $this->_params['from_email_address'];
+ 
+       if (!empty($this->_params['payment_instrument_id'])) {
+         $paymentInstrument = CRM_Contribute_PseudoConstant::paymentInstrument();
+diff --git a/CRM/Utils/Mail.php b/CRM/Utils/Mail.php
+index f3c01898801..32a55757078 100644
+--- a/CRM/Utils/Mail.php
++++ b/CRM/Utils/Mail.php
+@@ -582,20 +582,21 @@ public static function format($fields) {
+    * If it's numeric, look up the display name and email of the corresponding
+    * contact ID in RFC822 format.
+    *
+-   * @param string $header
++   * @param string $from
++   *   contact ID or formatted "From address", eg. 12 or "Fred Bloggs" <fred@example.org>
+    * @return string
+    *   The RFC822-formatted email header (display name + address)
+    */
+-  public static function mailboxHeader($header) {
+-    if (is_numeric($header)) {
++  public static function formatFromAddress($from) {
++    if (is_numeric($from)) {
+       $result = civicrm_api3('Email', 'get', [
+-        'id' => $header,
++        'id' => $from,
+         'return' => ['contact_id.display_name', 'email'],
+         'sequential' => 1,
+       ])['values'][0];
+-      $header = '"' . $result['contact_id.display_name'] . '" <' . $result['email'] . '>';
++      $from = '"' . $result['contact_id.display_name'] . '" <' . $result['email'] . '>';
+     }
+-    return $header;
++    return $from;
+   }
+ 
+ }
