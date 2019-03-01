@@ -1008,29 +1008,36 @@ function _cbf_civicrm_civicrm_event_ministry_centre($event_id) {
 }
 
 function _cbf_civicrm_civicrm_contribution_ministry_centre($contribution_id) {
+  $focus_group_id = 329;
   $ministry_centre_prefix = 'Ministry centre is ';
 
   try {
     // Since the City value is publicly visible, no need to use CustomValue API
-    $city = civicrm_api3('Contribution', 'getvalue', array(
+    $cityCode = civicrm_api3('Contribution', 'getvalue', array(
       'sequential' => 1,
       'return' => 'custom_26',
       'id' => $contribution_id,
     ));
 
-    if (empty($city)) {
+    if (empty($cityCode)) {
       return FALSE;
     }
 
-    $tags = civicrm_api3('Tag', 'get', array(
+    $city = civicrm_api3('OptionValue', 'getvalue', array(
       'sequential' => 1,
-      'return' => 'id,name',
+      'option_group_id' => $focus_group_id,
+      'value' => $cityCode,
+      'return' => 'label',
     ));
 
-    foreach ($tags['values'] as $tag) {
-      if (stristr($tag['name'], $ministry_centre_prefix . $city) !== FALSE) {
-        return $tag['id'];
-      }
+    $tag = civicrm_api3('Tag', 'get', array(
+      'sequential' => 1,
+      'return' => 'id',
+      'name' => $ministry_centre_prefix . $city,
+    ));
+
+    if ($tag['count'] == 1) {
+      return $tag['values'][0]['id'];
     }
   } catch (CiviCRM_API3_Exception $e) {
     ;
