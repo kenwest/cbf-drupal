@@ -1671,10 +1671,11 @@ function cbf_views_pre_render(&$view) {
  */
 function cbf_views_post_execute(&$view) {
   /*
-   * Some block displays can be crowded out by Events of a single Activity (eg Bible Shots
-   * runs 4 events at 4 times during the week). These block displays are indicated by having
-   * their CSS class set to 'cbf-merge-events', and are not limited to 5 items (the typical
-   * case) so this logic can work.
+   * This function prevents block displays being crowded out by Events of a single Activity
+   * (eg Bible Shots runs 3 events each week). These block displays are indicated by either
+   *  1. The view is tagged with 'merge-events'
+   *  2. The display is marked with a CSS class 'cbf-merge-events'
+   *
    *
    * To prevent this crowding out, we check if there are multiple Events sharing the same
    * name and Activity. If that's the case, we 'summarise' those Events: we keep the first
@@ -1682,7 +1683,15 @@ function cbf_views_post_execute(&$view) {
    * to include a link to a page of events for the Event's Activity.
    */
   if (
-    preg_match('/(^| )cbf-merge-events($| )/i', $view->display_handler->get_option('css_class')) == 1 &&
+    (
+      preg_match(
+        '/(^| )merge-events(,|$)/i',
+        $view->tag) == 1
+      ||
+      preg_match(
+        '/(^| )cbf-merge-events($| )/i',
+        $view->display_handler->get_option('css_class')) == 1
+    ) &&
     $view->display_handler->plugin_name == 'block') {
     /*
      * $eventsByActivity is an array of arrays. It maps from Activity Id to Event name to
