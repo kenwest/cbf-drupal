@@ -1676,6 +1676,10 @@ function cbf_views_post_execute(&$view) {
    *  1. The view is tagged with 'merge-events'
    *  2. The display is marked with a CSS class 'cbf-merge-events'
    *
+   * The display is set to not limit the number of items
+   *  1. By default this is limited by this function to 5
+   *  2. If the display has the CSS class 'show-N-items' then this function limits the number
+   *     to N, where N is an integer
    *
    * To prevent this crowding out, we check if there are multiple Events sharing the same
    * name and Activity. If that's the case, we 'summarise' those Events: we keep the first
@@ -1773,6 +1777,15 @@ function cbf_views_post_execute(&$view) {
      * rely on the view to limit the number of events displayed.
      */
     $maximumDisplayed = 5;
+    $matches = [];
+    if (
+      preg_match(
+        '/(^| )show-([0-9]+)-items($| )/i',
+        $view->display_handler->get_option('css_class'),
+        $matches
+      ) == 1) {
+      $maximumDisplayed = intval($matches[2]);
+    }
     if (count($view->result) > $maximumDisplayed) {
       $alteredResults = [];
       $i = 0;
