@@ -115,6 +115,9 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
    */
   if ($form['#id'] == 'civicrm-event-form') {
     $id = null;
+    $drupalContact = null;
+    $civicrmContact = null;
+    $matches = null;
 
     /* Try getting the contact Id from the Drupal field for the staff contact */
     $drupalContact = $form['field_staff_contact']['und'][0]['contact_id']['#default_value'];
@@ -124,16 +127,17 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
     /* Try getting the contact from CiviCRM */
     if (empty($id)) {
-      $civicrmContact = $form['custom_62']['#default_value'];
+      $civicrmContact = _cbf_civicrm_civicrm_event_staff_contact($form_state['civicrm_event']->id);
       if (!empty($civicrmContact)) {
-        $id = _cbf_civicrm_civicrm_contact_id($civicrmContact);
+        $id = $civicrmContact['id'];
       }
     }
 
     if (!empty($id)) {
       $form['custom_62']['#default_value'] = $id;
       if (empty($drupalContact) && !empty($civicrmContact)) {
-        $form['field_staff_contact']['und'][0]['contact_id']['#default_value'] = $civicrmContact . ' [cid:' . $id . ']';
+        $form['field_staff_contact']['und'][0]['contact_id']['#default_value']
+          = $civicrmContact['name'] . ' [cid:' . $id . ']';
       }
     }
   }
@@ -153,7 +157,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
     /* Try getting the ministry centre from CiviCRM */
     if (empty($drupalId)) {
-      list($civicrmId, $civicrmCentre) = _cbf_civicrm_civicrm_event_ministry_centre($form['id']['#default_value']);
+      list($civicrmId, $civicrmCentre) = _cbf_civicrm_civicrm_event_ministry_centre($form_state['civicrm_event']->id);
 
       if (!empty($civicrmId)) {
         $form['taxonomy_vocabulary_1']['und']['#default_value'][0] = array_flip($form['taxonomy_vocabulary_1']['und']['#options'])[$civicrmCentre];

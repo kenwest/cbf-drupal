@@ -1,6 +1,6 @@
-diff -ur ./ang/crmMailing/EditMailingCtrl/2step.html /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html
---- ./ang/crmMailing/EditMailingCtrl/2step.html	2018-07-26 16:17:18.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html	2018-08-02 06:20:49.611490549 +1000
+diff -ur ./ang/crmMailing/EditMailingCtrl/2step.html /var/www/civicrm/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html
+--- ./ang/crmMailing/EditMailingCtrl/2step.html	2019-02-23 13:58:18.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html	2019-02-26 16:33:11.334058427 +1100
 @@ -14,9 +14,9 @@
              </div>
              <span ng-model="placeholder" crm-ui-validate="mailing.body_html || mailing.body_text"></span>
@@ -13,9 +13,9 @@ diff -ur ./ang/crmMailing/EditMailingCtrl/2step.html /var/www/citybibleforum/sit
            <div crm-ui-tab id="tab-header" crm-title="ts('Header and Footer')">
              <div crm-mailing-block-header-footer crm-mailing="mailing"></div>
            </div>
-diff -ur ./api/v3/Generic/Setvalue.php /var/www/citybibleforum/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php
---- ./api/v3/Generic/Setvalue.php	2018-07-26 12:56:16.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php	2018-08-01 19:33:08.008867501 +1000
+diff -ur ./api/v3/Generic/Setvalue.php /var/www/civicrm/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php
+--- ./api/v3/Generic/Setvalue.php	2019-02-23 14:01:47.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php	2019-02-26 16:33:11.338058459 +1100
 @@ -106,6 +106,7 @@
        break;
  
@@ -24,9 +24,32 @@ diff -ur ./api/v3/Generic/Setvalue.php /var/www/citybibleforum/sites/all/modules
        $value = CRM_Utils_Type::escape($value, "Date", FALSE);
        if (!$value) {
          return civicrm_api3_create_error("Param '$field' is not a date. format YYYYMMDD or YYYYMMDDHHMMSS");
-diff -ur ./bower_components/ckeditor/plugins/table/dialogs/table.js /var/www/citybibleforum/sites/all/modules/civicrm/bower_components/ckeditor/plugins/table/dialogs/table.js
---- ./bower_components/ckeditor/plugins/table/dialogs/table.js	2018-04-19 07:17:25.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/bower_components/ckeditor/plugins/table/dialogs/table.js	2018-08-14 15:48:09.343080849 +1000
+diff -ur ./api/v3/Generic.php /var/www/civicrm/sites/all/modules/civicrm/api/v3/Generic.php
+--- ./api/v3/Generic.php	2019-02-23 14:01:47.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/api/v3/Generic.php	2019-02-26 16:33:11.338058459 +1100
+@@ -323,7 +323,8 @@
+     return $result['values'][0];
+   }
+   if ($result['count'] !== 1) {
+-    return civicrm_api3_create_error("Expected one " . $apiRequest['entity'] . " but found " . $result['count'], array('count' => $result['count']));
++//    CRM_Core_Error::backtrace();
++    return civicrm_api3_create_error("Get single expected one " . $apiRequest['entity'] . " but found " . $result['count'], array('count' => $result['count']));
+   }
+   return civicrm_api3_create_error("Undefined behavior");
+ }
+@@ -344,7 +345,8 @@
+     return $result;
+   }
+   if ($result['count'] !== 1) {
+-    $result = civicrm_api3_create_error("Expected one " . $apiRequest['entity'] . " but found " . $result['count'], array('count' => $result['count']));
++//    CRM_Core_Error::backtrace();
++    $result = civicrm_api3_create_error("Get value expected one " . $apiRequest['entity'] . " but found " . $result['count'], array('count' => $result['count']));
+     return $result;
+   }
+ 
+diff -ur ./bower_components/ckeditor/plugins/table/dialogs/table.js /var/www/civicrm/sites/all/modules/civicrm/bower_components/ckeditor/plugins/table/dialogs/table.js
+--- ./bower_components/ckeditor/plugins/table/dialogs/table.js	2018-04-18 19:04:40.000000000 +1000
++++ /var/www/civicrm/sites/all/modules/civicrm/bower_components/ckeditor/plugins/table/dialogs/table.js	2019-02-26 16:33:11.338058459 +1100
 @@ -10,12 +10,12 @@
  f))for(h=0;h<b.$.rows.length;h++)g=new CKEDITOR.dom.element(b.$.rows[h].cells[0]),g.renameNode("th"),g.setAttribute("scope","row");if(this.hasColumnHeaders&&"col"!=f&&"both"!=f)for(k=0;k<b.$.rows.length;k++)h=new CKEDITOR.dom.element(b.$.rows[k]),"tbody"==h.getParent().getName()&&(g=new CKEDITOR.dom.element(h.$.cells[0]),g.renameNode("td"),g.removeAttribute("scope"));c.txtHeight?b.setStyle("height",c.txtHeight):b.removeStyle("height");c.txtWidth?b.setStyle("width",c.txtWidth):b.removeStyle("width");
  b.getAttribute("style")||b.removeAttribute("style")}if(this._.selectedElement)try{e.selectBookmarks(d)}catch(p){}else a.insertElement(b),setTimeout(function(){var e=new CKEDITOR.dom.element(b.$.rows[0].cells[0]),c=a.createRange();c.moveToPosition(e,CKEDITOR.POSITION_AFTER_START);c.select()},0)},contents:[{id:"info",label:a.lang.table.title,elements:[{type:"hbox",widths:[null,null],styles:["vertical-align:top"],children:[{type:"vbox",padding:0,children:[{type:"text",id:"txtRows","default":3,label:a.lang.table.rows,
@@ -46,14 +69,9 @@ diff -ur ./bower_components/ckeditor/plugins/table/dialogs/table.js /var/www/cit
 -"")},commit:function(a,d){this.getValue()?d.setAttribute("summary",this.getValue()):d.removeAttribute("summary")}}]}]},p&&p.createAdvancedTab(a,null,"table")]}}var u=CKEDITOR.tools.cssLength,l=function(a){var f=this.id;a.info||(a.info={});a.info[f]=this.getValue()};CKEDITOR.dialog.add("table",function(a){return q(a,"table")});CKEDITOR.dialog.add("tableProperties",function(a){return q(a,"tableProperties")})})();
 \ No newline at end of file
 +"")},commit:function(a,d){this.getValue()?d.setAttribute("summary",this.getValue()):d.removeAttribute("summary")}}]}]},p&&p.createAdvancedTab(a,null,"table")]}}var u=CKEDITOR.tools.cssLength,l=function(a){var f=this.id;a.info||(a.info={});a.info[f]=this.getValue()};CKEDITOR.dialog.add("table",function(a){return q(a,"table")});CKEDITOR.dialog.add("tableProperties",function(a){return q(a,"tableProperties")})})();
-Only in /var/www/citybibleforum/sites/all/modules/civicrm/bower_components/ckeditor/plugins/table/dialogs: table.js.rej
-Only in /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Activity/BAO: Activity.php.orig
-Only in /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Activity/Selector: Activity.php.orig
-Only in /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contact/BAO: Contact.php.orig
-Only in /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/Form/Contribution: Confirm.php.rej
-diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml
---- ./CRM/Contribute/xml/Menu/Contribute.xml	2018-07-26 12:56:16.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2018-08-01 19:33:45.769680744 +1000
+diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/civicrm/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml
+--- ./CRM/Contribute/xml/Menu/Contribute.xml	2019-02-23 13:58:18.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2019-02-26 16:33:11.338058459 +1100
 @@ -229,6 +229,8 @@
      <title>Cancel Subscription</title>
      <page_callback>CRM_Contribute_Form_CancelSubscription</page_callback>
@@ -72,63 +90,17 @@ diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/citybibleforum/sites/
    </item>
    <item>
      <path>civicrm/contribute/subscriptionstatus</path>
-diff -ur ./CRM/Core/JobManager.php /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Core/JobManager.php
---- ./CRM/Core/JobManager.php	2018-07-26 16:17:18.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Core/JobManager.php	2018-08-14 21:56:56.068188509 +1000
-@@ -226,10 +226,21 @@
-     $dao = new CRM_Core_DAO_JobLog();
- 
-     $dao->domain_id = $domainID;
--    $dao->description = substr($message, 0, 235);
--    if (strlen($message) > 235) {
--      $dao->description .= " (...)";
-+
-+    /*
-+     * The description is a summary of the message.
-+     * HTML tags are stripped from the message.
-+     * The description is limited to 240 characters
-+     * and has an ellipsis added if it is truncated.
-+     */
-+    $maxDescription = 240;
-+    $ellipsis = " (...)";
-+    $description = strip_tags($message);
-+    if (strlen($description) > $maxDescription) {
-+      $description = substr($description, 0, $maxDescription - strlen($ellipsis)) . $ellipsis;
-     }
-+    $dao->description = $description;
-+
-     if ($this->currentJob) {
-       $dao->job_id = $this->currentJob->id;
-       $dao->name = $this->currentJob->name;
-Only in /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Mailing: Info.php.rej
-Only in /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Pledge/BAO: PledgeBlock.php.orig
-Only in /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Pledge/BAO: PledgeBlock.php.rej
-diff -ur ./CRM/Upgrade/Incremental/sql/4.7.19.mysql.tpl /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Upgrade/Incremental/sql/4.7.19.mysql.tpl
---- ./CRM/Upgrade/Incremental/sql/4.7.19.mysql.tpl	2018-07-26 12:56:16.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/CRM/Upgrade/Incremental/sql/4.7.19.mysql.tpl	2018-08-01 15:48:32.783868471 +1000
-@@ -44,8 +44,9 @@
- -- Some legacy sites have `0000-00-00 00:00:00` values in
- -- `civicrm_financial_trxn.trxn_date` which correspond to the same value in
- -- `civicrm_contribution.receive_date`
--UPDATE civicrm_financial_trxn SET trxn_date = NULL WHERE trxn_date = '0000-00-00 00:00:00';
--UPDATE civicrm_contribution SET receive_date = NULL WHERE receive_date = '0000-00-00 00:00:00';
-+-- Note that MySQL 5.7.x borks when comparing datetime columns to `0000-00-00 00:00:00`
-+UPDATE civicrm_financial_trxn SET trxn_date = NULL WHERE CAST(trxn_date AS CHAR(20)) = '0000-00-00 00:00:00';
-+UPDATE civicrm_contribution SET receive_date = NULL WHERE CAST(receive_date AS CHAR(20)) = '0000-00-00 00:00:00';
- 
- -- CRM-20439 rename card_type to card_type_id of civicrm_financial_trxn table (IIDA-126)
- ALTER TABLE `civicrm_financial_trxn` CHANGE `card_type` `card_type_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'FK to accept_creditcard option group values';
-diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css
---- ./css/civicrm.css	2018-07-26 16:17:18.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/css/civicrm.css	2018-08-01 19:33:49.973771285 +1000
-@@ -241,6 +241,14 @@
+diff -ur ./css/civicrm.css /var/www/civicrm/sites/all/modules/civicrm/css/civicrm.css
+--- ./css/civicrm.css	2019-02-23 15:52:12.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/css/civicrm.css	2019-02-26 16:47:08.469619731 +1100
+@@ -245,6 +245,14 @@
    height: 5px;
  }
  
-+/* 
++/*
 + * A fix to prevent the CBF theme making input fields 90% of the form width
 + */
-+#crm-container form input.form-text, 
++#crm-container form input.form-text,
 +#crm-container form textarea.form-textarea {
 +    width: auto;
 +}
@@ -136,7 +108,7 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  .crm-container td.compressed select,
  .crm-container td.compressed input {
    font-size: 0.90em;
-@@ -1492,6 +1500,7 @@
+@@ -1500,6 +1508,7 @@
  }
  .crm-container a.action-item {
    display: inline;
@@ -144,7 +116,7 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  }
  
  /* theming for panel and context menus */
-@@ -1810,6 +1819,10 @@
+@@ -1818,6 +1827,10 @@
    margin: 0;
  }
  
@@ -155,7 +127,7 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  #crm-container .order-icon {
    height: 15px;
    width: 10px;
-@@ -3214,6 +3227,10 @@
+@@ -3229,6 +3242,10 @@
  #crm-container .crm-fb-tweet-buttons {
    width: 93%;
  }
@@ -166,7 +138,7 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  
  /* classes related to batch entry operation */
  .crm-container span.batch-edit,
-@@ -3575,6 +3592,7 @@
+@@ -3590,6 +3607,7 @@
  #crm-container.crm-public .price-field-amount {
    padding-top: 6px;
    font-size: 15px;
@@ -174,7 +146,7 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  }
  
  .crm-container.crm-public .select2-container,
-@@ -3612,9 +3630,16 @@
+@@ -3628,9 +3646,16 @@
    font-size: 15px;
  }
  
@@ -191,9 +163,21 @@ diff -ur ./css/civicrm.css /var/www/citybibleforum/sites/all/modules/civicrm/css
  }
  
  #crm-container.crm-public #crm-submit-buttons {
-diff -ur ./js/wysiwyg/crm.ckeditor.js /var/www/citybibleforum/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js
---- ./js/wysiwyg/crm.ckeditor.js	2018-07-26 12:56:16.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js	2018-08-11 22:51:08.001400227 +1000
+diff -ur ./extern/url.php /var/www/civicrm/sites/all/modules/civicrm/extern/url.php
+--- ./extern/url.php	2019-02-23 13:58:18.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/extern/url.php	2019-02-26 16:33:31.442219757 +1100
+@@ -4,6 +4,8 @@
+ require_once 'CRM/Core/Error.php';
+ require_once 'CRM/Utils/Array.php';
+ 
++require_once '../../cbf/cbf_civicrm.module';
++
+ $config = CRM_Core_Config::singleton();
+ 
+ // To keep backward compatibility for URLs generated
+diff -ur ./js/wysiwyg/crm.ckeditor.js /var/www/civicrm/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js
+--- ./js/wysiwyg/crm.ckeditor.js	2019-02-23 13:58:18.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js	2019-02-26 16:33:31.442219757 +1100
 @@ -64,12 +64,22 @@
        $(item).addClass('crm-wysiwyg-enabled');
  
@@ -244,10 +228,9 @@ diff -ur ./js/wysiwyg/crm.ckeditor.js /var/www/citybibleforum/sites/all/modules/
 +  CKEDITOR.tools.callFunction(cfunc[1], file.url);
 +  win.close();
 +};
-Only in /var/www/citybibleforum/sites/all/modules/civicrm/js/wysiwyg: crm.ckeditor.js.orig
-diff -ur ./packages/HTML/QuickForm/Controller.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/Controller.php
---- ./packages/HTML/QuickForm/Controller.php	2018-07-26 12:56:16.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/Controller.php	2018-08-02 10:24:56.604516581 +1000
+diff -ur ./packages/HTML/QuickForm/Controller.php /var/www/civicrm/sites/all/modules/civicrm/packages/HTML/QuickForm/Controller.php
+--- ./packages/HTML/QuickForm/Controller.php	2019-02-23 13:58:19.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/packages/HTML/QuickForm/Controller.php	2019-02-26 16:33:31.442219757 +1100
 @@ -214,7 +214,7 @@
                  return $this->_actions[$actionName]->perform($page, $actionName);
                  break;
@@ -257,9 +240,9 @@ diff -ur ./packages/HTML/QuickForm/Controller.php /var/www/citybibleforum/sites/
          } // switch
      }
  
-diff -ur ./packages/HTML/QuickForm/Rule/Email.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php
---- ./packages/HTML/QuickForm/Rule/Email.php	2018-07-26 12:56:16.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php	2018-08-02 10:43:26.225490882 +1000
+diff -ur ./packages/HTML/QuickForm/Rule/Email.php /var/www/civicrm/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php
+--- ./packages/HTML/QuickForm/Rule/Email.php	2019-02-23 14:01:47.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php	2019-02-26 16:33:31.442219757 +1100
 @@ -69,10 +69,12 @@
                  if (checkdnsrr($tokens[1], 'MX') || checkdnsrr($tokens[1], 'A')) {
                      return true;
@@ -273,9 +256,9 @@ diff -ur ./packages/HTML/QuickForm/Rule/Email.php /var/www/citybibleforum/sites/
          return false;
      } // end func validate
  
-diff -ur ./packages/Smarty/internals/core.create_dir_structure.php /var/www/citybibleforum/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php
---- ./packages/Smarty/internals/core.create_dir_structure.php	2018-04-05 12:52:14.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php	2018-08-01 19:34:13.022267658 +1000
+diff -ur ./packages/Smarty/internals/core.create_dir_structure.php /var/www/civicrm/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php
+--- ./packages/Smarty/internals/core.create_dir_structure.php	2018-10-23 08:56:56.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php	2019-02-26 16:33:31.442219757 +1100
 @@ -65,7 +65,7 @@
                  $_make_new_dir = true;
              }
@@ -285,9 +268,9 @@ diff -ur ./packages/Smarty/internals/core.create_dir_structure.php /var/www/city
                  $smarty->trigger_error("problem creating directory '" . $_new_dir . "'");
                  return false;
              }
-diff -ur ./templates/CRM/Dashlet/Page/Blog.tpl /var/www/citybibleforum/sites/all/modules/civicrm/templates/CRM/Dashlet/Page/Blog.tpl
---- ./templates/CRM/Dashlet/Page/Blog.tpl	2018-07-26 12:56:16.000000000 +1000
-+++ /var/www/citybibleforum/sites/all/modules/civicrm/templates/CRM/Dashlet/Page/Blog.tpl	2018-08-02 10:56:25.524117030 +1000
+diff -ur ./templates/CRM/Dashlet/Page/Blog.tpl /var/www/civicrm/sites/all/modules/civicrm/templates/CRM/Dashlet/Page/Blog.tpl
+--- ./templates/CRM/Dashlet/Page/Blog.tpl	2019-02-23 14:01:47.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/templates/CRM/Dashlet/Page/Blog.tpl	2019-02-26 16:33:31.446219790 +1100
 @@ -61,7 +61,7 @@
        <div class="crm-accordion-wrapper collapsed">
          <div class="crm-accordion-header">
@@ -297,4 +280,3 @@ diff -ur ./templates/CRM/Dashlet/Page/Blog.tpl /var/www/citybibleforum/sites/all
          </div>
          <div class="crm-accordion-body">
            <div>{$article.description}</div>
-Only in /var/www/citybibleforum/sites/all/modules/civicrm/templates/CRM/Dashlet/Page: Blog.tpl.rej
