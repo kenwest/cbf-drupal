@@ -2345,13 +2345,13 @@ function cbf_entity_viewable_fields($entity, $type, $fields, $activityDefaults) 
       'value' => 'tid',
       'default' => null,
     ],
-    'field_map_marker' => [
-      'field' => 'field_map_marker',
+    'field_marker' => [
+      'field' => 'field_marker',
       'value' => 'tid',
       'default' => null,
     ],
-    'field_region' => [
-      'field' => 'field_region',
+    'field_map_region' => [
+      'field' => 'field_map_region',
       'value' => 'tid',
       'default' => null,
     ],
@@ -2390,8 +2390,8 @@ function cbf_entity_viewable_fields($entity, $type, $fields, $activityDefaults) 
       'value' => 'array',
       'default' => null,
     ],
-    'field_location' => [
-      'field' => 'field_location',
+    'field_map_location' => [
+      'field' => 'field_map_location',
       'value' => 'reset array',
       'default' => null,
     ],
@@ -2606,12 +2606,12 @@ function cbf_entity_mappable($entity, $type) {
     [
       "field_title",
       "field_summary",
-      "field_location",
+      "field_map_location",
       "taxonomy_vocabulary_1",
       "taxonomy_vocabulary_3",
       "field_in_activity",
-      "field_map_marker",
-      "field_region",
+      "field_marker",
+      "field_map_region",
       "domain_entityform",
     ],
     [
