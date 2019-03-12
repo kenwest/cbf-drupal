@@ -2289,8 +2289,10 @@ function cbf_entity_viewable($entity, $type, $operation) {
 
 /*
  * cbf_entity_viewable_fields() gets the named $fields from the source $entity
+ * and the defaults for the named $activityDefaults fields from the Activity
+ * of the $entity.
  */
-function cbf_entity_viewable_fields($entity, $type, $fields) {
+function cbf_entity_viewable_fields($entity, $type, $fields, $activityDefaults) {
   /*
    * Metadata for the fields in the source $entity. Each of the $fields in
    * the viewable entity is matched against one of these $fromFields in
@@ -2370,6 +2372,52 @@ function cbf_entity_viewable_fields($entity, $type, $fields) {
       'default' => null,
     ],
   ];
+
+  /*
+   * If there are $activityDefaults then load the 'defaults' in the $fromFields
+   * with the values from the 'field_in_activity' and set those fields as not
+   * 'required' as there is a default available from the Activity.
+   */
+  if (!empty($activityDefaults)) {
+    $field = field_get_items($type, $entity, 'field_in_activity');
+    $activity = reset(entity_load('node', reset($field)));
+    if (!empty($activity)) {
+      foreach ($activityDefaults as $to) {
+        $from = $fromFields[$to];
+        $field = field_get_items('node', $activity, $from['field']);
+        if (!empty($field)) {
+          unset($fromFields[$to]['required']);
+          switch ($from['value']) {
+            /*
+             * The 'value' metadata controls how the $field value is extracted ...
+             *  - 'array'         - all values in the field
+             *  - 'reset array'   - the first element in the value array
+             *  - 'get timestamp' - treat the first element as a date array
+             *  - otherwise the 'value' is interpreted as the name of an element
+             *    in the first element of the value array
+             */
+            case 'array':
+              $fromFields[$to]['default'] = $field;
+              break;
+
+            case 'reset array':
+              $fromFields[$to]['default'] = reset($field);
+              break;
+
+            case 'get timestamp':
+              $field = reset($field);
+              $time = new DateObject($field['value'], $field['timezone']);
+              $fromFields[$to]['default'] = strtotime($time->format('Y-m-d H:i:s O'));
+              break;
+
+            default:
+              $fromFields[$to]['default'] = reset($field)[$from['value']];
+              break;
+          }
+        }
+      }
+    }
+  }
 
   $result = [ ];
 
@@ -2483,7 +2531,8 @@ function cbf_entity_dateable($entity, $type) {
       "field_thumbnail_image",
       "field_highlight_location",
       "domain_entityform",
-    ]
+    ],
+    [ ]
   );
 }
 
