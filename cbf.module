@@ -2149,6 +2149,15 @@ function cbf_entity_viewable($entity, $type, $operation) {
         'highlightable',
       ],
     ],
+    'entityform' => [
+      'id' => 'entityform_id',
+      'type' => 'type',
+      'bundles' => [
+        'regular_venue' => [
+          'mappable',
+        ],
+      ],
+    ],
   ];
 
   /*
@@ -2316,6 +2325,11 @@ function cbf_entity_viewable_fields($entity, $type, $fields, $activityDefaults) 
       'value' => 'value',
       'default' => '',
     ],
+    'field_summary' => [
+      'field' => 'field_summary',
+      'value' => 'value',
+      'default' => '',
+    ],
     'taxonomy_vocabulary_1' => [
       'field' => 'taxonomy_vocabulary_1',
       'value' => 'tid',
@@ -2328,6 +2342,16 @@ function cbf_entity_viewable_fields($entity, $type, $fields, $activityDefaults) 
     ],
     'field_activity_category' => [
       'field' => 'field_activity_category',
+      'value' => 'tid',
+      'default' => null,
+    ],
+    'field_map_marker' => [
+      'field' => 'field_map_marker',
+      'value' => 'tid',
+      'default' => null,
+    ],
+    'field_region' => [
+      'field' => 'field_region',
       'value' => 'tid',
       'default' => null,
     ],
@@ -2364,6 +2388,11 @@ function cbf_entity_viewable_fields($entity, $type, $fields, $activityDefaults) 
     'field_highlight_location' => [
       'field' => 'field_highlight_location',
       'value' => 'array',
+      'default' => null,
+    ],
+    'field_location' => [
+      'field' => 'field_location',
+      'value' => 'reset array',
       'default' => null,
     ],
     'domain_entityform' => [
@@ -2562,6 +2591,32 @@ function cbf_entity_highlightable($entity, $type) {
       "field_activity_category",
       "field_highlight_dates",
       "domain_entityform",
+    ],
+    [ ]
+  );
+}
+
+/*
+ * cbf_entity_highlightable() gets the needed $fields from the source $entity
+ */
+function cbf_entity_mappable($entity, $type) {
+  return cbf_entity_viewable_fields(
+    $entity,
+    $type,
+    [
+      "field_title",
+      "field_summary",
+      "field_location",
+      "taxonomy_vocabulary_1",
+      "taxonomy_vocabulary_3",
+      "field_in_activity",
+      "field_map_marker",
+      "field_region",
+      "domain_entityform",
+    ],
+    [
+      "taxonomy_vocabulary_1",
+      "taxonomy_vocabulary_3",
     ]
   );
 }
