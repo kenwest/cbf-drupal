@@ -2459,7 +2459,7 @@ function cbf_entity_viewable_fields($entity, $type, $fields, $activityDefaults) 
      * or use the default value.
      */
     if (empty($field)) {
-      if (isset($from['required'])) {
+      if (!empty($from['required'])) {
         return [ ];
       }
       $result[$to] = $from['default'];
