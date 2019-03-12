@@ -2501,13 +2501,21 @@ function cbf_entity_viewable_fields($entity, $type, $fields, $activityDefaults) 
 
   /*
    * Special case - if the source $entity is a node the 'domains' attribute
-   * hold the domain values
+   * holds the domain values
    */
   if (in_array('domain_entityform', $fields) && !empty($entity->domains)) {
     $result['domain_entityform'] = [ ];
     foreach ($entity->domains as $domain) {
       $result['domain_entityform'][] = [ 'domain_id' => $domain ];
     }
+  }
+
+  /*
+   * Special case - if the source $entity is an EntityForm the 'domain_entityform'
+   * attribute holds the domain values
+   */
+  if (in_array('domain_entityform', $fields) && !empty($entity->domain_entityform)) {
+    $result['domain_entityform'] = reset($entity->domain_entityform);
   }
 
   return $result;
@@ -2537,7 +2545,7 @@ function cbf_entity_dateable($entity, $type) {
 }
 
 /*
- * cbf_entity_dateable() gets the needed $fields from the source $entity
+ * cbf_entity_highlightable() gets the needed $fields from the source $entity
  */
 function cbf_entity_highlightable($entity, $type) {
   return cbf_entity_viewable_fields(
