@@ -820,7 +820,10 @@ function cbf_civicrm_civicrm_pre( $op, $objectName, $id, &$params ) {
       case 'create':
       case 'edit':
         $dummyPaymentProcessor = '15';
-        if ($params['payment_processor'] == $dummyPaymentProcessor) {
+        if (
+          isset($params['payment_processor'])
+            && $params['payment_processor'] == $dummyPaymentProcessor
+        ) {
           unset($params['payment_processor']);
         }
         break;
