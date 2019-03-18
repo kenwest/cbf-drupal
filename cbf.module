@@ -2234,7 +2234,7 @@ function cbf_entity_viewable($entity, $type, $operation) {
      */
     if ($status && $operation != 'delete') {
       $viewableFunction = "cbf_entity_$viewable";
-      $viewableEntity = $viewableFunction($entity, $type);
+      $viewableEntity = $viewableFunction($entity, $type, $entityForm);
     }
     else {
       $viewableEntity = [ ];
@@ -2302,7 +2302,7 @@ function cbf_entity_viewable($entity, $type, $operation) {
  * and the defaults for the named $activityDefaults fields from the Activity
  * of the $entity.
  */
-function cbf_entity_viewable_fields($entity, $type, $fields, $activityDefaults) {
+function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $activityDefaults) {
   /*
    * Metadata for the fields in the source $entity. Each of the $fields in
    * the viewable entity is matched against one of these $fromFields in
@@ -2555,10 +2555,11 @@ function cbf_entity_viewable_fields($entity, $type, $fields, $activityDefaults) 
 /*
  * cbf_entity_dateable() gets the needed $fields from the source $entity
  */
-function cbf_entity_dateable($entity, $type) {
+function cbf_entity_dateable($entity, $type, $currentForm) {
   return cbf_entity_viewable_fields(
     $entity,
     $type,
+    $currentForm,
     [
       "field_title",
       "field_subtitle",
@@ -2578,10 +2579,11 @@ function cbf_entity_dateable($entity, $type) {
 /*
  * cbf_entity_highlightable() gets the needed $fields from the source $entity
  */
-function cbf_entity_highlightable($entity, $type) {
+function cbf_entity_highlightable($entity, $type, $currentForm) {
   return cbf_entity_viewable_fields(
     $entity,
     $type,
+    $currentForm,
     [
       "field_title",
       "field_subtitle",
@@ -2601,10 +2603,11 @@ function cbf_entity_highlightable($entity, $type) {
 /*
  * cbf_entity_highlightable() gets the needed $fields from the source $entity
  */
-function cbf_entity_mappable($entity, $type) {
+function cbf_entity_mappable($entity, $type, $currentForm) {
   return cbf_entity_viewable_fields(
     $entity,
     $type,
+    $currentForm,
     [
       "field_title",
       "field_summary",
