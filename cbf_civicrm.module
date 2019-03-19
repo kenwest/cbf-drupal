@@ -1359,36 +1359,10 @@ function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
   }
 }
 
-function cbf_civicrm_civicrm_event_get_location_data($id) {
+function _cbf_civicrm_civicrm_address_get_location_data($id) {
   $result = [];
 
   try {
-    // Get the Event
-    $record = civicrm_api3('Event', 'get', [
-      'sequential' => 1,
-      'return' => ["loc_block_id"],
-      'id' => $id,
-    ]);
-    if (!isset($record['values'][0]['loc_block_id'])) {
-      return $result;
-    }
-    else {
-      $id = $record['values'][0]['loc_block_id'];
-    }
-
-    // Get the Location Blaock
-    $record = civicrm_api3('LocBlock', 'get', [
-      'sequential' => 1,
-      'return' => ["address_id"],
-      'id' => $id,
-    ]);
-    if (!isset($record['values'][0]['address_id'])) {
-      return $result;
-    }
-    else {
-      $id = $record['values'][0]['address_id'];
-    }
-
     // Get the Address
     $record = civicrm_api3('Address', 'get', [
       'sequential' => 1,
@@ -1423,9 +1397,51 @@ function cbf_civicrm_civicrm_event_get_location_data($id) {
       $result['province'] = $record['values'][0]['abbreviation'];
       $result['province_name'] = $record['values'][0]['name'];
     }
+
   } catch (CiviCRM_API3_Exception $e) {
     ;
   }
 
   return $result;
 }
+
+function cbf_civicrm_civicrm_event_get_location_data($id) {
+  $result = [];
+
+  try {
+    // Get the Event
+    $record = civicrm_api3('Event', 'get', [
+      'sequential' => 1,
+      'return' => ["loc_block_id"],
+      'id' => $id,
+    ]);
+    if (!isset($record['values'][0]['loc_block_id'])) {
+      return $result;
+    }
+    else {
+      $id = $record['values'][0]['loc_block_id'];
+    }
+
+    // Get the Location Block
+    $record = civicrm_api3('LocBlock', 'get', [
+      'sequential' => 1,
+      'return' => ["address_id"],
+      'id' => $id,
+    ]);
+    if (!isset($record['values'][0]['address_id'])) {
+      return $result;
+    }
+    else {
+      $id = $record['values'][0]['address_id'];
+    }
+
+    // Get the location data from the Address
+    $result = _cbf_civicrm_civicrm_address_get_location_data($id);
+
+  } catch (CiviCRM_API3_Exception $e) {
+    ;
+  }
+
+  return $result;
+}
+
