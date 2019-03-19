@@ -650,7 +650,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     $vars['ip']  = $_SERVER['REMOTE_ADDR'];
     $vars['url'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
   }
-  $vars['agent']  = $_SERVER['HTTP_USER_AGENT'];
+  $vars['agent']  = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'not available';
 
   /*
    * There are a number of annoying errors that get logged. They seem to be due to
