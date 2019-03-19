@@ -1207,6 +1207,12 @@ function cbf_cron() {
   $current_time = strtotime('now');
   $last_run     = variable_get('cbf_cron_last_run', 0);
 
+  /*
+   * Initialize CiviCRM. This is a precaution now that CiviCRM and Drupal are
+   * becoming more tightly coupled.
+   */
+  civicrm_initialize();
+
   /* Set operator and values for filtering field_next_action */
   if ($last_run == 0) {
     $operator = '>';
