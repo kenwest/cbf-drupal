@@ -2322,7 +2322,7 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
     'field_title' => [
       'field' => 'field_title',
       'value' => 'value',
-      'default' => $entity->title,
+      'default' => empty($entity->title) ? null : $entity->title,
     ],
     'field_subtitle' => [
       'field' => 'field_subtitle',
