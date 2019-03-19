@@ -2157,6 +2157,9 @@ function cbf_entity_viewable($entity, $type, $operation) {
         'regular_venue' => [
           'mappable',
         ],
+        'ministry_team' => [
+          'mappable',
+        ],
       ],
     ],
   ];
@@ -2447,6 +2450,72 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
           }
         }
       }
+    }
+  }
+
+  /*
+   * The Ministry Team EntityForms have most of their data in CiviCRM,
+   * so get the field defaults from there.
+   */
+  if ($entity->entityType() == 'entityform' && $entity->type == 'ministry_team') {
+    $defaults = [];
+    $team = field_get_items($type, $entity, 'field_ministry_team');
+    $team = empty($team) ? false : reset($team)['contact_id'];
+    $team = cbf_civicrm_ministry_team_viewable_fields($team);
+    $teamFieldMap = [
+      'meeting day/time' => 'field_title',
+      'time of day' => 'field_summary',
+      'address' => 'field_map_location',
+    ];
+    foreach ($teamFieldMap as $from => $to) {
+      if (in_array($to, $fields) && !empty($team[$from])) {
+        $defaults[$to] = $team[$from];
+      }
+    }
+
+    if (in_array('taxonomy_vocabulary_1', $fields)) {
+      $query = new EntityFieldQuery();
+      $query
+        ->entityCondition('entity_type', 'taxonomy_term')
+        ->entityCondition('bundle', 'vocabulary_1')
+        ->fieldCondition('field_civicrm_tag', 'target_id', $team['tags'], 'in') ;
+      $terms = $query->execute();
+      foreach($terms['taxonomy_term'] as $tid => $_) {
+        $defaults['taxonomy_vocabulary_1'] = $tid;
+        break;
+      }
+    }
+
+    if (in_array('taxonomy_vocabulary_3', $fields)) {
+      /*
+       * Hardcoded assumption this is an EPT so Audience is Christian
+       */
+      $defaults['taxonomy_vocabulary_3'] = 47;
+    }
+
+    if (in_array('field_in_activity', $fields)) {
+      /*
+       * Hardcoded assumption this is an EPT so Activity is Prayer Teams
+       */
+      $defaults['field_in_activity'] = 1222;
+    }
+
+    if (in_array('field_map_region', $fields)) {
+      $query = new EntityFieldQuery();
+      $query
+        ->entityCondition('entity_type', 'taxonomy_term')
+        ->entityCondition('bundle', 'region')
+        ->fieldCondition('field_civicrm_tag', 'target_id', $team['tags'], 'in') ;
+      $terms = $query->execute();
+      $defaults['field_map_region'] = [];
+      foreach($terms['taxonomy_term'] as $tid => $_) {
+        $defaults['field_map_region'][] = $tid;
+      }
+    }
+
+    foreach ($defaults as $to => $default) {
+      unset($fromFields[$to]['required']);
+      $fromFields[$to]['default'] = $default;
     }
   }
 
