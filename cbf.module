@@ -2409,9 +2409,9 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
    * 'required' as there is a default available from the Activity.
    */
   if (!empty($activityDefaults)) {
-    $field = field_get_items($type, $entity, 'field_in_activity');
-    $activity = entity_load('node', reset($field));
-    $activity = reset($activity);
+    $activity = field_get_items($type, $entity, 'field_in_activity');
+    $activity = empty($activity) ? false : entity_load('node', reset($activity));
+    $activity = empty($activity) ? false : reset($activity);
     if (!empty($activity)) {
       foreach ($activityDefaults as $to) {
         $from = $fromFields[$to];
