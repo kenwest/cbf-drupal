@@ -1445,3 +1445,57 @@ function cbf_civicrm_civicrm_event_get_location_data($id) {
   return $result;
 }
 
+function cbf_civicrm_ministry_team_viewable_fields($team) {
+  $result = [];
+  try {
+    $record = civicrm_api3('Contact', 'get', [
+      'sequential' => 1,
+      'return' => ["custom_7", "custom_6", "custom_61", "address_id"],
+      'id' => $team,
+    ]);
+    if (!isset($record['values'][0]['id'])) {
+      return $result;
+    }
+
+    if (!empty($record['values'][0]['custom_7'])) {
+      $result['meeting day/time'] = $record['values'][0]['custom_7'];
+    }
+    if (!empty($record['values'][0]['custom_6'])) {
+      $result['time of day'] = $record['values'][0]['custom_6'];
+    }
+    if (!empty($record['values'][0]['address_id'])) {
+      $result['address']
+        = _cbf_civicrm_civicrm_address_get_location_data(
+            $record['values'][0]['address_id']
+          );
+    }
+    if (!empty($record['values'][0]['custom_61'])) {
+      $record = civicrm_api3('Contact', 'get', [
+        'sequential' => 1,
+        'return' => ["display_name"],
+        'id' => $record['values'][0]['custom_61'],
+      ]);
+      if (!empty($record['values'][0]['display_name'])) {
+        $result['staff contact'] = [
+          'id' => $record['values'][0]['id'],
+          'display_name' => $record['values'][0]['display_name'],
+        ];
+      }
+    }
+
+    $record = civicrm_api3('EntityTag', 'get', [
+      'sequential' => 1,
+      'return' => ["tag_id"],
+      'entity_table' => "civicrm_contact",
+      'entity_id' => $team,
+    ]);
+    $result['tags'] = [];
+    foreach ($record['values'] as $tag) {
+      $result['tags'][] = $tag['tag_id'];
+    }
+
+  } catch (CiviCRM_API3_Exception $e) {
+    ;
+  }
+  return $result;
+}
