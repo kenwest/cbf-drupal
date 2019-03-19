@@ -2399,6 +2399,11 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
       'value' => 'reset array',
       'default' => null,
     ],
+    'field_order_url' => [
+      'field' => 'field_order_url',
+      'value' => 'reset array',
+      'default' => null,
+    ],
     'domain_entityform' => [
       'field' => 'field_domain',
       'value' => 'array',
@@ -2471,6 +2476,16 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
       if (in_array($to, $fields) && !empty($team[$from])) {
         $defaults[$to] = $team[$from];
       }
+    }
+
+    if (in_array('field_order_url', $fields) && !empty($team['staff contact'])) {
+      $defaults['field_order_url'] = [
+        [
+          'url' => '/staff-contact?cid1='. $team['staff contact']['id'],
+          'title' => $team['staff contact']['display_name'],
+          'attributes' => [],
+        ],
+      ];
     }
 
     if (in_array('taxonomy_vocabulary_1', $fields)) {
@@ -2707,6 +2722,7 @@ function cbf_entity_mappable($entity, $type, $currentForm) {
       "field_in_activity",
       "field_marker",
       "field_map_region",
+      "field_order_url",
       "domain_entityform",
     ],
     [
