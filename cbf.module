@@ -1250,8 +1250,8 @@ function cbf_cron() {
   $result = $query->entityCondition('entity_type', 'node')
     ->fieldCondition('field_post_to_twitter', 'status', 0, '<>')
     ->execute();
-  if (isset($result['node'])) {
-    $nodes = entity_load('node', array_keys($result['node']));
+  foreach ($result as $entityType => $entities) {
+    $nodes = entity_load('node', array_keys($entities));
     foreach ($nodes as $node) {
       // Prevent a post being made again to Twitter
       $langcode = field_language('node', $node, 'field_post_to_twitter');
@@ -2240,21 +2240,28 @@ function cbf_entity_viewable($entity, $type, $operation) {
       // Run the query as user 1.
       ->addMetaData('account', user_load(1));
 
+    $entityForm = null;
     $result = $query->execute();
-    if (!isset($result['entityform'])) {
-      $entityForm = null;
-    }
-    else {
-      $entityForm = entity_load('entityform', array_keys($result['entityform']));
-      if (count($entityForm) > 1) {
-        watchdog(
-          'CBF',
-          "Source entity $type/$sourceEntityId has multiple $viewable entities",
-          null,
-          WATCHDOG_ERROR
-        );
+    foreach ($result as $entityType => $entities) {
+      $entities = entity_load($entityType, array_keys($entities));
+      foreach ($entities as $entityForm) {
+        /*
+         * Normally, $result is [ ''entityform' => [ id => Object ] ]
+         * so sizeof($result, 1) == 2
+         *
+         * If $result = [] we won't get here, but it may be something has gone
+         * wrong and there are multiple entityforms returned.
+         */
+        if (sizeof($result, 1) > 2 ) {
+          watchdog(
+            'CBF',
+            "Source entity $type/$sourceEntityId has multiple $viewable entities",
+            null,
+            WATCHDOG_ERROR
+            );
+        }
+        break 2;
       }
-      $entityForm = reset($entityForm);
     }
 
     /*
@@ -2520,9 +2527,11 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
         ->entityCondition('bundle', 'vocabulary_1')
         ->fieldCondition('field_civicrm_tag', 'target_id', $team['tags'], 'in') ;
       $terms = $query->execute();
-      foreach($terms['taxonomy_term'] as $tid => $_) {
-        $defaults['taxonomy_vocabulary_1'] = $tid;
-        break;
+      foreach ($terms as $entityType => $entities) {
+        foreach($entities as $tid => $_) {
+          $defaults['taxonomy_vocabulary_1'] = $tid;
+          break 2;
+        }
       }
     }
 
@@ -2548,8 +2557,10 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
         ->fieldCondition('field_civicrm_tag', 'target_id', $team['tags'], 'in') ;
       $terms = $query->execute();
       $defaults['field_map_region'] = [];
-      foreach($terms['taxonomy_term'] as $tid => $_) {
-        $defaults['field_map_region'][] = $tid;
+      foreach ($terms as $entityType => $entities) {
+        foreach($entities as $tid => $_) {
+          $defaults['field_map_region'][] = $tid;
+        }
       }
     }
 
