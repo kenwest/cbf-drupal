@@ -1269,7 +1269,6 @@ function cbf_cron() {
    * and re-save them.
    *  - these entities have no interface for searching
    *  - the Mappable EntityForm is under development
-   */
   $query = new EntityFieldQuery();
   $result = $query->entityCondition('entity_type', 'entityform')
     ->entityCondition('bundle', [ 'ministry_team', 'regular_venue' ], 'in')
@@ -1280,6 +1279,7 @@ function cbf_cron() {
       entity_save($entityType, $entity);
     }
   }
+   */
 
   variable_set('cbf_cron_last_run', $current_time);
 }
