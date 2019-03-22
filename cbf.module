@@ -2494,7 +2494,11 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
    * The Ministry Team EntityForms have most of their data in CiviCRM,
    * so get the field defaults from there.
    */
-  if ($entity->entityType() == 'entityform' && $entity->type == 'ministry_team') {
+  if (
+    method_exists($entity, 'entityType')
+    && $entity->entityType() == 'entityform'
+    && $entity->type == 'ministry_team'
+  ) {
     $defaults = [];
     $team = field_get_items($type, $entity, 'field_ministry_team');
     $team = empty($team) ? false : reset($team)['contact_id'];
