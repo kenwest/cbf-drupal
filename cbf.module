@@ -685,11 +685,11 @@ function computed_field_field_is_text_compute(&$entity_field, $entity_type, $ent
 function computed_field_field_resource_type_display($field, $entity_field_item, $entity_lang, $langcode) {
   switch ($entity_field_item['value']) {
     case 'video':
-      return '<i class="fa fa-fw fa-youtube-play"></i>';
+      return '<i class="fab fa-fw fa-youtube"></i>';
     case 'audio':
-      return '<i class="fa fa-fw fa-microphone"></i>';
+      return '<i class="fal fa-fw fa-microphone"></i>';
     case 'text':
-      return '<i class="fa fa-fw fa-file-pdf-o"></i>';
+      return '<i class="fal fa-fw fa-file-pdf"></i>';
     default:
       return '';
   }
