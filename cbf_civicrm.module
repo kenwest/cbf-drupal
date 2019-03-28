@@ -651,6 +651,9 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     $vars['url'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
   }
   $vars['agent']  = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'not available';
+  if (user_is_logged_in()) {
+    $vars['username'] = $GLOBALS['user']->name;
+  }
 
   /*
    * There are a number of annoying errors that get logged. They seem to be due to
