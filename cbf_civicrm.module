@@ -642,7 +642,7 @@ function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$p
  * the standard error handling continues.
  */
 function cbf_civicrm_fatal_error_handler(&$vars) {
-  if ( isset($_SERVER['HTTP_X_FORWARDED_FOR']) ) {
+  if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
     $vars['ip']  = $_SERVER['HTTP_X_FORWARDED_FOR'];
     $vars['url'] = $_SERVER['HTTP_X_FORWARDED_PROTO'] . '://' . $_SERVER['HTTP_X_HOST'] . $_SERVER['REQUEST_URI'];
   }
