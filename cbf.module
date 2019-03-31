@@ -1721,7 +1721,8 @@ function cbf_views_post_execute(&$view) {
         '/(^| )cbf-merge-events($| )/i',
         $view->display_handler->get_option('css_class')) == 1
     ) &&
-    $view->display_handler->plugin_name == 'block') {
+    $view->display_handler->plugin_name == 'block'
+  ) {
     /*
      * $eventsByActivity is an array of arrays. It maps from Activity Id to Event name to
      * index of the first element of $view->result that has that Activity Id and name.
