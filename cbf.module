@@ -1831,6 +1831,18 @@ function cbf_views_post_execute(&$view) {
   }
 
   /*
+   * If a view is tagged right-to-left then reverse the results.
+   * Rely on CSS nad the views pager definition to reverse the
+   * previous/next buttons.
+   */
+  if (preg_match('/(^| )right-to-left(,|$)/i', $view->tag) == 1) {
+    $view->result = array_reverse($view->result);
+    $view->display_handler->set_option(
+      'css_class',
+      $view->display_handler->get_option('css_class') . ' right-to-left');
+  }
+
+  /*
    * If a view returns no results, and the 'no results' behaviour is to return
    * the results of a second view, we want the title of this view to equal that
    * of the second.
