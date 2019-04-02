@@ -683,36 +683,42 @@ function computed_field_field_is_text_compute(&$entity_field, $entity_type, $ent
  * This function is called by CCK Computed Field to generate the display text of Field Resource Type.
  */
 function computed_field_field_resource_type_display($field, $entity_field_item, $entity_lang, $langcode) {
-  switch ($entity_field_item['value']) {
-    case 'video':
-      return '<i class="fab fa-fw fa-youtube"></i>';
-    case 'audio':
-      return '<i class="fal fa-fw fa-microphone"></i>';
-    case 'text':
-      return '<i class="fal fa-fw fa-file-pdf"></i>';
-    default:
-      return '';
+  if (stripos($entity_field_item['value'], 'o') !== false) {
+    return '<i class="fal fa-fw fa-book"></i>';
   }
+  if (stripos($entity_field_item['value'], 'v') !== false) {
+    return '<i class="fab fa-fw fa-youtube"></i>';
+  }
+  if (stripos($entity_field_item['value'], 'a') !== false) {
+    return '<i class="fal fa-fw fa-microphone"></i>';
+  }
+  if (stripos($entity_field_item['value'], 'd') !== false) {
+    return '<i class="fal fa-fw fa-file-pdf"></i>';
+  }
+  return '';
 }
 
 /*
  * This function is called by CCK Computed Field to compute the value of Field Resource Type.
 */
 function computed_field_field_resource_type_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+  $field_order_url = field_get_items($entity_type, $entity, 'field_order_url');
   $field_video = field_get_items($entity_type, $entity, 'field_video');
   $field_content = field_get_items($entity_type, $entity, 'field_content');
   $field_attachment = field_get_items($entity_type, $entity, 'field_attachment');
+
+  $entity_field[0]['value'] = '';
+  if (!empty($field_order_url)) {
+    $entity_field[0]['value'] .= 'o';
+  }
   if (!empty($field_video)) {
-    $entity_field[0]['value'] = 'video';
+    $entity_field[0]['value'] .= 'v';
   }
-  elseif (!empty($field_content)) {
-    $entity_field[0]['value'] = 'audio';
+  if (!empty($field_content)) {
+    $entity_field[0]['value'] .= 'a';
   }
-  elseif (!empty($field_attachment)) {
-    $entity_field[0]['value'] = 'text';
-  }
-  else {
-    $entity_field[0]['value'] = '';
+  if (!empty($field_attachment)) {
+    $entity_field[0]['value'] .= 'd';
   }
 }
 
