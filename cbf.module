@@ -687,7 +687,7 @@ function computed_field_field_resource_type_display($field, $entity_field_item, 
     return '<i class="fal fa-fw fa-book"></i>';
   }
   if (stripos($entity_field_item['value'], 'v') !== false) {
-    return '<i class="fab fa-fw fa-youtube"></i>';
+    return '<i class="fal fa-fw fa-video"></i>';
   }
   if (stripos($entity_field_item['value'], 'a') !== false) {
     return '<i class="fal fa-fw fa-microphone"></i>';
