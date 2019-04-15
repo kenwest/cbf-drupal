@@ -1705,7 +1705,8 @@ function cbf_views_post_execute(&$view) {
    * This function prevents block displays being crowded out by Events of a single Activity
    * (eg Bible Shots runs 3 events each week). These block displays are indicated by either
    *  1. The view is tagged with 'merge-events'
-   *  2. The display is marked with a CSS class 'cbf-merge-events'
+   *  2. The display is marked with a CSS class 'cbf-merge-events' (useful if merging is not
+   *     appropriate for all displays)
    *
    * The display is set to not limit the number of items
    *  1. By default this is limited by this function to 5
