@@ -1868,6 +1868,38 @@ function cbf_views_post_execute(&$view) {
         = str_replace('_', '-', $result->field_field_source_entity_type[0]['rendered']['#markup']);
     }
   }
+
+  /*
+   * Titles for the Bigger Questions iTunes feed need to include the Speaker
+   * names.
+   */
+  if (
+    $view->name == 'campus_podcasts'
+    && $view->current_display == 'feed_3'
+  ) {
+    foreach ($view->result as $r => $result) {
+      if (
+        strpos($result->node_title, '|') === false
+        && $result->nid > 3655
+      ) {
+        $count = count($result->field_field_speakers);
+        $speakers = '';
+        foreach ($result->field_field_speakers as $i => $speaker) {
+          if ($i == 0) {
+            $speakers .= ' | ';
+          }
+          else if ($i == $count - 1) {
+            $speakers .= ' & ';
+          }
+          else {
+            $speakers .= ', ';
+          }
+          $speakers .= $speaker['rendered']['#markup'];
+        }
+        $view->result[$r]->node_title .= $speakers;
+      }
+    }
+  }
 }
 
 /*
