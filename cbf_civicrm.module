@@ -548,7 +548,7 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
  * The Purchaser Address details are cleared, since the Billing Address is not captured.
  */
 function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawParams, &$cookedParams ) {
-  $is_recur           = CRM_Utils_Array::value('is_recur',           $rawParams);
+  $is_recur = CRM_Utils_Array::value('is_recur', $rawParams);
   $credit_card_holder = CRM_Utils_Array::value('credit_card_holder', $rawParams);
   if (isset($is_recur) && $is_recur) {
     if ($paymentObj instanceof org_civicrm_ewayrecurring) {
