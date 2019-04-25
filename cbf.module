@@ -2539,7 +2539,7 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
     && $entity->entityType() == 'entityform'
     && $entity->type == 'ministry_team'
   ) {
-    $defaults = [];
+    $defaults = [ ];
     $team = field_get_items($type, $entity, 'field_ministry_team');
     $team = empty($team) ? false : reset($team)['contact_id'];
     $team = cbf_civicrm_ministry_team_viewable_fields($team);
