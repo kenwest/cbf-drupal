@@ -2720,12 +2720,17 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
     $type == 'civicrm_event'
     && in_array('field_map_location', $fields)
   ) {
-    $result['field_map_location']
-      = cbf_civicrm_civicrm_event_get_location_data($entity->id);
-    if (
-      !empty($result['field_map_location'])
-        && isset($currentForm)
-    ) {
+    // We cannot map it if its next action is zero.
+    $field_next_action = field_get_items($type, $entity, 'field_next_action');
+    if ($field_next_action !== false && empty($field_next_action[0]['value'])) {
+      return [ ];
+    }
+
+    // Get the location from CiviCRM
+    $result['field_map_location'] = cbf_civicrm_civicrm_event_get_location_data($entity->id);
+
+    // If the $currentForm already has a location recycle the Location ID
+    if (!empty($result['field_map_location']) && isset($currentForm)) {
       $location = field_get_items('entityform', $currentForm, 'field_map_location');
       if (isset($location[0]['lid'])) {
         $result['field_map_location']['lid'] = $location[0]['lid'];
