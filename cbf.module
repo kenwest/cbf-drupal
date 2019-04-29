@@ -1389,16 +1389,30 @@ function cbf_visitor_city_string() {
   if (!isset($cbf_visitor_city)) {
     $cbf_visitor_city = false;
 
-    if (!function_exists('ip_geoloc_get_visitor_location')) {
-      return $cbf_visitor_city;
-    }
+    foreach (['ip_geoloc', 'geoip'] as $locator) {
+      $country = null;
+      $state = null;
 
-    $result = ip_geoloc_get_visitor_location();
+      switch ($locator) {
+        case 'ip_geoloc':
+          if (function_exists('ip_geoloc_get_visitor_location')) {
+            $result = ip_geoloc_get_visitor_location();
+            $country = $result['country'];
+            $state = $result['administrative_area_level_1'];
+          }
+          break;
 
-    if (isset($result['country']) && isset($result['administrative_area_level_1'])) {
-      switch ($result['country']) {
+        case 'geoip':
+          if (function_exists('geoip_country_name')) {
+            $country = geoip_country_name();
+            $state = geoip_region_name();
+          }
+          break;
+      }
+
+      switch ($country) {
         case 'Australia':
-          switch ($result['administrative_area_level_1']) {
+          switch ($state) {
             case 'New South Wales':
               $cbf_visitor_city = 'sydney';
               break;
@@ -1422,6 +1436,10 @@ function cbf_visitor_city_string() {
               break;
           }
           break;
+      }
+
+      if (!empty($cbf_visitor_city)) {
+        break;
       }
     }
   }
