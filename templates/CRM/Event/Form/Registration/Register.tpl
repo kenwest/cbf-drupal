@@ -58,15 +58,17 @@
     {/if}
 
     {if $paidEvent}
-      <div class="progress payment">
-        <div class="progress-bar present">
-          1. Enter <br/> details
-        </div>
-        <div class="progress-bar future">
-          2. Check <br/> details
-        </div>
-        <div class="progress-bar future">
-          3. Register <br/> &nbsp;
+      <div class="progress-outer">
+        <div class="progress payment">
+          <div class="progress-bar present">
+            1. Enter <br/> details
+          </div>
+          <div class="progress-bar future">
+            2. Check <br/> details
+          </div>
+          <div class="progress-bar future">
+            3. Register <br/> &nbsp;
+          </div>
         </div>
       </div>
     {/if}

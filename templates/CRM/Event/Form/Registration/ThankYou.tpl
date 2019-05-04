@@ -31,15 +31,17 @@
 
 <div class="crm-event-id-{$event.id} crm-block crm-event-thankyou-form-block">
   {if $paidEvent}
-    <div class="progress payment">
-      <div class="progress-bar past">
-        1. Entered <br/> details &#x2713;
-      </div>
-      <div class="progress-bar past">
-        2. Checked <br/> details &#x2713;
-      </div>
-      <div class="progress-bar present">
-        3. Registered <br/> &#x2713;
+    <div class="progress-outer">
+      <div class="progress payment">
+        <div class="progress-bar past">
+          1. Entered <br/> details &#x2713;
+        </div>
+        <div class="progress-bar past">
+          2. Checked <br/> details &#x2713;
+        </div>
+        <div class="progress-bar present">
+          3. Registered <br/> &#x2713;
+        </div>
       </div>
     </div>
   {/if}

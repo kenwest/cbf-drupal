@@ -85,15 +85,17 @@
   <div id="intro_text" class="crm-public-form-item crm-section intro_text-section">
     {$intro_text}
   </div>
-  <div class="progress payment">
-    <div class="progress-bar present">
-      1. Enter <br/> details
-    </div>
-    <div class="progress-bar future">
-      2. Check <br/> details
-    </div>
-    <div class="progress-bar future">
-      3. Make <br/> payment
+  <div class="progress-outer">
+    <div class="progress payment">
+      <div class="progress-bar present">
+        1. Enter <br/> details
+      </div>
+      <div class="progress-bar future">
+        2. Check <br/> details
+      </div>
+      <div class="progress-bar future">
+        3. Make <br/> payment
+      </div>
     </div>
   </div>
   {include file="CRM/common/cidzero.tpl"}

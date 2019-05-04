@@ -30,15 +30,17 @@
 {include file="CRM/common/TrackingFields.tpl"}
 
 <div class="crm-event-id-{$event.id} crm-block crm-event-confirm-form-block">
-  <div class="progress payment">
-    <div class="progress-bar past">
-      1. Entered <br/> details &#x2713;
-    </div>
-    <div class="progress-bar present">
-      2. Check <br/> details
-    </div>
-    <div class="progress-bar future">
-      3. Register <br/> &nbsp;
+  <div class="progress-outer">
+    <div class="progress payment">
+      <div class="progress-bar past">
+        1. Entered <br/> details &#x2713;
+      </div>
+      <div class="progress-bar present">
+        2. Check <br/> details
+      </div>
+      <div class="progress-bar future">
+        3. Register <br/> &nbsp;
+      </div>
     </div>
   </div>
     {if $isOnWaitlist}
