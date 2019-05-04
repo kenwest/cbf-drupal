@@ -2023,7 +2023,7 @@ function cbf_breadcrumb($variables, $structure) {
         }
         break;
 
-        case 'node';
+      case 'node';
         $node = menu_get_object();
         if (!empty($node)) {
           $type = $node->type;
