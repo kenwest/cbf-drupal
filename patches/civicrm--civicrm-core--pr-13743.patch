@@ -1,0 +1,36 @@
+From 7077d35ff46ff49f8a38d49a652b188f10eda2c7 Mon Sep 17 00:00:00 2001
+From: Patrick Figel <pfigel@greenpeace.org>
+Date: Fri, 1 Mar 2019 19:28:27 +0100
+Subject: [PATCH] CRM/Contact - Fix fatal error on tag search
+
+This fixes a fatal error caused by the CommaSeparatedIntegers not
+accepting empty strings. This can be triggered by performing a
+search with "Tag(s) IS NULL" using the search builder.
+---
+ CRM/Contact/BAO/Query.php | 13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/CRM/Contact/BAO/Query.php b/CRM/Contact/BAO/Query.php
+index ac81fec5bff..e60884b6f1d 100644
+--- a/CRM/Contact/BAO/Query.php
++++ b/CRM/Contact/BAO/Query.php
+@@ -3259,11 +3259,14 @@ public function tag(&$values) {
+       }
+     }
+ 
+-    // implode array, then remove all spaces and validate CommaSeparatedIntegers
+-    $value = CRM_Utils_Type::validate(
+-      str_replace(' ', '', implode(',', (array) $value)),
+-      'CommaSeparatedIntegers'
+-    );
++    // implode array, then remove all spaces
++    $value = str_replace(' ', '', implode(',', (array) $value));
++    if (!empty($value)) {
++      $value = CRM_Utils_Type::validate(
++        $value,
++        'CommaSeparatedIntegers'
++      );
++    }
+ 
+     $useAllTagTypes = $this->getWhereValues('all_tag_types', $grouping);
+     $tagTypesText = $this->getWhereValues('tag_types_text', $grouping);
