@@ -1,0 +1,158 @@
+diff --git a/civicrm-5.13.3-drupal/CRM/Core/BAO/Address.php b/civicrm-5.13.4-drupal/CRM/Core/BAO/Address.php
+index b5ec97d..d94ecf2 100644
+--- a/civicrm-5.13.3-drupal/CRM/Core/BAO/Address.php
++++ b/civicrm-5.13.4-drupal/CRM/Core/BAO/Address.php
+@@ -1321,6 +1321,9 @@ SELECT is_primary,
+           }
+         }
+         if (!empty($props['country_id']) && $context !== 'validate') {
++          if (!CRM_Utils_Rule::commaSeparatedIntegers(implode(',', (array) $props['country_id']))) {
++            throw new CRM_Core_Exception(ts('Province limit or default country setting is incorrect'));
++          }
+           $params['condition'] = 'country_id IN (' . implode(',', (array) $props['country_id']) . ')';
+         }
+         break;
+@@ -1333,6 +1336,9 @@ SELECT is_primary,
+         if ($context != 'get' && $context != 'validate') {
+           $config = CRM_Core_Config::singleton();
+           if (!empty($config->countryLimit) && is_array($config->countryLimit)) {
++            if (!CRM_Utils_Rule::commaSeparatedIntegers(implode(',', $config->countryLimit))) {
++              throw new CRM_Core_Exception(ts('Available Country setting is incorrect'));
++            }
+             $params['condition'] = 'id IN (' . implode(',', $config->countryLimit) . ')';
+           }
+         }
+@@ -1341,6 +1347,9 @@ SELECT is_primary,
+       // Filter county list based on chosen state
+       case 'county_id':
+         if (!empty($props['state_province_id'])) {
++          if (!CRM_Utils_Rule::commaSeparatedIntegers(implode(',', (array) $props['state_province_id']))) {
++            throw new CRM_Core_Exception(ts('Can only accept Integers for state_province_id filtering'));
++          }
+           $params['condition'] = 'state_province_id IN (' . implode(',', (array) $props['state_province_id']) . ')';
+         }
+         break;
+diff --git a/civicrm-5.13.3-drupal/CRM/Core/BAO/CustomField.php b/civicrm-5.13.4-drupal/CRM/Core/BAO/CustomField.php
+index 71e5978..02b9519 100644
+--- a/civicrm-5.13.3-drupal/CRM/Core/BAO/CustomField.php
++++ b/civicrm-5.13.4-drupal/CRM/Core/BAO/CustomField.php
+@@ -599,7 +599,7 @@ class CRM_Core_BAO_CustomField extends CRM_Core_DAO_CustomField {
+         if (!empty($customDataSubType)) {
+           $subtypeClause = array();
+           foreach ($customDataSubType as $subtype) {
+-            $subtype = CRM_Core_DAO::VALUE_SEPARATOR . $subtype . CRM_Core_DAO::VALUE_SEPARATOR;
++            $subtype = CRM_Core_DAO::VALUE_SEPARATOR . CRM_Utils_Type::escape($subtype, 'String') . CRM_Core_DAO::VALUE_SEPARATOR;
+             $subtypeClause[] = "$cgTable.extends_entity_column_value LIKE '%{$subtype}%'";
+           }
+           if (!$onlySubType) {
+diff --git a/civicrm-5.13.3-drupal/CRM/Core/BAO/CustomQuery.php b/civicrm-5.13.4-drupal/CRM/Core/BAO/CustomQuery.php
+index 790487e..24b829e 100644
+--- a/civicrm-5.13.3-drupal/CRM/Core/BAO/CustomQuery.php
++++ b/civicrm-5.13.4-drupal/CRM/Core/BAO/CustomQuery.php
+@@ -351,6 +351,12 @@ SELECT f.id, f.label, f.data_type,
+                 foreach ($value as $key => $val) {
+                   $value[$key] = str_replace(['[', ']', ','], ['\[', '\]', '[:comma:]'], $val);
+                   $value[$key] = str_replace('|', '[:separator:]', $value[$key]);
++                  if ($field['data_type'] == 'String') {
++                    $value[$key] = CRM_Utils_Type::escape($value[$key], 'String');
++                  }
++                  elseif ($value) {
++                    $value[$key] = CRM_Utils_Type::escape($value[$key], 'Integer');
++                  }
+                 }
+                 $value = implode(',', $value);
+               }
+diff --git a/civicrm-5.13.3-drupal/CRM/Event/Page/ManageEvent.php b/civicrm-5.13.4-drupal/CRM/Event/Page/ManageEvent.php
+index afc523e..ae0f929 100644
+--- a/civicrm-5.13.3-drupal/CRM/Event/Page/ManageEvent.php
++++ b/civicrm-5.13.4-drupal/CRM/Event/Page/ManageEvent.php
+@@ -517,7 +517,8 @@ ORDER BY start_date desc
+       if (is_array($value)) {
+         $type = implode(',', $value);
+       }
+-      $clauses[] = "event_type_id IN ({$type})";
++      $clauses[] = "event_type_id IN (%2)";
++      $params[2] = [$type, 'String'];
+     }
+ 
+     $eventsByDates = $this->get('eventsByDates');
+diff --git a/civicrm-5.13.3-drupal/CRM/Utils/AutoClean.php b/civicrm-5.13.4-drupal/CRM/Utils/AutoClean.php
+index 558ca34..c2c21dc 100644
+--- a/civicrm-5.13.3-drupal/CRM/Utils/AutoClean.php
++++ b/civicrm-5.13.4-drupal/CRM/Utils/AutoClean.php
+@@ -102,4 +102,24 @@ class CRM_Utils_AutoClean {
+     \Civi\Core\Resolver::singleton()->call($this->callback, $this->args);
+   }
+ 
++  /**
++   * Prohibit (de)serialization of CRM_Utils_AutoClean.
++   *
++   * The generic nature of AutoClean makes it a potential target for escalating
++   * serialization vulnerabilities, and there's no good reason for serializing it.
++   */
++  public function __sleep() {
++    throw new \RuntimeException("CRM_Utils_AutoClean is a runtime helper. It is not intended for serialization.");
++  }
++
++  /**
++   * Prohibit (de)serialization of CRM_Utils_AutoClean.
++   *
++   * The generic nature of AutoClean makes it a potential target for escalating
++   * serialization vulnerabilities, and there's no good reason for deserializing it.
++   */
++  public function __wakeup() {
++    throw new \RuntimeException("CRM_Utils_AutoClean is a runtime helper. It is not intended for deserialization.");
++  }
++
+ }
+diff --git a/civicrm-5.13.3-drupal/CRM/Utils/Rule.php b/civicrm-5.13.4-drupal/CRM/Utils/Rule.php
+index 50d72d3..940128d 100644
+--- a/civicrm-5.13.3-drupal/CRM/Utils/Rule.php
++++ b/civicrm-5.13.4-drupal/CRM/Utils/Rule.php
+@@ -488,6 +488,8 @@ class CRM_Utils_Rule {
+    */
+   public static function commaSeparatedIntegers($value) {
+     foreach (explode(',', $value) as $val) {
++      // Remove any Whitespace around the key.
++      $val = trim($val);
+       if (!self::positiveInteger($val)) {
+         return FALSE;
+       }
+diff --git a/civicrm-5.13.3-drupal/api/v3/Generic.php b/civicrm-5.13.4-drupal/api/v3/Generic.php
+index c88419c..6dfb1c8 100644
+--- a/civicrm-5.13.3-drupal/api/v3/Generic.php
++++ b/civicrm-5.13.4-drupal/api/v3/Generic.php
+@@ -432,7 +432,7 @@ function civicrm_api3_generic_getoptions($apiRequest) {
+   // Validate 'context' from params
+   $context = CRM_Utils_Array::value('context', $apiRequest['params']);
+   CRM_Core_DAO::buildOptionsContext($context);
+-  unset($apiRequest['params']['context'], $apiRequest['params']['field']);
++  unset($apiRequest['params']['context'], $apiRequest['params']['field'], $apiRequest['params']['condition']);
+ 
+   $baoName = _civicrm_api3_get_BAO($apiRequest['entity']);
+   $options = $baoName::buildOptions($fieldName, $context, $apiRequest['params']);
+diff --git a/civicrm-5.13.3-drupal/install/index.php b/civicrm-5.13.4-drupal/install/index.php
+index c6cd5c6..6eaf8a5 100644
+--- a/civicrm-5.13.3-drupal/install/index.php
++++ b/civicrm-5.13.4-drupal/install/index.php
+@@ -63,14 +63,16 @@ global $installURLPath;
+ // Set the install type
+ // this is sent as a query string when the page is first loaded
+ // and subsequently posted to the page as a hidden field
+-if (isset($_POST['civicrm_install_type'])) {
++// only permit acceptable installation types to prevent issues;
++$acceptableInstallTypes = ['drupal', 'wordpress', 'backdrop'];
++if (isset($_POST['civicrm_install_type']) && in_array($_POST['civicrm_install_type'], $acceptableInstallTypes)) {
+   $installType = $_POST['civicrm_install_type'];
+ }
+-elseif (isset($_GET['civicrm_install_type'])) {
++elseif (isset($_GET['civicrm_install_type']) && in_array(strtolower($_GET['civicrm_install_type']), $acceptableInstallTypes)) {
+   $installType = strtolower($_GET['civicrm_install_type']);
+ }
+ else {
+-  // default value if not set
++  // default value if not set and not an acceptable install type.
+   $installType = "drupal";
+ }
+ 
+
