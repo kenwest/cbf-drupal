@@ -884,8 +884,8 @@ function cbf_civicrm_civicrm_pre( $op, $objectName, $id, &$params ) {
 
 /*
  * Implementation of hook_civicrm_post() which is called after a db write on some core objects
-*/
-function cbf_civicrm_civicrm_post( $op, $objectName, $id, &$params ) {
+ */
+function cbf_civicrm_civicrm_post($op, $objectName, $id, &$params) {
   switch ($objectName) {
     case 'Participant':
       _cbf_civicrm_civicrm_post_participant($op, $id, $params);
