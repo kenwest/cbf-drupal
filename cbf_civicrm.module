@@ -890,6 +890,30 @@ function cbf_civicrm_civicrm_post($op, $objectName, $id, &$params) {
     case 'Participant':
       _cbf_civicrm_civicrm_post_participant($op, $id, $params);
       break;
+
+    /*
+     * When a team is updated, check if there is a Ministry Team entityform associated with it.
+     * If so, update it too.
+     */
+    case 'Household':
+      switch ($op) {
+        case 'edit':
+          if (strpos($params->contact_sub_type, 'Team') !== false) {
+            $query = new EntityFieldQuery();
+            $result = $query->entityCondition('entity_type', 'entityform')
+            ->entityCondition('bundle', 'ministry_team')
+            ->fieldCondition('field_ministry_team', 'contact_id', $id, '=')
+            ->execute();
+            foreach ($result as $entityType => $entities) {
+              $entities = entity_load($entityType, array_keys($entities));
+              foreach ($entities as $entity) {
+                entity_save($entityType, $entity);
+              }
+            }
+          }
+          break;
+      }
+      break;
   }
 }
 
