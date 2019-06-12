@@ -5,6 +5,7 @@ function cbf_views_query_alter(&$view, &$query) {
    * Can this view be localised? (ie, if the visitor's location is available
    * then can we limit the results to those in the visitor's city?)
    */
+  $filter_vocabulary = null;
   switch ($view->name) {
     case 'cbf2019_local_office':
       $filter_vocabulary = 'office';
@@ -19,8 +20,12 @@ function cbf_views_query_alter(&$view, &$query) {
       $filter_tid = 'taxonomy_vocabulary_1_tid';
       break;
 
-    default:
-      $filter_vocabulary = null;
+    case 'cbf2019_mappable':
+      if ($view->current_display == 'block_4') {
+        $filter_vocabulary = 'vocabulary_1';
+        $filter_table = 'field_data_taxonomy_vocabulary_1';
+        $filter_tid = 'taxonomy_vocabulary_1_tid';
+      }
       break;
   }
 
