@@ -2503,6 +2503,11 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
       'value' => 'array',
       'default' => null,
     ],
+    'field_source_entity_bundle' => [
+      'field' => 'field_source_entity_bundle',
+      'value' => 'value',
+      'default' => null,
+    ],
   ];
 
   /*
@@ -2550,6 +2555,20 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
         }
       }
     }
+  }
+
+  /*
+   * The default for field_source_entity_bundle comes from the $entity's type
+   */
+  switch ($type) {
+    case 'node':
+    case 'entityform':
+      $fromFields['field_source_entity_bundle']['default'] = $entity->type;
+      break;
+
+    case 'civicrm_event':
+      $fromFields['field_source_entity_bundle']['default'] = $type;
+      break;
   }
 
   /*
@@ -2820,6 +2839,7 @@ function cbf_entity_mappable($entity, $type, $currentForm) {
     $type,
     $currentForm,
     [
+      "field_source_entity_bundle",
       "field_title",
       "field_summary",
       "field_map_location",
