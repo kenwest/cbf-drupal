@@ -2834,7 +2834,7 @@ function cbf_entity_highlightable($entity, $type, $currentForm) {
  * cbf_entity_highlightable() gets the needed $fields from the source $entity
  */
 function cbf_entity_mappable($entity, $type, $currentForm) {
-  return cbf_entity_viewable_fields(
+  $result = cbf_entity_viewable_fields(
     $entity,
     $type,
     $currentForm,
@@ -2856,6 +2856,19 @@ function cbf_entity_mappable($entity, $type, $currentForm) {
       "taxonomy_vocabulary_3",
     ]
   );
+
+  /*
+   * Special case - if creating a mappable from a regular_venue, field_title is empty.
+   * The title isn't needed because the regular_venue is associated with an activity.
+   */
+  if (
+    $type == 'entityform'
+    && $entity->type == 'regular_venue'
+  ) {
+    $result['field_title'] = '';
+  }
+
+  return $result;
 }
 
 /*
