@@ -2779,6 +2779,19 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
     }
   }
 
+  /*
+   * Special case - if creating a mappable from a regular_venue, field_title is empty.
+   * The title isn't needed because the regular_venue is associated with an activity.
+   */
+  if (
+    $type == 'entityform'
+    && $entity->type == 'regular_venue'
+    && in_array('field_map_location', $fields)
+    && in_array('field_title', $fields)
+  ) {
+    $result['field_title'] = '';
+  }
+
   return $result;
 }
 
@@ -2856,17 +2869,6 @@ function cbf_entity_mappable($entity, $type, $currentForm) {
       "taxonomy_vocabulary_3",
     ]
   );
-
-  /*
-   * Special case - if creating a mappable from a regular_venue, field_title is empty.
-   * The title isn't needed because the regular_venue is associated with an activity.
-   */
-  if (
-    $type == 'entityform'
-    && $entity->type == 'regular_venue'
-  ) {
-    $result['field_title'] = '';
-  }
 
   return $result;
 }
