@@ -2305,24 +2305,29 @@ function cbf_entity_viewable($entity, $type, $operation) {
     $entityForm = null;
     $result = $query->execute();
     foreach ($result as $entityType => $entities) {
-      $entities = entity_load($entityType, array_keys($entities));
-      foreach ($entities as $entityForm) {
-        /*
-         * Normally, $result is [ ''entityform' => [ id => Object ] ]
-         * so sizeof($result, 1) == 2
-         *
-         * If $result = [] we won't get here, but it may be something has gone
-         * wrong and there are multiple entityforms returned.
-         */
-        if (sizeof($result, 1) > 2 ) {
+      foreach ($entities as $id => $_) {
+        $ent = entity_load_single($entityType, $id);
+        if ($ent === false) {
           watchdog(
             'CBF',
-            "Source entity $type/$sourceEntityId has multiple $viewable entities",
+            "Source entity $type/$sourceEntityId has multiple $viewable entities - couldn't load entityform/$id but deleting it",
             null,
             WATCHDOG_ERROR
-            );
+          );
+          entity_delete('entityform', $id);
         }
-        break 2;
+        elseif ($entityForm === null) {
+          $entityForm = $ent;
+        }
+        else {
+          watchdog(
+            'CBF',
+            "Source entity $type/$sourceEntityId has multiple $viewable entities - deleting entityform/$id",
+            null,
+            WATCHDOG_ERROR
+          );
+          entity_delete('entityform', $id);
+        }
       }
     }
 
@@ -2877,4 +2882,19 @@ function cbf_entity_mappable($entity, $type, $currentForm) {
 function cbf_is_plus_site() {
   $activeDomain = domain_get_domain();
   return ($activeDomain['machine_name'] == 'reaching_city');
+}
+
+/*
+ * This hook defines administrative paths.
+ */
+function cbf_admin_paths() {
+  $paths = [
+    /*
+     * When 'civicrm-event/NNNN/edit' is not an admin path, the call to
+     * entity_load() in cbf_entity_viewable() fails to return entities
+     * which are not visible in this domain.
+     */
+    'civicrm-event/*/edit' => true,
+  ];
+  return $paths;
 }
