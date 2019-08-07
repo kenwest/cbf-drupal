@@ -160,7 +160,7 @@
       {include file='CRM/Core/BillingBlockWrapper.tpl'}
     {/if}
 
-    <div class="crm-public-form-item crm-section custom_pre-section">
+    <div class="crm-public-form-item crm-section custom_post-section">
       {include file="CRM/UF/Form/Block.tpl" fields=$customPost}
     </div>
 
