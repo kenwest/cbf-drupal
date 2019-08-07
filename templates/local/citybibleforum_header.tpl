@@ -19,13 +19,13 @@
       margin: 0;
       padding: 0;
       -webkit-font-smoothing: antialiased;
-      font-family: "Open Sans",Arial,Helvetica,sans-serif;
+      font-family: Calibri,Arial,Helvetica,sans-serif;
     }
     table {
       border-collapse: collapse;
     }
     table.MsoNormalTable {
-      font-family: "Open Sans",Arial,Helvetica,sans-serif;
+      font-family: Calibri,Arial,Helvetica,sans-serif;
     }
     @media only screen and (max-width: 640px) {
       body[yahoo] .deviceWidth {width:440px!important; padding:0;}
@@ -38,7 +38,7 @@
   </style>
   {/literal}
 </head>
-<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" yahoo="fix" style="font-family: 'Open Sans',Arial,Helvetica,sans-serif;">
+<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" yahoo="fix" style="font-family: Calibri,Arial,Helvetica,sans-serif;">
 <table width="100%" border="0" cellpadding="0" cellspacing="0" align="center">
   <tr>
     <td width="100%" valign="top" bgcolor="#ffffff" style="padding-top:20px">
@@ -48,7 +48,7 @@
             <table border="0" cellpadding="0" cellspacing="0" align="left" class="deviceWidth">
               <tr>
                 <td style="padding: 0;">
-                  <a href="http://citybibleforum.org"><img src="http://citybibleforum.org/sites/all/themes/cbootf/logo-email-signature.jpg" alt="City Bible Forum" border="0" /></a>
+                  <a href="http://citybibleforum.org"><img src="https://citybibleforum.org/sites/all/themes/cbf2019/logo-email.png" alt="City Bible Forum" border="0" /></a>
                 </td>
               </tr>
             </table>
@@ -57,7 +57,7 @@
       </table>
       <table width="580"  class="deviceWidth" border="0" cellpadding="0" cellspacing="0" align="center" bgcolor="#ffffff">
         <tr>
-          <td style="font-size: 16px; color: #ffffff; font-weight: bold; text-align: left; font-family: 'Open Sans',Arial,Helvetica,sans-serif; line-height: 24px; vertical-align: top; padding: 15px; border-radius: 4px;" bgcolor="#1e9dd8">
+          <td style="font-size: 16px; color: #ffffff; font-weight: bold; text-align: left; font-family: Calibri,Arial,Helvetica,sans-serif; line-height: 24px; vertical-align: top; padding: 15px; border-radius: 4px;" bgcolor="#1c9cd6">
             <p style="margin: 0;" class="title-field"> {$title} </p>
           </td>
         </tr>
