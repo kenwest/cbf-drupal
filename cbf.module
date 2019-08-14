@@ -1805,24 +1805,13 @@ function cbf_views_post_execute(&$view) {
     }
 
     /*
-     * If any events are summarised, remove them from the results and update the Date
-     * Text of the summary event
+     * If any events are summarised, remove them from the results.
+     * Also stash the node alias of the event's Activity.
      */
     if (!empty($summarised)) {
       $alteredResults = [];
       foreach ($view->result as $r => $result) {
         if (!isset($summarised[$r])) {
-          if ($GLOBALS['theme'] != 'cbf2019') {
-            if (isset($result->field_field_date_text[0]['rendered']['#markup']) && in_array($r, $summarised)) {
-              $result->field_field_date_text[0]['rendered']['#markup'] .=
-                ' <a class="other-times" href="/' .
-                drupal_get_path_alias("node/" . $result->field_field_in_activity[0]['raw']['target_id']) .
-                '">Other times</a>';
-            }
-          }
-          if (in_array($r, $summarised)) {
-            $result->__cbf_merge_events = drupal_get_path_alias("node/" . $result->field_field_in_activity[0]['raw']['target_id']);
-          }
           if (in_array($r, $summarised)) {
             $result->__cbf_merge_events = drupal_get_path_alias("node/" . $result->field_field_in_activity[0]['raw']['target_id']);
           }
