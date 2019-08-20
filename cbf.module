@@ -2870,7 +2870,7 @@ function cbf_entity_mappable($entity, $type, $currentForm) {
  */
 function cbf_is_plus_site() {
   $activeDomain = domain_get_domain();
-  return ($activeDomain['machine_name'] == 'reaching_city');
+  return ($activeDomain['machine_name'] == 'plus' || $activeDomain['machine_name'] == 'reaching_city');
 }
 
 /*
