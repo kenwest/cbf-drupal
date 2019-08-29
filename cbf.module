@@ -2723,9 +2723,10 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
   /*
    * Special case - if the source $entity is a civicrm_event its subtitle will
    * be found in the 'summary' attribute.
+   * A field_subtitle is limited to 128 characters in length.
    */
   if (in_array('field_subtitle', $fields) && !empty($entity->summary)) {
-    $result['field_subtitle'] = $entity->summary;
+    $result['field_subtitle'] = substr($entity->summary, 0, 128);
   }
 
   /*
