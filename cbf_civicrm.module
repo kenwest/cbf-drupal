@@ -786,7 +786,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     if (!empty($guard)) {
       CRM_Core_Error::debug_log_message("|CiviCRM guard|$guard|anonymous|{$vars['ip']}|{$vars['url']}");
     }
-//    return true;
+    return true;
   }
 
   $vars['ip-details'] = json_decode(file_get_contents("http://ipinfo.io/" . $vars['ip'] . "/json"));
