@@ -122,11 +122,11 @@ class CRM_Core_Key {
     $privateKey = self::privateKey();
     $sessionID = self::sessionID();
 
-    if ($name == 'CRM_Contribute_Controller_Contribution'
-      || $name == 'CRM_Event_Controller_Registration') {
-      CRM_Core_Error::debug_log_message
-        ("KW: validate: $sessionID $name $privateKey");
-    }
+//    if ($name == 'CRM_Contribute_Controller_Contribution'
+//      || $name == 'CRM_Event_Controller_Registration') {
+//      CRM_Core_Error::debug_log_message
+//        ("KW: validate: $sessionID $name $privateKey");
+//    }
 
     if ($k != md5($sessionID . $name . $privateKey)) {
       return NULL;
