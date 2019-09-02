@@ -2590,11 +2590,9 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
 
     if (in_array('field_order_url', $fields) && !empty($team['staff contact'])) {
       $defaults['field_order_url'] = [
-        [
-          'url' => '/staff-contact?cid1='. $team['staff contact']['id'],
-          'title' => $team['staff contact']['display_name'],
-          'attributes' => [],
-        ],
+       'url' => '/staff-contact?cid1='. $team['staff contact']['id'],
+       'title' => $team['staff contact']['display_name'],
+       'attributes' => [],
       ];
     }
 
