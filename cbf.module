@@ -2578,8 +2578,9 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
     $team = empty($team) ? false : reset($team)['contact_id'];
     $team = cbf_civicrm_ministry_team_viewable_fields($team);
     $teamFieldMap = [
-      'meeting day/time' => 'field_title',
-      'time of day' => 'field_summary',
+      'time of day' => 'field_title',
+      'nickname' => 'field_title', // Nickname takes precedence over Time of Day
+      'meeting day/time' => 'field_summary',
       'address' => 'field_map_location',
     ];
     foreach ($teamFieldMap as $from => $to) {

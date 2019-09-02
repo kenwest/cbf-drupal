@@ -1535,13 +1535,16 @@ function cbf_civicrm_ministry_team_viewable_fields($team) {
   try {
     $record = civicrm_api3('Contact', 'get', [
       'sequential' => 1,
-      'return' => ["custom_7", "custom_6", "custom_61", "address_id"],
+      'return' => ["nick_name", "custom_7", "custom_6", "custom_61", "address_id"],
       'id' => $team,
     ]);
     if (!isset($record['values'][0]['id'])) {
       return $result;
     }
 
+    if (!empty($record['values'][0]['nick_name'])) {
+      $result['nickname'] = $record['values'][0]['nick_name'];
+    }
     if (!empty($record['values'][0]['custom_7'])) {
       $result['meeting day/time'] = $record['values'][0]['custom_7'];
     }
