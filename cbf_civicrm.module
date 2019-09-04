@@ -744,7 +744,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     ],
     [
       // People try to poison our database by unsubscribing or opting out
-      'message' => 'There was an error in your request',
+      'message' => '(There was an error in your request|Missing (input )?parameters)',
       'url' => '/civicrm/mailing/(optout|unsubscribe)\?.+',
       'guard' => 'Mailing unsubscribe issue',
     ],
