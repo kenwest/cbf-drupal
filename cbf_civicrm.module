@@ -1548,9 +1548,6 @@ function cbf_civicrm_ministry_team_viewable_fields($team) {
     if (!empty($record['values'][0]['custom_7'])) {
       $result['meeting day/time'] = $record['values'][0]['custom_7'];
     }
-    if (!empty($record['values'][0]['custom_6'])) {
-      $result['time of day'] = $record['values'][0]['custom_6'];
-    }
     if (!empty($record['values'][0]['address_id'])) {
       $result['address']
         = _cbf_civicrm_civicrm_address_get_location_data(
