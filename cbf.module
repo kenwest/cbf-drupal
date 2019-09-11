@@ -1071,10 +1071,10 @@ function cbf_entity_presave($entity, $type) {
 
     $field_in_activity = field_get_items($type, $entity, 'field_in_activity');
     if ($field_in_activity === false || empty($field_in_activity[0]['target_id'])) {
-      $node_activity = 0;
+      $entity_activity = 0;
     }
     else {
-      $node_activity = $field_in_activity[0]['target_id'];
+      $entity_activity = $field_in_activity[0]['target_id'];
     }
 
     $audienceTerm = field_get_items($type, $entity, 'taxonomy_vocabulary_3');
@@ -1109,7 +1109,7 @@ function cbf_entity_presave($entity, $type) {
         $activity = stristr($alias['pattern'], '.activity.rule', true);
         if ($activity !== false) {
           $activity = (int) $activity;
-          if ($node_activity == $activity || ($type == 'node' && $entity->nid == $activity)) {
+          if ($entity_activity == $activity || ($type == 'node' && $entity->nid == $activity)) {
             $match = true;
             break;
           }
