@@ -1038,9 +1038,22 @@ function cbf_entity_presave($entity, $type) {
   switch ($type) {
     case 'node':
       $url0 = 'node';
+      $allDomainBundles = [
+        'contact_webform' => true,
+        'webform' => true,
+      ];
+      $allDomainIds = [
+        61 => 'Privacy policy',
+      ];
+      $entityId = $entity->nid;
+      $entityBundle = $entity->type;
       break;
     case 'civicrm_event':
       $url0 = 'civicrm-event';
+      $allDomainBundles = [ ];
+      $allDomainIds = [ ];
+      $entityId = $entity->id;
+      $entityBundle = $type;
       break;
     default:
       return;
@@ -1056,13 +1069,6 @@ function cbf_entity_presave($entity, $type) {
   }
 
   $followDomainRules = true;
-  $allDomainContentTypes = array(
-    'contact_webform' => true,
-    'webform' => true,
-  );
-  $allDomainNodes = array(
-    61 => 'Privacy policy',
-  );
 
   if ($followDomainRules) {
     $domains = domain_list_by_machine_name();
@@ -1097,13 +1103,11 @@ function cbf_entity_presave($entity, $type) {
 
     foreach ($domains as $domain) {
       $match = false;
-      if ($type == 'node') {
-        if (isset($allDomainContentTypes[$entity->type])) {
-          $match = true;
-        }
-        else if (isset($allDomainNodes[$entity->nid])) {
-          $match = true;
-        }
+      if (isset($allDomainBundles[$entityBundle])) {
+        $match = true;
+      }
+      else if (isset($allDomainIds[$entityId])) {
+        $match = true;
       }
       foreach ($domain['aliases'] as $alias) {
         $activity = stristr($alias['pattern'], '.activity.rule', true);
