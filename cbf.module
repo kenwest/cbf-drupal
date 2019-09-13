@@ -1559,6 +1559,38 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
   }
 }
 
+/**
+ * Alter metatags before being cached.
+ *
+ * This hook is invoked prior to the meta tags for a given page are cached.
+ *
+ * For SEO purposes, content that appears on both the citybibleforum.org and the
+ * plus.citybibleforum.org site should have a canonical URL pointing to citybibleforum.org.
+ * So, if this is a Node or a CiviCRM Event, whose Audience is General, remove the 'plus.'
+ * from the canonical URL.
+ *
+ * @param array $output
+ *   All of the meta tags to be output for this page in their raw format. This
+ *   is a heavily nested array.
+ * @param string $instance
+ *   An identifier for the current page's page type, typically a combination
+ *   of the entity name and bundle name, e.g. "node:story".
+ * @param array $options
+ *   All of the options used to generate the meta tags.
+ */
+function cbf_metatag_metatags_view_alter(&$output, $instance, $options) {
+  if (stripos($instance, 'node:') === 0 || stripos($instance, 'civicrm_event:') === 0) {
+    $audienceTerm = field_get_items($options['entity_type'], $options['entity'], 'taxonomy_vocabulary_3');
+    if (!empty($audienceTerm[0]['tid']) && $audienceTerm[0]['tid'] == '48') {
+      if (isset($output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'])) {
+        $canonical = $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'];
+        $canonical = str_ireplace('//plus.', '//', $canonical);
+        $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'] = $canonical;
+      }
+    }
+  }
+}
+
 /*
  * A function to parse the exposed filters on the National Library view,
  * to extract the topics, and return a string containing them.
