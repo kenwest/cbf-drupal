@@ -181,7 +181,9 @@
           </span>
         {/if}
         <div id="recurHelp" class="description">
-          {$recurringHelpText}
+          Please leave the number of instalments blank to make an open-ended commitment.
+          Your recurring contribution will be processed automatically and you will receive an email receipt for each contribution.
+          You can cancel your recurring contribution at any time.
         </div>
       </div>
       <div class="clear"></div>
@@ -370,10 +372,12 @@
     }
     if (isRecur.val() > 0) {
       cj('#recurHelp').show();
+      cj('#recur_installments_num').show();
       cj('#amount_sum_label').text('{/literal}{ts escape='js'}Regular amount{/ts}{literal}');
     }
     else {
       cj('#recurHelp').hide();
+      cj('#recur_installments_num').hide();
       cj('#amount_sum_label').text('{/literal}{ts escape='js'}Total Amount{/ts}{literal}');
     }
   }
