@@ -695,6 +695,9 @@ function computed_field_field_resource_type_display($field, $entity_field_item, 
   if (stripos($entity_field_item['value'], 'd') !== false) {
     return '<i class="fal fa-fw fa-file-pdf"></i>';
   }
+  if (stripos($entity_field_item['value'], 't') !== false) {
+    return '<i class="fal fa-fw fa-file-alt"></i>';
+  }
   return '';
 }
 
@@ -719,6 +722,9 @@ function computed_field_field_resource_type_compute(&$entity_field, $entity_type
   }
   if (!empty($field_attachment)) {
     $entity_field[0]['value'] .= 'd';
+  }
+  if ($entity_type == 'node' && $entity->type == 'blog') {
+    $entity_field[0]['value'] .= 't';
   }
 }
 
