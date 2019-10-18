@@ -1127,6 +1127,14 @@ function cbf_entity_presave($entity, $type) {
       }
     }
 
+    $field_third_space_category = field_get_items($type, $entity, 'field_third_space_category');
+    if ($field_third_space_category === false || empty($field_third_space_category[0]['tid'])) {
+      $entityHasThirdSpaceCategory = false;
+    }
+    else {
+      $entityHasThirdSpaceCategory = true;
+    }
+
     foreach ($domains as $domain) {
       $match = false;
       if (isset($allDomainBundles[$entityBundle])) {
@@ -1153,6 +1161,14 @@ function cbf_entity_presave($entity, $type) {
               $ruleAudience == 'christian' ||
               strcasecmp($ruleAudience, $entityAudience) == 0
             ) {
+              $match = true;
+              break;
+            }
+          }
+
+          $ruleDomain = stristr($alias['pattern'], '.domain.rule', true);
+          if ($ruleDomain == 'thirdspace') {
+            if ($entityHasThirdSpaceCategory == true && $entityAudience == 'general') {
               $match = true;
               break;
             }
