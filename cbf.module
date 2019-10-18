@@ -1063,6 +1063,24 @@ function cbf_entity_presave($entity, $type) {
       $entityId = $entity->id;
       $entityBundle = $type;
       break;
+    case 'entityform':
+      $url0 = 'entityform';
+      $allDomainBundles = [
+        'office' => true,
+        'ministry_team' => true,
+        'staff' => true,
+        'regular_venue' => true,
+        'title_header' => true,
+      ];
+      $skipDomainBundles = [
+        'dateable' => true,
+        'highlightable' => true,
+        'mappable' => true,
+      ];
+      $allDomainIds = [ ];
+      $entityId = $entity->entityform_id;
+      $entityBundle = $entity->type;
+      break;
     default:
       return;
   }
@@ -1161,6 +1179,10 @@ function cbf_entity_presave($entity, $type) {
 
       case 'civicrm_event':
         $entity->field_domain[field_language($type, $entity, 'field_domain')] = $matches;
+        break;
+
+      case 'entityform':
+        $entity->domain_entityform[field_language($type, $entity, 'domain_entityform')] = $matches;
         break;
     }
   }
