@@ -1137,20 +1137,21 @@ function cbf_entity_presave($entity, $type) {
       }
       else {
         foreach ($domain['aliases'] as $alias) {
-          $activity = stristr($alias['pattern'], '.activity.rule', true);
-          if ($activity !== false) {
-            $activity = (int) $activity;
-            if ($entityActivity == $activity || ($type == 'node' && $entityId == $activity)) {
+          $ruleActivity = stristr($alias['pattern'], '.activity.rule', true);
+          if ($ruleActivity !== false) {
+            $ruleActivity = (int) $ruleActivity;
+            if ($entityActivity == $ruleActivity || ($type == 'node' && $entityId == $ruleActivity)) {
               $match = true;
               break;
             }
           }
-          $audience = stristr($alias['pattern'], '.audience.rule', true);
-          if ($audience !== false) {
+
+          $ruleAudience = stristr($alias['pattern'], '.audience.rule', true);
+          if ($ruleAudience !== false) {
             if (
-              $audience == 'all' ||
-              $audience == 'christian' ||
-              strcasecmp($audience, $entityAudience) == 0
+              $ruleAudience == 'all' ||
+              $ruleAudience == 'christian' ||
+              strcasecmp($ruleAudience, $entityAudience) == 0
             ) {
               $match = true;
               break;
