@@ -1048,6 +1048,7 @@ function cbf_entity_presave($entity, $type) {
         'contact_webform' => true,
         'webform' => true,
       ];
+      $skipDomainBundles = [ ];
       $allDomainIds = [
         61 => 'Privacy policy',
       ];
@@ -1057,6 +1058,7 @@ function cbf_entity_presave($entity, $type) {
     case 'civicrm_event':
       $url0 = 'civicrm-event';
       $allDomainBundles = [ ];
+      $skipDomainBundles = [ ];
       $allDomainIds = [ ];
       $entityId = $entity->id;
       $entityBundle = $type;
@@ -1074,7 +1076,7 @@ function cbf_entity_presave($entity, $type) {
     cache_clear_all('*', 'cache_views_data', true);
   }
 
-  $followDomainRules = true;
+  $followDomainRules = empty($skipDomainBundles[$entityBundle]);
 
   if ($followDomainRules) {
     $domains = domain_list_by_machine_name();
