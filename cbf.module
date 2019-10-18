@@ -1081,7 +1081,7 @@ function cbf_entity_presave($entity, $type) {
   if ($followDomainRules) {
     $domains = domain_list_by_machine_name();
 
-    $matches = [];
+    $matches = [ ];
 
     $field_in_activity = field_get_items($type, $entity, 'field_in_activity');
     if ($field_in_activity === false || empty($field_in_activity[0]['target_id'])) {
@@ -1147,7 +1147,7 @@ function cbf_entity_presave($entity, $type) {
     switch ($type) {
       case 'node':
         $entity->domain_site = false;
-        $entity->domains = [];
+        $entity->domains = [ ];
         foreach ($matches as $domain) {
           $entity->domains[$domain['domain_id']] = $domain['domain_id'];
         }
@@ -1158,6 +1158,7 @@ function cbf_entity_presave($entity, $type) {
           $entity->domain_source = DOMAIN_SOURCE_USE_ACTIVE;
         }
         break;
+
       case 'civicrm_event':
         $entity->field_domain[field_language($type, $entity, 'field_domain')] = $matches;
         break;
