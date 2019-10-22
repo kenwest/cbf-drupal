@@ -2951,14 +2951,6 @@ function cbf_entity_mappable($entity, $type, $currentForm) {
 }
 
 /*
- * Test whether this is the CBF Plus site
- */
-function cbf_is_plus_site() {
-  $activeDomain = domain_get_domain();
-  return ($activeDomain['machine_name'] == 'plus' || $activeDomain['machine_name'] == 'reaching_city');
-}
-
-/*
  * This hook defines administrative paths.
  */
 function cbf_admin_paths() {
