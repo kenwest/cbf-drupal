@@ -1681,6 +1681,9 @@ function cbf_views_api() {
  *       - views-2-rows
  *       - views-3-rows
  *       - views-n-rows
+ *   - Fixes the Title and Header content when cbf2019_third_space_category
+ *     returns no results. Replace '[name]' with the name of the
+ *     third_space_category term, whose $tid is the first contextual filter.
  */
 function cbf_views_pre_render(&$view) {
   $watch = array('city_to_address');
@@ -1794,6 +1797,22 @@ function cbf_views_pre_render(&$view) {
       break;
   }
   $view->display_handler->set_option('css_class', trim($class . ' ' . $c));
+
+  if (
+    $view->name == 'cbf2019_third_space_category'
+    && $view->current_display == 'page_1'
+    && empty($view->result)
+  ) {
+    $title = 'Category';
+    if (!empty($view->args[0])) {
+      $category = taxonomy_term_load($view->args[0]);
+      if ($category !== false) {
+        $title = $category->name;
+      }
+    }
+    $view->set_title($title);
+    $view->display_handler->display->handler->handlers['header']['area']->options['content'] = $title;
+  }
 }
 
 /*
