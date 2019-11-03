@@ -1145,6 +1145,14 @@ function cbf_entity_presave($entity, $type) {
       }
       else {
         foreach ($domain['aliases'] as $alias) {
+          $ruleDomain = stristr($alias['pattern'], '.domain.rule', true);
+          if ($ruleDomain == 'thirdspace') {
+            if ($entityHasThirdSpaceCategory == true && $entityAudience == 'general') {
+              $match = true;
+              break;
+            }
+          }
+
           $ruleActivity = stristr($alias['pattern'], '.activity.rule', true);
           if ($ruleActivity !== false) {
             $ruleActivity = (int) $ruleActivity;
@@ -1161,14 +1169,6 @@ function cbf_entity_presave($entity, $type) {
               $ruleAudience == 'christian' ||
               strcasecmp($ruleAudience, $entityAudience) == 0
             ) {
-              $match = true;
-              break;
-            }
-          }
-
-          $ruleDomain = stristr($alias['pattern'], '.domain.rule', true);
-          if ($ruleDomain == 'thirdspace') {
-            if ($entityHasThirdSpaceCategory == true && $entityAudience == 'general') {
               $match = true;
               break;
             }
