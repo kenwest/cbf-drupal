@@ -1135,6 +1135,14 @@ function cbf_entity_presave($entity, $type) {
       $entityHasThirdSpaceCategory = true;
     }
 
+    $field_third_space_exclusive = field_get_items($type, $entity, 'field_third_space_exclusive');
+    if ($field_third_space_exclusive === false || empty($field_third_space_exclusive[0]['value'])) {
+      $entityIsThirdSpaceExclusive = false;
+    }
+    else {
+      $entityIsThirdSpaceExclusive = true;
+    }
+
     foreach ($domains as $domain) {
       $match = false;
       if (isset($allDomainBundles[$entityBundle])) {
@@ -1148,6 +1156,10 @@ function cbf_entity_presave($entity, $type) {
           $ruleDomain = stristr($alias['pattern'], '.domain.rule', true);
           if ($ruleDomain == 'thirdspace') {
             if ($entityHasThirdSpaceCategory == true && $entityAudience == 'general') {
+              if ($entityIsThirdSpaceExclusive) {
+                $matches = [ [ 'domain_id' => $domain['domain_id'] ] ];
+                break 2;
+              }
               $match = true;
               break;
             }
