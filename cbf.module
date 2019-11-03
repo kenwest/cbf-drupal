@@ -1177,7 +1177,7 @@ function cbf_entity_presave($entity, $type) {
       }
 
       if ($match) {
-        $matches[] = ['domain_id' => $domain['domain_id']];
+        $matches[] = [ 'domain_id' => $domain['domain_id'] ];
       }
     }
 
