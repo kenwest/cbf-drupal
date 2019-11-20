@@ -744,7 +744,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     ],
     [
       // People try to poison our database by unsubscribing or opting out
-      'message' => 'There was an error in your request',
+      'message' => '(There was an error in your request|Missing (input )?parameters)',
       'url' => '/civicrm/mailing/(optout|unsubscribe)\?.+',
       'guard' => 'Mailing unsubscribe issue',
     ],
@@ -786,7 +786,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     if (!empty($guard)) {
       CRM_Core_Error::debug_log_message("|CiviCRM guard|$guard|anonymous|{$vars['ip']}|{$vars['url']}");
     }
-//    return true;
+    return true;
   }
 
   $vars['ip-details'] = json_decode(file_get_contents("http://ipinfo.io/" . $vars['ip'] . "/json"));
@@ -1441,14 +1441,26 @@ function _cbf_civicrm_civicrm_address_get_location_data($id) {
     // Get the Address
     $record = civicrm_api3('Address', 'get', [
       'sequential' => 1,
-      'return' => ["name", "street_address", "city", "state_province_id", "postal_code", "country_id", "geo_code_1", "geo_code_2"],
+      'return' => [
+        "name",
+        "supplemental_address_1",
+        "street_address",
+        "city",
+        "state_province_id",
+        "postal_code",
+        "country_id",
+        "geo_code_1",
+        "geo_code_2",
+      ],
       'id' => $id,
     ]);
     if (!isset($record['values'][0]['state_province_id'])) {
       return $result;
     }
     else {
-      $result['name'] = $record['values'][0]['name'];
+      $result['name'] = empty($record['values'][0]['supplemental_address_1'])
+        ? $record['values'][0]['name']
+        : $record['values'][0]['supplemental_address_1'];
       $result['street'] = $record['values'][0]['street_address'];
       $result['city'] = $record['values'][0]['city'];
       $result['postal_code'] = $record['values'][0]['postal_code'];
@@ -1456,23 +1468,21 @@ function _cbf_civicrm_civicrm_address_get_location_data($id) {
       $result['longitude'] = $record['values'][0]['geo_code_2'];
       $result['country'] = "au";
       $result['country_name'] = "Australia";
-      $id = $record['values'][0]['state_province_id'];
-    }
 
-    // Get the State/Province
-    $record = civicrm_api3('StateProvince', 'get', [
-      'sequential' => 1,
-      'return' => ["name", "abbreviation"],
-      'id' => $id,
-    ]);
-    if (!isset($record['values'][0]['name'])) {
-      return $result;
+      // Get the State/Province
+      $record = civicrm_api3('StateProvince', 'get', [
+        'sequential' => 1,
+        'return' => ["name", "abbreviation"],
+        'id' => $record['values'][0]['state_province_id'],
+      ]);
+      if (!isset($record['values'][0]['name'])) {
+        return $result;
+      }
+      else {
+        $result['province'] = $record['values'][0]['abbreviation'];
+        $result['province_name'] = $record['values'][0]['name'];
+      }
     }
-    else {
-      $result['province'] = $record['values'][0]['abbreviation'];
-      $result['province_name'] = $record['values'][0]['name'];
-    }
-
   } catch (CiviCRM_API3_Exception $e) {
     ;
   }
@@ -1525,18 +1535,18 @@ function cbf_civicrm_ministry_team_viewable_fields($team) {
   try {
     $record = civicrm_api3('Contact', 'get', [
       'sequential' => 1,
-      'return' => ["custom_7", "custom_6", "custom_61", "address_id"],
+      'return' => ["nick_name", "custom_7", "custom_6", "custom_61", "address_id"],
       'id' => $team,
     ]);
     if (!isset($record['values'][0]['id'])) {
       return $result;
     }
 
+    if (!empty($record['values'][0]['nick_name'])) {
+      $result['nickname'] = $record['values'][0]['nick_name'];
+    }
     if (!empty($record['values'][0]['custom_7'])) {
       $result['meeting day/time'] = $record['values'][0]['custom_7'];
-    }
-    if (!empty($record['values'][0]['custom_6'])) {
-      $result['time of day'] = $record['values'][0]['custom_6'];
     }
     if (!empty($record['values'][0]['address_id'])) {
       $result['address']

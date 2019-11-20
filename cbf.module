@@ -353,27 +353,30 @@ function cbf_form_comment_form_alter(&$form, &$form_state, $form_id) {
  * those comments being published in the rare case Mollom doesn't stop it.
  */
 function cbf_comment_presave($comment) {
-  $subjectPatterns = array(
-    '^Add new comment \\| ',
-  );
-  $bodyPatterns = array();
-  $patterns = array(
-    'viagra',
-    '\\bcialis\\b',
-    '<(br|p)\\/?>',
-  );
+  if (user_is_anonymous()) {
+    $subjectPatterns = array(
+      '^Add new comment \\| ',
+    );
+    $bodyPatterns = array();
+    $patterns = array(
+      'viagra',
+      '\\bcialis\\b',
+      '<(br|p)\\/?>',
+    );
 
-  $subject = $comment->subject;
-  $body = $comment->comment_body['und'][0]['value'];
+    $subject = $comment->subject;
+    $body = $comment->comment_body[LANGUAGE_NONE][0]['value'];
 
-  foreach (array_merge($subjectPatterns, $patterns) as $pattern) {
-    if (preg_match("/$pattern/i", $subject) == 1) {
-      $comment->status = 0;
+    foreach (array_merge($subjectPatterns, $patterns) as $pattern) {
+      if (preg_match("/$pattern/i", $subject) == 1) {
+        $comment->status = 0;
+      }
     }
-  }
-  foreach (array_merge($bodyPatterns, $patterns) as $pattern) {
-    if (preg_match("/$pattern/i", $body) == 1) {
-      $comment->status = 0;
+
+    foreach (array_merge($bodyPatterns, $patterns) as $pattern) {
+      if (preg_match("/$pattern/i", $body) == 1) {
+        $comment->status = 0;
+      }
     }
   }
 }
@@ -695,6 +698,9 @@ function computed_field_field_resource_type_display($field, $entity_field_item, 
   if (stripos($entity_field_item['value'], 'd') !== false) {
     return '<i class="fal fa-fw fa-file-pdf"></i>';
   }
+  if (stripos($entity_field_item['value'], 't') !== false) {
+    return '<i class="fal fa-fw fa-file-alt"></i>';
+  }
   return '';
 }
 
@@ -719,6 +725,9 @@ function computed_field_field_resource_type_compute(&$entity_field, $entity_type
   }
   if (!empty($field_attachment)) {
     $entity_field[0]['value'] .= 'd';
+  }
+  if ($entity_type == 'node' && $entity->type == 'blog') {
+    $entity_field[0]['value'] .= 't';
   }
 }
 
@@ -1038,9 +1047,42 @@ function cbf_entity_presave($entity, $type) {
   switch ($type) {
     case 'node':
       $url0 = 'node';
+      $allDomainBundles = [
+        'contact_webform' => true,
+        'webform' => true,
+      ];
+      $skipDomainBundles = [ ];
+      $allDomainIds = [
+        61 => 'Privacy policy',
+      ];
+      $entityId = $entity->nid;
+      $entityBundle = $entity->type;
       break;
     case 'civicrm_event':
       $url0 = 'civicrm-event';
+      $allDomainBundles = [ ];
+      $skipDomainBundles = [ ];
+      $allDomainIds = [ ];
+      $entityId = $entity->id;
+      $entityBundle = $type;
+      break;
+    case 'entityform':
+      $url0 = 'entityform';
+      $allDomainBundles = [
+        'office' => true,
+        'ministry_team' => true,
+        'staff' => true,
+        'regular_venue' => true,
+        'title_header' => true,
+      ];
+      $skipDomainBundles = [
+        'dateable' => true,
+        'highlightable' => true,
+        'mappable' => true,
+      ];
+      $allDomainIds = [ ];
+      $entityId = $entity->entityform_id;
+      $entityBundle = $entity->type;
       break;
     default:
       return;
@@ -1055,26 +1097,19 @@ function cbf_entity_presave($entity, $type) {
     cache_clear_all('*', 'cache_views_data', true);
   }
 
-  $followDomainRules = true;
-  $allDomainContentTypes = array(
-    'contact_webform' => true,
-    'webform' => true,
-  );
-  $allDomainNodes = array(
-    61 => 'Privacy policy',
-  );
+  $followDomainRules = empty($skipDomainBundles[$entityBundle]);
 
   if ($followDomainRules) {
     $domains = domain_list_by_machine_name();
 
-    $matches = [];
+    $matches = [ ];
 
     $field_in_activity = field_get_items($type, $entity, 'field_in_activity');
     if ($field_in_activity === false || empty($field_in_activity[0]['target_id'])) {
-      $node_activity = 0;
+      $entityActivity = 0;
     }
     else {
-      $node_activity = $field_in_activity[0]['target_id'];
+      $entityActivity = $field_in_activity[0]['target_id'];
     }
 
     $audienceTerm = field_get_items($type, $entity, 'taxonomy_vocabulary_3');
@@ -1095,47 +1130,76 @@ function cbf_entity_presave($entity, $type) {
       }
     }
 
+    $field_third_space_category = field_get_items($type, $entity, 'field_third_space_category');
+    if ($field_third_space_category === false || empty($field_third_space_category[0]['tid'])) {
+      $entityHasThirdSpaceCategory = false;
+    }
+    else {
+      $entityHasThirdSpaceCategory = true;
+    }
+
+    $field_third_space_exclusive = field_get_items($type, $entity, 'field_third_space_exclusive');
+    if ($field_third_space_exclusive === false || empty($field_third_space_exclusive[0]['value'])) {
+      $entityIsThirdSpaceExclusive = false;
+    }
+    else {
+      $entityIsThirdSpaceExclusive = true;
+    }
+
     foreach ($domains as $domain) {
       $match = false;
-      if ($type == 'node') {
-        if (isset($allDomainContentTypes[$entity->type])) {
-          $match = true;
-        }
-        else if (isset($allDomainNodes[$entity->nid])) {
-          $match = true;
-        }
+      if (isset($allDomainBundles[$entityBundle])) {
+        $match = true;
       }
-      foreach ($domain['aliases'] as $alias) {
-        $activity = stristr($alias['pattern'], '.activity.rule', true);
-        if ($activity !== false) {
-          $activity = (int) $activity;
-          if ($node_activity == $activity || ($type == 'node' && $entity->nid == $activity)) {
-            $match = true;
-            break;
+      else if (isset($allDomainIds[$entityId])) {
+        $match = true;
+      }
+      else {
+        foreach ($domain['aliases'] as $alias) {
+          $ruleDomain = stristr($alias['pattern'], '.domain.rule', true);
+          if ($ruleDomain == 'thirdspace') {
+            if ($entityHasThirdSpaceCategory == true && $entityAudience == 'general') {
+              if ($entityIsThirdSpaceExclusive) {
+                $matches = [ [ 'domain_id' => $domain['domain_id'] ] ];
+                break 2;
+              }
+              $match = true;
+              break;
+            }
           }
-        }
-        $audience = stristr($alias['pattern'], '.audience.rule', true);
-        if ($audience !== false) {
-          if (
-            $audience == 'all' ||
-            $audience == 'christian' ||
-            strcasecmp($audience, $entityAudience) == 0
-          ) {
-            $match = true;
-            break;
+
+          $ruleActivity = stristr($alias['pattern'], '.activity.rule', true);
+          if ($ruleActivity !== false) {
+            $ruleActivity = (int) $ruleActivity;
+            if ($entityActivity == $ruleActivity || ($type == 'node' && $entityId == $ruleActivity)) {
+              $match = true;
+              break;
+            }
+          }
+
+          $ruleAudience = stristr($alias['pattern'], '.audience.rule', true);
+          if ($ruleAudience !== false) {
+            if (
+              $ruleAudience == 'all' ||
+              $ruleAudience == 'christian' ||
+              strcasecmp($ruleAudience, $entityAudience) == 0
+            ) {
+              $match = true;
+              break;
+            }
           }
         }
       }
 
       if ($match) {
-        $matches[] = ['domain_id' => $domain['domain_id']];
+        $matches[] = [ 'domain_id' => $domain['domain_id'] ];
       }
     }
 
     switch ($type) {
       case 'node':
         $entity->domain_site = false;
-        $entity->domains = [];
+        $entity->domains = [ ];
         foreach ($matches as $domain) {
           $entity->domains[$domain['domain_id']] = $domain['domain_id'];
         }
@@ -1146,8 +1210,13 @@ function cbf_entity_presave($entity, $type) {
           $entity->domain_source = DOMAIN_SOURCE_USE_ACTIVE;
         }
         break;
+
       case 'civicrm_event':
         $entity->field_domain[field_language($type, $entity, 'field_domain')] = $matches;
+        break;
+
+      case 'entityform':
+        $entity->domain_entityform[field_language($type, $entity, 'domain_entityform')] = $matches;
         break;
     }
   }
@@ -1555,6 +1624,38 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
   }
 }
 
+/**
+ * Alter metatags before being cached.
+ *
+ * This hook is invoked prior to the meta tags for a given page are cached.
+ *
+ * For SEO purposes, content that appears on both the citybibleforum.org and the
+ * plus.citybibleforum.org site should have a canonical URL pointing to citybibleforum.org.
+ * So, if this is a Node or a CiviCRM Event, whose Audience is General, remove the 'plus.'
+ * from the canonical URL.
+ *
+ * @param array $output
+ *   All of the meta tags to be output for this page in their raw format. This
+ *   is a heavily nested array.
+ * @param string $instance
+ *   An identifier for the current page's page type, typically a combination
+ *   of the entity name and bundle name, e.g. "node:story".
+ * @param array $options
+ *   All of the options used to generate the meta tags.
+ */
+function cbf_metatag_metatags_view_alter(&$output, $instance, $options) {
+  if (stripos($instance, 'node:') === 0 || stripos($instance, 'civicrm_event:') === 0) {
+    $audienceTerm = field_get_items($options['entity_type'], $options['entity'], 'taxonomy_vocabulary_3');
+    if (!empty($audienceTerm[0]['tid']) && $audienceTerm[0]['tid'] == '48') {
+      if (isset($output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'])) {
+        $canonical = $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'];
+        $canonical = str_ireplace('//plus.', '//', $canonical);
+        $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'] = $canonical;
+      }
+    }
+  }
+}
+
 /*
  * A function to parse the exposed filters on the National Library view,
  * to extract the topics, and return a string containing them.
@@ -1595,6 +1696,9 @@ function cbf_views_api() {
  *       - views-2-rows
  *       - views-3-rows
  *       - views-n-rows
+ *   - Fixes the Title and Header content when cbf2019_third_space_category
+ *     returns no results. Replace '[name]' with the name of the
+ *     third_space_category term, whose $tid is the first contextual filter.
  */
 function cbf_views_pre_render(&$view) {
   $watch = array('city_to_address');
@@ -1708,6 +1812,22 @@ function cbf_views_pre_render(&$view) {
       break;
   }
   $view->display_handler->set_option('css_class', trim($class . ' ' . $c));
+
+  if (
+    $view->name == 'cbf2019_third_space_category'
+    && $view->current_display == 'page_1'
+    && empty($view->result)
+  ) {
+    $title = 'Category';
+    if (!empty($view->args[0])) {
+      $category = taxonomy_term_load($view->args[0]);
+      if ($category !== false) {
+        $title = $category->name;
+      }
+    }
+    $view->set_title($title);
+    $view->display_handler->display->handler->handlers['header']['area']->options['content'] = $title;
+  }
 }
 
 /*
@@ -1805,24 +1925,13 @@ function cbf_views_post_execute(&$view) {
     }
 
     /*
-     * If any events are summarised, remove them from the results and update the Date
-     * Text of the summary event
+     * If any events are summarised, remove them from the results.
+     * Also stash the node alias of the event's Activity.
      */
     if (!empty($summarised)) {
       $alteredResults = [];
       foreach ($view->result as $r => $result) {
         if (!isset($summarised[$r])) {
-          if ($GLOBALS['theme'] != 'cbf2019') {
-            if (isset($result->field_field_date_text[0]['rendered']['#markup']) && in_array($r, $summarised)) {
-              $result->field_field_date_text[0]['rendered']['#markup'] .=
-                ' <a class="other-times" href="/' .
-                drupal_get_path_alias("node/" . $result->field_field_in_activity[0]['raw']['target_id']) .
-                '">Other times</a>';
-            }
-          }
-          if (in_array($r, $summarised)) {
-            $result->__cbf_merge_events = drupal_get_path_alias("node/" . $result->field_field_in_activity[0]['raw']['target_id']);
-          }
           if (in_array($r, $summarised)) {
             $result->__cbf_merge_events = drupal_get_path_alias("node/" . $result->field_field_in_activity[0]['raw']['target_id']);
           }
@@ -2589,8 +2698,8 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
     $team = empty($team) ? false : reset($team)['contact_id'];
     $team = cbf_civicrm_ministry_team_viewable_fields($team);
     $teamFieldMap = [
-      'meeting day/time' => 'field_title',
-      'time of day' => 'field_summary',
+      'nickname' => 'field_title',
+      'meeting day/time' => 'field_summary',
       'address' => 'field_map_location',
     ];
     foreach ($teamFieldMap as $from => $to) {
@@ -2601,11 +2710,9 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
 
     if (in_array('field_order_url', $fields) && !empty($team['staff contact'])) {
       $defaults['field_order_url'] = [
-        [
-          'url' => '/staff-contact?cid1='. $team['staff contact']['id'],
-          'title' => $team['staff contact']['display_name'],
-          'attributes' => [],
-        ],
+       'url' => '/staff-contact?cid1='. $team['staff contact']['id'],
+       'title' => $team['staff contact']['display_name'],
+       'attributes' => [],
       ];
     }
 
@@ -2734,9 +2841,10 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
   /*
    * Special case - if the source $entity is a civicrm_event its subtitle will
    * be found in the 'summary' attribute.
+   * A field_subtitle is limited to 128 characters in length.
    */
   if (in_array('field_subtitle', $fields) && !empty($entity->summary)) {
-    $result['field_subtitle'] = $entity->summary;
+    $result['field_subtitle'] = substr($entity->summary, 0, 128);
   }
 
   /*
@@ -2874,14 +2982,6 @@ function cbf_entity_mappable($entity, $type, $currentForm) {
       "taxonomy_vocabulary_3",
     ]
   );
-}
-
-/*
- * Test whether this is the CBF Plus site
- */
-function cbf_is_plus_site() {
-  $activeDomain = domain_get_domain();
-  return ($activeDomain['machine_name'] == 'reaching_city');
 }
 
 /*
