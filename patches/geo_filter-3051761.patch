@@ -1,0 +1,32 @@
+diff --git a/geo_filter.module.orig b/geo_filter.module
+index 5ff94b2..9248272 100644
+--- a/geo_filter.module.orig
++++ b/geo_filter.module
+@@ -139,15 +139,18 @@ function geo_filter_obfuscate($text, $filter, $format, $langcode, $cache, $cache
+   else {
+     $showerror = 'FALSE';
+   }
+-  $geo_filter_replace_callback = create_function( '$matches',
+-    '$hidestring = $matches[1] . GEO_FILTER_AT_SYMBOL . $matches[2] . GEO_FILTER_DOT_SYMBOL . $matches[3]; '
+-    . '$realstring = $matches[1] . "@" . $matches[2] . "." . $matches[3]; '
+-    . '$cid = db_query("SELECT cid FROM {contact} WHERE category = :cid", array(":cid" => $hidestring))->fetchField(); '
+-    . 'if (!$cid && ' . $showerror . ' && user_access("administer site-wide contact form")) { '
+-    . 'drupal_set_message(t("!email does not exist in the contact form. In order to best support non-javascript browsers you should add it !link", array("!email" => $realstring, "!link" => "<a href=\"" . url("admin/structure/contact/add", array("query" => array("edit[category]" => $hidestring, "edit[recipients]" => $realstring))) . "\">here</a>")), "warning"); '
+-    . '} '
+-    . 'return "/geo-contact/" . $matches[1] . "/" . $matches[2] . "/" . $matches[3] . $matches[4]; ' 
+-  );
++  $geo_filter_replace_callback = function($matches) {
++    $hidestring = $matches[1] . GEO_FILTER_AT_SYMBOL . $matches[2] . GEO_FILTER_DOT_SYMBOL . $matches[3];
++    $realstring = $matches[1] . "@" . $matches[2] . "." . $matches[3];
++    $cid = db_query("SELECT cid FROM {contact} WHERE category = :cid", array(":cid" => $hidestring))->fetchField();
++    if (!$cid && ' . $showerror . ' && user_access("administer site-wide contact form")) {
++      drupal_set_message(t("!email does not exist in the contact form. In order to best support non-javascript browsers you should add it !link", array(
++        "!email" => $realstring,
++        "!link" => "<a href=\"" . url("admin/structure/contact/add", array("query" => array("edit[category]" => $hidestring, "edit[recipients]" => $realstring))) . "\">here</a>"
++      )), "warning");
++    }
++    return "/geo-contact/" . $matches[1] . "/" . $matches[2] . "/" . $matches[3] . $matches[4];
++  };
+   $text = preg_replace_callback("/\"mailto:([A-Za-z0-9._%-]+)\@([A-Za-z0-9._%-]+)\.([A-Za z]{2,4})(\??[^\"]*)\"/i", $geo_filter_replace_callback, $text);
+   $text = preg_replace("/([A-Za-z0-9._%-]+)\@([A-Za-z0-9._%-]+)\.([A-Za z]{2,4})/i", "$1" . GEO_FILTER_AT_SYMBOL . "$2" . GEO_FILTER_DOT_SYMBOL . "$3", $text);
+   return $text;
