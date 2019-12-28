@@ -1,0 +1,21 @@
+diff --git a/video_filter.codecs.inc.orig b/video_filter.codecs.inc
+index 8fcac92..f9d0da0 100644
+--- a/video_filter.codecs.inc.orig
++++ b/video_filter.codecs.inc
+@@ -1039,12 +1039,12 @@ function video_filter_youtube_html5($video) {
+     $attributes['playlist'] = 'playlist=' . $video['codec']['matches'][1];
+   }
+ 
+-  if (preg_match('/t=((\d+[m|s])?(\d+[s]?)?)/', $video['source'], $matches)) {
+-    $attributes['start'] = 'start=' . (preg_replace("/[^0-9]/", "", $matches[2]) * 60 + (preg_replace("/[^0-9]/", "", $matches[3])));
++  if (preg_match('/t=((\d+[m])?(\d+[s]?)?)/', $video['source'], $matches)) {
++    $attributes['start'] = 'start=' . (preg_replace("/[^0-9]/", "", "0" . $matches[2]) * 60 + (preg_replace("/[^0-9]/", "", "0" . $matches[3])));
+   }
+   if (!empty($video['start'])) {
+-    if (preg_match('/((\d+[m|s])?(\d+[s]?)?)/', $video['start'], $matches)) {
+-      $attributes['start'] = 'start=' . (preg_replace("/[^0-9]/", "", $matches[2]) * 60 + (preg_replace("/[^0-9]/", "", $matches[3])));
++    if (preg_match('/((\d+[m])?(\d+[s]?)?)/', $video['start'], $matches)) {
++      $attributes['start'] = 'start=' . (preg_replace("/[^0-9]/", "", "0" . $matches[2]) * 60 + (preg_replace("/[^0-9]/", "", "0" . $matches[3])));
+     }
+   }
+ 
