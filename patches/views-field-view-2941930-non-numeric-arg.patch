@@ -1,0 +1,13 @@
+diff --git a/views_field_view_handler_field_view.inc b/views_field_view_handler_field_view.inc
+index b7cfc6c..acd2298 100644
+--- a/views_field_view_handler_field_view.inc
++++ b/views_field_view_handler_field_view.inc
+@@ -539,7 +539,7 @@ class views_field_view_handler_field_view extends views_handler_field {
+         break;
+       }
+     }
+-    elseif (isset($view->args[$arg - 1])) {
++    elseif (is_numeric($arg) && isset($view->args[$arg - 1])) {
+       switch ($token_type) {
+         case '%':
+           // Get an array of argument keys. So we can use the index as an
