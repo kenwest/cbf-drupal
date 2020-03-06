@@ -40,21 +40,8 @@ function cbf_init() {
  */
 function cbf_form_alter(&$form, &$form_state, $form_id) {
   /*
-   * Make the indenting of topics more obvious on the National Library view's
-   * exposed filter form. Replace leading hyphens with em-spaces.
    */
-  if ($form['#id'] == 'views-exposed-form-national-library-page-1'
-    && $form_id == 'views_exposed_form'
-    && isset($form['field_topic_tid']['#options'])) {
-    $emsp = json_decode('"\u2003"');
-    foreach ($form['field_topic_tid']['#options'] as $i => $v) {
-      foreach ($v->option as $j => $s) {
-        if (preg_match_all('/^([-]+)([^-].*)/', $s, $matches) == 1) {
-          $t = $matches[2][0];
-          for ($k = strlen($matches[1][0]); $k > 0; $k--) {
-            $t = $emsp . $t;
           }
-          $form['field_topic_tid']['#options'][$i]->option[$j] = $t;
         }
       }
     }
