@@ -3010,3 +3010,29 @@ function cbf_convert_banner_to_city_tid() {
       return null;
   }
 }
+
+/*
+ * Implement a cache of fields displayed in a view that are required
+ * to be unique.
+ *
+ * If the argument is false then clear the cache (for use in another view).
+ *
+ * The return value tells whether $field has already been seen.
+ */
+function cbf_is_views_field_cached($field) {
+  static $cache = [];
+
+  if ($field === false) {
+    $cache = [];
+    return false;
+  }
+
+  foreach ($cache as $cached) {
+    if ($field == $cached) {
+      return false;
+    }
+  }
+
+  $cache[] = $field;
+  return true;
+}
