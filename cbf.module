@@ -40,10 +40,34 @@ function cbf_init() {
  */
 function cbf_form_alter(&$form, &$form_state, $form_id) {
   /*
+   * Limit the views_exposed_form on the block-1 display of the
+   * cbf2019-national-activity-contents view. It should only list
+   * What's On locations where this Activity is active.
    */
+  if ($form['#id'] == 'views-exposed-form-cbf2019-national-activity-contents-block-1'
+    && $form_id == 'views_exposed_form') {
+    $node = menu_get_object();
+    $whatsOnLocations = field_get_items('node', $node, 'field_highlight_location');
+    $options = [];
+    foreach ($form['field_highlight_location_tid']['#options'] as $tid => $city) {
+      if (is_numeric($tid)) {
+        foreach ($whatsOnLocations as $i => $whatsOn) {
+          if ($whatsOn['tid'] == $tid) {
+            $options[$tid] = $city;
+            unset($whatsOnLocations[$i]);   // Optimisation - no need to look at this again
+            break;
           }
         }
       }
+      else {
+        $options[$tid] = $city;
+      }
+    }
+    if (count($options) <= 2) {
+      $form['#access'] = false;   // No need to show form if only options are 'All' and one city
+    }
+    else {
+      $form['field_highlight_location_tid']['#options'] = $options;
     }
   }
 
