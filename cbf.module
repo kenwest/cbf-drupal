@@ -2985,3 +2985,28 @@ function cbf_admin_paths() {
   ];
   return $paths;
 }
+
+function cbf_convert_banner_to_city_tid() {
+  $query_parameters = drupal_get_query_parameters();
+  if (empty($query_parameters['field_highlight_location_tid'])) {
+    return null;
+  }
+  switch ($query_parameters['field_highlight_location_tid']) {
+    case 1041; // Adelaide
+      return 5;
+    case 1042; // Brisbane
+      return 3;
+    case 1073; // Canberra
+      return 1068;
+    case 1191; // Hobart
+      return 1126;
+    case 1043; // Melbourne
+      return 2;
+    case 1044; // Perth
+      return 4;
+    case 1045; // Sydney
+      return 1;
+    default:   // eg 'All' or an unrecognised value
+      return null;
+  }
+}
