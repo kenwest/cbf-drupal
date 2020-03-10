@@ -47,7 +47,12 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
   if ($form['#id'] == 'views-exposed-form-cbf2019-national-activity-contents-block-1'
     && $form_id == 'views_exposed_form') {
     $node = menu_get_object();
-    $whatsOnLocations = field_get_items('node', $node, 'field_highlight_location');
+    if (empty($node)) {
+      $whatsOnLocations = [];
+    }
+    else {
+      $whatsOnLocations = field_get_items('node', $node, 'field_highlight_location');
+    }
     $options = [];
     foreach ($form['field_highlight_location_tid']['#options'] as $tid => $city) {
       if (is_numeric($tid)) {
