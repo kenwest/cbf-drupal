@@ -3066,3 +3066,31 @@ function cbf_is_views_field_cached($field) {
   $cache[] = $field;
   return true;
 }
+
+/*
+ * Implements hook_entity_info_alter
+ *
+ * Alter the entity info.
+ *
+ * Modules may implement this hook to alter the information that defines an
+ * entity. All properties that are available in hook_entity_info() can be
+ * altered here.
+ */
+function cbf_entity_info_alter(&$entity_info) {
+
+  /*
+   * Set up the CBF entity label callback
+   */
+  $entity_info['entityform']['label callback'] = 'cbf_entityform_label_callback';
+}
+
+function cbf_entityform_label_callback($entity, $entity_type) {
+  $title = field_get_items($entity_type, $entity, 'field_title');
+  if (empty($title) || !is_array($title)) {
+    $title = $entity->label();
+  }
+  else {
+    $title = $title[0]['value'];
+  }
+  return $title;
+}
