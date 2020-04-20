@@ -1,0 +1,293 @@
+--- civicrm-5.24.2-drupal/api/api.php	2020-04-09 17:20:22.000000000 +1000
++++ civicrm-5.24.3-drupal/api/api.php	2020-04-16 11:56:59.000000000 +1000
+@@ -200,7 +200,7 @@
+  * @return string|null
+  */
+ function _civicrm_api_get_camel_name($entity) {
+-  return is_string($entity) ? CRM_Utils_String::convertStringToCamel($entity) : NULL;
++  return is_string($entity) ? CRM_Utils_String::convertStringToCamel(CRM_Utils_String::munge($entity)) : NULL;
+ }
+ 
+ /**
+--- civicrm-5.24.2-drupal/api/v3/Contact.php	2020-04-09 17:20:22.000000000 +1000
++++ civicrm-5.24.3-drupal/api/v3/Contact.php	2020-04-16 11:56:59.000000000 +1000
+@@ -757,6 +757,10 @@
+   // If we are doing quicksearch by a field other than name, make sure that field is added to results
+   if (!empty($params['field_name'])) {
+     $field_name = CRM_Utils_String::munge($params['field_name']);
++    // there is no good reason to request api_key via getquick
++    if ($field_name == 'api_key') {
++      throw new API_Exception('Illegal value "api_key" for parameter "field_name"');
++    }
+     // Unique name contact_id = id
+     if ($field_name == 'contact_id') {
+       $field_name = 'id';
+--- civicrm-5.24.2-drupal/templates/CRM/Case/Form/ActivityView.tpl	2020-01-02 13:36:08.000000000 +1100
++++ civicrm-5.24.3-drupal/templates/CRM/Case/Form/ActivityView.tpl	2020-04-16 11:56:59.000000000 +1000
+@@ -41,7 +41,7 @@
+                 {if $parentID}<a class="open-inline-noreturn" href="{crmURL p='civicrm/case/activity/view' h=0 q="cid=$contactID&aid=$parentID"}">&raquo; {ts}Prompted by{/ts}</a>{/if}
+               </td>
+             {else}
+-              <td colspan="2">{if $row.label eq 'Details'}{$row.value|crmStripAlternatives|nl2br}{elseif $row.type eq 'Date'}{$row.value|crmDate}{else}{$row.value}{/if}</td>
++              <td colspan="2">{if $row.label eq 'Details'}{$row.value|crmStripAlternatives|nl2br|purify}{elseif $row.type eq 'Date'}{$row.value|crmDate}{else}{$row.value}{/if}</td>
+             {/if}
+           </tr>
+         {/foreach}
+--- civicrm-5.24.2-drupal/CRM/Case/XMLProcessor/Report.php	2020-04-09 17:20:22.000000000 +1000
++++ civicrm-5.24.3-drupal/CRM/Case/XMLProcessor/Report.php	2020-04-16 11:56:59.000000000 +1000
+@@ -443,7 +443,7 @@
+ 
+     $activity['fields'][] = array(
+       'label' => ts('Details'),
+-      'value' => $this->redact(CRM_Utils_String::stripAlternatives($activityDAO->details)),
++      'value' => $this->redact(CRM_Utils_String::purifyHTML(CRM_Utils_String::stripAlternatives($activityDAO->details))),
+       'type' => 'Memo',
+     );
+ 
+--- civicrm-5.24.2-drupal/CRM/Activity/BAO/Activity.php	2020-04-09 17:20:22.000000000 +1000
++++ civicrm-5.24.3-drupal/CRM/Activity/BAO/Activity.php	2020-04-16 11:56:59.000000000 +1000
+@@ -149,6 +149,7 @@
+     }
+ 
+     $transaction = new CRM_Core_Transaction();
++    $sqlWhereParams = $where = [];
+     if (is_array(CRM_Utils_Array::value('source_record_id', $params))) {
+       $sourceRecordIds = implode(',', $params['source_record_id']);
+     }
+@@ -156,18 +157,19 @@
+       $sourceRecordIds = CRM_Utils_Array::value('source_record_id', $params);
+     }
+ 
++    if ($sourceRecordIds) {
++      $where[] = 'source_record_id IN ( %1 )';
++      $sqlWhereParams[1] = [$sourceRecordIds, 'CommaSeparatedIntegers'];
++    }
+     $result = NULL;
+     if (!$moveToTrash) {
+       if (!isset($params['id'])) {
+-        if (is_array($params['activity_type_id'])) {
+-          $activityTypes = implode(',', $params['activity_type_id']);
+-        }
+-        else {
+-          $activityTypes = $params['activity_type_id'];
++        if (!empty($params['activity_type_id'])) {
++          $where[] = 'activity_type_id IN ( %2 )';
++          $sqlWhereParams[2] = [implode(',', (array) $params['activity_type_id']), 'CommaSeparatedIntegers'];
+         }
+-
+-        $query = "DELETE FROM civicrm_activity WHERE source_record_id IN ({$sourceRecordIds}) AND activity_type_id IN ( {$activityTypes} )";
+-        $dao = CRM_Core_DAO::executeQuery($query);
++        $query = "DELETE FROM civicrm_activity WHERE " . implode(' AND ', $where);
++        $dao = CRM_Core_DAO::executeQuery($query, $sqlWhereParams);
+       }
+       else {
+         $activity = new CRM_Activity_DAO_Activity();
+@@ -178,8 +180,8 @@
+         $activity->case_id = CRM_Case_BAO_Case::getCaseIdByActivityId($activity->id);
+ 
+         // CRM-13994 delete activity entity_tag
+-        $query = "DELETE FROM civicrm_entity_tag WHERE entity_table = 'civicrm_activity' AND entity_id = {$activity->id}";
+-        $dao = CRM_Core_DAO::executeQuery($query);
++        $query = "DELETE FROM civicrm_entity_tag WHERE entity_table = 'civicrm_activity' AND entity_id = %1";
++        $dao = CRM_Core_DAO::executeQuery($query, [1 => [$activity->id, 'Positive']]);
+       }
+     }
+     else {
+--- civicrm-5.24.2-drupal/CRM/Campaign/BAO/Campaign.php	2020-04-09 17:20:22.000000000 +1000
++++ civicrm-5.24.3-drupal/CRM/Campaign/BAO/Campaign.php	2020-04-16 11:56:59.000000000 +1000
+@@ -416,18 +416,12 @@
+       $queryParams[6] = ['%' . trim($params['description']) . '%', 'String'];
+     }
+     if (!empty($params['campaign_type_id'])) {
+-      $typeId = $params['campaign_type_id'];
+-      if (is_array($params['campaign_type_id'])) {
+-        $typeId = implode(' , ', $params['campaign_type_id']);
+-      }
+-      $where[] = "( campaign.campaign_type_id IN ( {$typeId} ) )";
++      $where[] = "( campaign.campaign_type_id IN ( %7 ) )";
++      $queryParams[7] = [implode(',', (array) $params['campaign_type_id']), 'CommaSeparatedIntegers'];
+     }
+     if (!empty($params['status_id'])) {
+-      $statusId = $params['status_id'];
+-      if (is_array($params['status_id'])) {
+-        $statusId = implode(' , ', $params['status_id']);
+-      }
+-      $where[] = "( campaign.status_id IN ( {$statusId} ) )";
++      $where[] = "( campaign.status_id IN ( %8 ) )";
++      $queryParams[8] = [implode(',', (array) $params['status_id']), 'CommaSeparatedIntegers'];
+     }
+     if (array_key_exists('is_active', $params)) {
+       $active = "( campaign.is_active = 1 )";
+--- civicrm-5.24.2-drupal/CRM/Contact/BAO/Query.php	2020-04-09 17:20:22.000000000 +1000
++++ civicrm-5.24.3-drupal/CRM/Contact/BAO/Query.php	2020-04-16 11:56:59.000000000 +1000
+@@ -3092,7 +3092,7 @@
+       $groupContactCacheClause = $this->addGroupContactCache($smartGroupIDs, $gccTableAlias, "contact_a", $op);
+       if (!empty($groupContactCacheClause)) {
+         if ($isNotOp) {
+-          $groupIds = implode(',', (array) $smartGroupIDs);
++          $groupIds = CRM_Utils_Type::validate(implode(',', (array) $smartGroupIDs), 'CommaSeparatedIntegers');
+           $gcTable = "civicrm_group_contact_{$this->_groupUniqueKey}";
+           $joinClause = ["contact_a.id = {$gcTable}.contact_id"];
+           $this->_tables[$gcTable] = $this->_whereTables[$gcTable] = " LEFT JOIN civicrm_group_contact {$gcTable} ON (" . implode(' AND ', $joinClause) . ")";
+@@ -4049,15 +4049,14 @@
+    */
+   public function privacy(&$values) {
+     list($name, $op, $value, $grouping) = $values;
+-    //fixed for profile search listing CRM-4633
+-    if (strpbrk($value, "[")) {
+-      $value = "'{$value}'";
+-      $op = "!{$op}";
+-      $this->_where[$grouping][] = "contact_a.{$name} $op $value";
+-    }
+-    else {
+-      $this->_where[$grouping][] = "contact_a.{$name} $op $value";
++    if (is_array($value)) {
++      if (in_array(key($value), CRM_Core_DAO::acceptedSQLOperators(), TRUE)) {
++        $op = key($value);
++        $value = $value[$op];
++      }
+     }
++    CRM_Utils_Type::validate($value, 'Integer');
++    $this->_where[$grouping][] = "contact_a.{$name} $op $value";
+     $field = CRM_Utils_Array::value($name, $this->_fields);
+     $op = CRM_Utils_Array::value($op, CRM_Core_SelectValues::getSearchBuilderOperators(), $op);
+     $title = $field ? $field['title'] : $name;
+--- civicrm-5.24.2-drupal/CRM/Admin/Form/Job.php	2020-04-09 12:35:15.000000000 +1000
++++ civicrm-5.24.3-drupal/CRM/Admin/Form/Job.php	2020-04-16 11:56:59.000000000 +1000
+@@ -55,6 +55,23 @@
+       return;
+     }
+ 
++    if ($this->_action & CRM_Core_Action::VIEW) {
++      $this->assign('jobName', self::getJobName($this->_id)); 
++      $this->addButtons([
++        [
++          'type' => 'submit',
++          'name' => ts('Execute'),
++          'isDefault' => TRUE,
++        ],
++        [
++          'type' => 'cancel',
++          'name' => ts('Cancel'),
++        ],
++      ]);
++      return;
++    }
++        
++
+     $attributes = CRM_Core_DAO::getAttribute('CRM_Core_DAO_Job');
+ 
+     $this->add('text', 'name', ts('Name'),
+@@ -172,6 +189,16 @@
+       return;
+     }
+ 
++    // using View action for Execute. Doh.
++    if ($this->_action & CRM_Core_Action::VIEW) {
++      $jm = new CRM_Core_JobManager();
++      $jm->executeJobById($this->_id);
++      $jobName = self::getJobName($this->_id);
++      CRM_Core_Session::setStatus(ts('%1 Scheduled Job has been executed. See the log for details.', [1 => $jobName]), ts("Executed"), "success");
++      CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/admin/job', 'reset=1'));
++      return;
++    }
++
+     $values = $this->controller->exportValues($this->_name);
+     $domainID = CRM_Core_Config::domainID();
+ 
+@@ -223,4 +250,17 @@
+ 
+   }
+ 
++  /**
++   * Get the API action aka Job Name for this scheduled job
++   * @param int $id - Id of the stored Job
++   *
++   * @return string
++   */
++  private static function getJobName($id) {
++    $entity = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_Job', $id, 'api_entity');
++    $action = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_Job', $id, 'api_action');
++    $name = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_Job', $id, 'name');
++    return $name . ' (' . $entity . '.' . $action . ')';
++  }
++
+ }
+--- civicrm-5.24.2-drupal/CRM/Admin/Page/Job.php	2020-01-02 13:36:08.000000000 +1100
++++ civicrm-5.24.3-drupal/CRM/Admin/Page/Job.php	2020-04-16 11:56:59.000000000 +1000
+@@ -58,10 +58,10 @@
+           'qs' => 'action=update&id=%%id%%&reset=1',
+           'title' => ts('Edit Scheduled Job'),
+         ),
+-        CRM_Core_Action::EXPORT => array(
++        CRM_Core_Action::VIEW => array(
+           'name' => ts('Execute Now'),
+           'url' => 'civicrm/admin/job',
+-          'qs' => 'action=export&id=%%id%%&reset=1',
++          'qs' => 'action=view&id=%%id%%&reset=1',
+           'title' => ts('Execute Scheduled Job Now'),
+         ),
+         CRM_Core_Action::DISABLE => array(
+@@ -118,12 +118,6 @@
+       $this, FALSE, 0
+     );
+ 
+-    // FIXME: Why are we comparing an integer with a string here?
+-    if ($this->_action == 'export') {
+-      $session = CRM_Core_Session::singleton();
+-      $session->pushUserContext(CRM_Utils_System::url('civicrm/admin/job', 'reset=1'));
+-    }
+-
+     if (($this->_action & CRM_Core_Action::COPY) && (!empty($this->_id))) {
+       try {
+         $jobResult = civicrm_api3('Job', 'clone', array('id' => $this->_id));
+@@ -151,14 +145,6 @@
+       CRM_Core_Session::setStatus(ts('Execution of scheduled jobs has been turned off by default since this is a non-production environment. You can override this for particular jobs by adding runInNonProductionEnvironment=TRUE as a parameter.'), ts("Non-production Environment"), "warning", array('expires' => 0));
+     }
+ 
+-    // using Export action for Execute. Doh.
+-    if ($this->_action & CRM_Core_Action::EXPORT) {
+-      $jm = new CRM_Core_JobManager();
+-      $jm->executeJobById($this->_id);
+-
+-      CRM_Core_Session::setStatus(ts('Selected Scheduled Job has been executed. See the log for details.'), ts("Executed"), "success");
+-    }
+-
+     $sj = new CRM_Core_JobManager();
+     $rows = $temp = array();
+     foreach ($sj->jobs as $job) {
+--- civicrm-5.24.2-drupal/templates/CRM/Admin/Form/Job.tpl	2020-04-09 12:35:15.000000000 +1000
++++ civicrm-5.24.3-drupal/templates/CRM/Admin/Form/Job.tpl	2020-04-16 11:56:59.000000000 +1000
+@@ -8,7 +8,7 @@
+  +--------------------------------------------------------------------+
+ *}
+ {* This template is used for adding/configuring Scheduled Jobs.  *}
+-<h3>{if $action eq 1}{ts}New Scheduled Job{/ts}{elseif $action eq 2}{ts}Edit Scheduled Job{/ts}{elseif $action eq 128}{ts}Execute Scheduled Job{/ts}{else}{ts}Delete Scheduled Job{/ts}{/if}</h3>
++<h3>{if $action eq 1}{ts}New Scheduled Job{/ts}{elseif $action eq 2}{ts}Edit Scheduled Job{/ts}{elseif $action eq 4}{ts}Execute Scheduled Job{/ts}{else}{ts}Delete Scheduled Job{/ts}{/if}</h3>
+ <div class="crm-block crm-form-block crm-job-form-block">
+  <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div>
+ 
+@@ -17,10 +17,10 @@
+       <div class="icon inform-icon"></div>
+         {ts}WARNING: Deleting this Scheduled Job will cause some important site functionality to stop working.{/ts} {ts}Do you want to continue?{/ts}
+   </div>
+-{elseif $action eq 128}
++{elseif $action eq 4}
+   <div class="messages status no-popup">
+       <div class="icon inform-icon"></div>
+-        {ts}Are you sure you would like to execute this job?{/ts}
++        {ts 1=$jobName}Are you sure you would like to execute %1 job?{/ts}
+   </div>
+ {else}
+   <table class="form-layout-compressed">
+--- civicrm-5.24.2-drupal/templates/CRM/Admin/Page/Job.tpl	2020-01-02 13:36:08.000000000 +1100
++++ civicrm-5.24.3-drupal/templates/CRM/Admin/Page/Job.tpl	2020-04-16 11:56:59.000000000 +1000
+@@ -12,7 +12,7 @@
+     {ts 1=$runAllURL}You can configure scheduled jobs (cron tasks) for your CiviCRM installation. For most sites, your system administrator should set up one or more 'cron' tasks to run the enabled jobs. However, you can also <a href="%1">run all scheduled jobs manually</a>, or run specific jobs from this screen (click 'more' and then 'Execute Now').{/ts} {docURL page="sysadmin/setup/jobs" text="(Job parameters and command line syntax documentation...)"}
+ </div>
+ 
+-{if $action eq 1 or $action eq 2 or $action eq 8}
++{if $action eq 1 or $action eq 2 or $action eq 8 or $action eq 4}
+    {include file="CRM/Admin/Form/Job.tpl"}
+ {else}
+ 

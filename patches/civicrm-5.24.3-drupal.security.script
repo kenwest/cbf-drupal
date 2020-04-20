@@ -1,0 +1,2 @@
+rm bower_components/google-code-prettify/styles/demo.html
+rm -r bower_components/qunit
