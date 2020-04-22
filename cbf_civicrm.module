@@ -957,7 +957,7 @@ function _cbf_civicrm_civicrm_post_participant($op, $id, &$params) {
      */
     case 'create':
       try {
-        if (_cbf_civicrm_civicrm_contact_has_ministry_centre($params->contact_id)) {
+        if (_cbf_civicrm_civicrm_contact_ministry_centre($params->contact_id) !== false) {
           break;
         }
 
@@ -995,7 +995,7 @@ function _cbf_civicrm_civicrm_post_contribution($op, $id, $contact_id) {
      */
     case 'create':
       try {
-        if (_cbf_civicrm_civicrm_contact_has_ministry_centre($contact_id)) {
+        if (_cbf_civicrm_civicrm_contact_ministry_centre($contact_id) !== false) {
           break;
         }
 
@@ -1016,7 +1016,7 @@ function _cbf_civicrm_civicrm_post_contribution($op, $id, $contact_id) {
   }
 }
 
-function _cbf_civicrm_civicrm_contact_has_ministry_centre($contact_id) {
+function _cbf_civicrm_civicrm_contact_ministry_centre($contact_id) {
   $ministry_centre_prefix = 'Ministry centre is ';
 
   $entity_tags = civicrm_api3('EntityTag', 'get', array(
@@ -1032,8 +1032,9 @@ function _cbf_civicrm_civicrm_contact_has_ministry_centre($contact_id) {
       'return' => 'name',
     ));
 
-    if (stristr($tag['values'][0]['name'], $ministry_centre_prefix) !== false) {
-      return TRUE;
+    $exploded = explode($ministry_centre_prefix, $tag['values'][0]['name']);
+    if (count($exploded) == 2 && $exploded[0] == '' && $exploded[1] != $tag['values'][0]['name']) {
+      return $exploded[1];
     }
   }
 
@@ -1061,7 +1062,7 @@ function _cbf_civicrm_civicrm_event_ministry_centre($event_id) {
       }
     }
 
-    if ( ! isset($ministry_centre_id) ) {
+    if (empty($ministry_centre_id)) {
       return array(false, false);
     }
 
