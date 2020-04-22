@@ -218,21 +218,27 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
     /* Try getting the dates from CiviCRM */
     if (empty($drupalDate)) {
-      $form['field_event_date']['und'][0]['#default_value']['value']
-        = str_replace(
-          ' ',
-          'T',
-          $form['start_date']['#default_value']);
-      $form['field_event_date']['und'][0]['#default_value']['value2']
-        = str_replace(
-          ' ',
-          'T',
-          $form['end_date']['#default_value']);
-      $form['field_event_date']['und'][0]['timezone']['#default_value']
-        = 'Australia/' .
+      if (!empty($form['taxonomy_vocabulary_1']['und']['#default_value'])) {
+        $ministryCentre =
           $form['taxonomy_vocabulary_1']['und']['#options'][
             $form['taxonomy_vocabulary_1']['und']['#default_value'][0]
           ];
+      }
+      else {
+        $ministryCentre = _cbf_civicrm_civicrm_contact_ministry_centre($staffContactId);
+        if ($ministryCentre === false) {
+          $ministryCentre = 'Sydney';
+        }
+      }
+
+      $form['field_event_date']['und'][0]['#default_value'] = [];
+      $form['field_event_date']['und'][0]['#default_value']['value']
+      = str_replace(' ', 'T', $form['start_date']['#default_value']);
+      $form['field_event_date']['und'][0]['#default_value']['value2']
+        = str_replace(' ', 'T', $form['end_date']['#default_value']);
+      $form['field_event_date']['und'][0]['#default_value']['timezone']
+        = $form['field_event_date']['und'][0]['timezone']['#default_value']
+        = 'Australia/' . $ministryCentre;
     }
   }
 
