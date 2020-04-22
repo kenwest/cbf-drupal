@@ -336,11 +336,16 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 function cbf__civicrm_entity_form_submit(&$form, &$form_state) {
   if ($form['#id'] == 'civicrm-event-form') {
     $form_state['values']['custom_62'] = $form_state['values']['field_staff_contact']['und'][0]['contact_id'];
-    $form_state['values']['custom_25'] = _cbf_civicrm_civicrm_event_ministry_centre_id(
-      $form['taxonomy_vocabulary_1']['und']['#options'][
-        $form_state['values']['taxonomy_vocabulary_1']['und'][0]['tid']
-      ]
-    );
+    if (!empty($form_state['values']['taxonomy_vocabulary_1']['und'][0]['tid'])) {
+      $form_state['values']['custom_25'] = _cbf_civicrm_civicrm_event_ministry_centre_id(
+        $form['taxonomy_vocabulary_1']['und']['#options'][
+          $form_state['values']['taxonomy_vocabulary_1']['und'][0]['tid']
+        ]
+      );
+    }
+    else {
+      $form_state['values']['custom_25'] = '';
+    }
 
     for ($i = 0; ; $i++) {
       if (!isset($form_state['values']['field_event_date']['und'][$i])) {
