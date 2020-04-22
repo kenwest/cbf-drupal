@@ -153,7 +153,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
    * Id is expected.
    */
   if ($form['#id'] == 'civicrm-event-form') {
-    $id = null;
+    $staffContactId = null;
     $drupalContact = null;
     $civicrmContact = null;
     $matches = null;
@@ -161,22 +161,22 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
     /* Try getting the contact Id from the Drupal field for the staff contact */
     $drupalContact = $form['field_staff_contact']['und'][0]['contact_id']['#default_value'];
     if (preg_match('!(.+) \[cid:([0-9]+)\]!', $drupalContact, $matches) === 1) {
-      $id = $matches[2];
+      $staffContactId = $matches[2];
     }
 
     /* Try getting the contact from CiviCRM */
-    if (empty($id)) {
+    if (empty($staffContactId)) {
       $civicrmContact = _cbf_civicrm_civicrm_event_staff_contact($form_state['civicrm_event']->id);
       if (!empty($civicrmContact)) {
-        $id = $civicrmContact['id'];
+        $staffContactId = $civicrmContact['id'];
       }
     }
 
-    if (!empty($id)) {
-      $form['custom_62']['#default_value'] = $id;
+    if (!empty($staffContactId)) {
+      $form['custom_62']['#default_value'] = $staffContactId;
       if (empty($drupalContact) && !empty($civicrmContact)) {
         $form['field_staff_contact']['und'][0]['contact_id']['#default_value']
-          = $civicrmContact['name'] . ' [cid:' . $id . ']';
+          = $civicrmContact['name'] . ' [cid:' . $staffContactId . ']';
       }
     }
   }
