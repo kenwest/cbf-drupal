@@ -294,7 +294,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       // End users are getting confused when they enter email addresses with an additional space
       // To avoid this we trim submitted email addresses
       foreach ($form->getSubmitValues() as $field => $value) {
-        if (strpos($field, 'email-') !== FALSE) {
+        if (strpos($field, 'email-') !== false) {
           $form->applyFilter($field, 'trim');
         }
       }
@@ -963,7 +963,7 @@ function _cbf_civicrm_civicrm_post_participant($op, $id, &$params) {
 
         list($tagId, $name) = _cbf_civicrm_civicrm_event_ministry_centre($params->event_id);
 
-        if ($tagId !== FALSE) {
+        if ($tagId !== false) {
           $create = civicrm_api3('EntityTag', 'create', array(
             'sequential' => 1,
             'entity_table' => 'civicrm_contact',
@@ -1001,7 +1001,7 @@ function _cbf_civicrm_civicrm_post_contribution($op, $id, $contact_id) {
 
         $ministry_centre = _cbf_civicrm_civicrm_contribution_ministry_centre($id);
 
-        if ($ministry_centre !== FALSE) {
+        if ($ministry_centre !== false) {
           $create = civicrm_api3('EntityTag', 'create', array(
             'sequential' => 1,
             'entity_table' => 'civicrm_contact',
@@ -1037,7 +1037,7 @@ function _cbf_civicrm_civicrm_contact_has_ministry_centre($contact_id) {
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 function _cbf_civicrm_civicrm_event_ministry_centre($event_id) {
@@ -1062,7 +1062,7 @@ function _cbf_civicrm_civicrm_event_ministry_centre($event_id) {
     }
 
     if ( ! isset($ministry_centre_id) ) {
-      return array(FALSE, FALSE);
+      return array(false, false);
     }
 
     $ministry_centre = civicrm_api3('OptionValue', 'getvalue', array(
@@ -1081,7 +1081,7 @@ function _cbf_civicrm_civicrm_event_ministry_centre($event_id) {
     return array($tag, $ministry_centre);
  
   } catch (CiviCRM_API3_Exception $e) {
-    return array(FALSE, FALSE);
+    return array(false, false);
   }
 }
 
@@ -1098,7 +1098,7 @@ function _cbf_civicrm_civicrm_contribution_ministry_centre($contribution_id) {
     ));
 
     if (empty($cityCode)) {
-      return FALSE;
+      return false;
     }
 
     $city = civicrm_api3('OptionValue', 'getvalue', array(
@@ -1121,7 +1121,7 @@ function _cbf_civicrm_civicrm_contribution_ministry_centre($contribution_id) {
     ;
   }
 
-  return FALSE;
+  return false;
 }
 
 /*
@@ -1144,7 +1144,7 @@ function cbf_civicrm_civicrm_accountPullPreSave($entity, &$data, &$save, &$param
     case 'invoice':
       // Don't try to pull Invoices when the Contribution Id is not numeric
       if (isset($params['contribution_id']) && !is_numeric($params['contribution_id'])) {
-        $save = FALSE;
+        $save = false;
       }
       break;
   }
@@ -1187,7 +1187,7 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
        *  - the contribution is zero-valued
        */
       if (!empty($data['custom_43']) || $data['is_test'] != '0' || $data['total_amount'] == '0.00') {
-        $save = FALSE;
+        $save = false;
         break;
       }
 
