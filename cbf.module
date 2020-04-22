@@ -1895,6 +1895,28 @@ function cbf_views_pre_render(&$view) {
  */
 function cbf_views_post_execute(&$view) {
   /*
+   * If the results of this view need to be filtered to only include content
+   * local to the visitor, then remove items that don't match.
+   */
+  if (in_array('local', explode(', ', $view->tag))) {
+    $city = cbf_visitor_city_string();
+    if (!empty($city)) {
+      $alteredResults = [];
+      foreach ($view->result as $result) {
+        if (
+          empty($result->field_taxonomy_vocabulary_1)
+          || stristr($result->field_taxonomy_vocabulary_1[0]['rendered']['#markup'], $city) !== false
+        ) {
+          $alteredResults[] = $result;
+        }
+      }
+      if (count($alteredResults) != count($view->result)) {
+        $view->result = $alteredResults;
+      }
+    }
+  }
+
+  /*
    * This function prevents block displays being crowded out by Events of a single Activity
    * (eg Bible Shots runs 3 events each week). These block displays are indicated by either
    *  1. The view is tagged with 'merge-events'
