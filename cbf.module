@@ -562,7 +562,7 @@ function _computed_field_date_text_compute($entity_type, $entity) {
   $date_future  = 'D j M';
   $date_past    = 'j M Y';
   $time_format  = 'g.ia';
-  $midnight     = '12.00am';
+  $midnight     = '12am';
   $date_text    = false;
   $time_text    = false;
   $first_text   = false;
@@ -594,9 +594,9 @@ function _computed_field_date_text_compute($entity_type, $entity) {
       $endstamp = strtotime($end_time->format('Y-m-d H:i:s O'));
 
       if ($time_text === false) {
-        $time_text = $start_time->format($time_format);
+        $time_text = str_replace('.00', '', $start_time->format($time_format));
         if ($time_text != $midnight) {
-          $time_text .= '-' . $end_time->format($time_format);
+          $time_text .= '-' . str_replace('.00', '', $end_time->format($time_format));
         }
       }
 
@@ -653,14 +653,18 @@ function _computed_field_date_text_compute($entity_type, $entity) {
     }
   }
 
+  $result = [];
   if ($date_text === false) {
-    $result = '';
+    $result['field_date_text'] =
+    $result['field_national_date_text'] = '';
   }
   if ($time_text === false || $time_text == $midnight) {
-    $result = $date_text;
+    $result['field_date_text'] =
+    $result['field_national_date_text'] = $date_text;
   }
   else {
-    $result = $date_text . ', ' . str_replace('.00', '', $time_text);
+    $result['field_date_text'] =
+    $result['field_national_date_text'] = $date_text . ', ' . $time_text;
   }
 
   return $result;
@@ -678,6 +682,21 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
  * This function is called by CCK Computed Field to generate the display text of Field Date Text.
  */
 function computed_field_field_date_text_display($field, $entity_field_item) {
+  return $entity_field_item['value'];
+}
+
+/*
+ * This function is called by CCK Computed Field to generate the display text of Field Date Text.
+ */
+function computed_field_field_national_date_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+  $text = _computed_field_date_text_compute($entity_type, $entity);
+  $entity_field[0]['value'] = $text['field_national_date_text'];
+}
+
+/*
+ * This function is called by CCK Computed Field to generate the display text of Field Date Text.
+ */
+function computed_field_field_national_date_text_display($field, $entity_field_item) {
   return $entity_field_item['value'];
 }
 
