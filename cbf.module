@@ -551,7 +551,7 @@ function computed_field_field_next_action_display($field, $entity_field_item) {
  * prefix the date with 'Starts on '.
  * Show the start time, unless it is midnight.
  */
-function _computed_field_field_date_text_compute($entity_type, $entity) {
+function _computed_field_date_text_compute($entity_type, $entity) {
   $current_time = strtotime('now');
   $next_week    = strtotime('now +1 week');
   $startstamp   = 0;
@@ -670,7 +670,8 @@ function _computed_field_field_date_text_compute($entity_type, $entity) {
  * This function is called by CCK Computed Field to generate the display text of Field Date Text.
  */
 function computed_field_field_date_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-  $entity_field[0]['value'] = _computed_field_field_date_text_compute($entity_type, $entity);
+  $text = _computed_field_date_text_compute($entity_type, $entity);
+  $entity_field[0]['value'] = $text['field_date_text'];
 }
 
 /*
