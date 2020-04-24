@@ -534,7 +534,9 @@ function computed_field_field_next_action_display($field, $entity_field_item) {
 }
 
 /*
- * This function is called by CCK Computed Field to compute the value of Field Date Text.
+ * Calculate date text for an entity that contains either an Episode Date field or an
+ * Event Date field. The Event Date takes precedence (though no anticipated content will
+ * contain both)
  *
  * If the entity contains an Episode Date, the text is empty for future dates. Otherwise
  * it is the date.
@@ -549,7 +551,7 @@ function computed_field_field_next_action_display($field, $entity_field_item) {
  * prefix the date with 'Starts on '.
  * Show the start time, unless it is midnight.
  */
-function computed_field_field_date_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+function _computed_field_field_date_text_compute($entity_type, $entity) {
   $current_time = strtotime('now');
   $next_week    = strtotime('now +1 week');
   $startstamp   = 0;
@@ -652,14 +654,23 @@ function computed_field_field_date_text_compute(&$entity_field, $entity_type, $e
   }
 
   if ($date_text === false) {
-    $entity_field[0]['value'] = '';
+    $result = '';
   }
   if ($time_text === false || $time_text == $midnight) {
-    $entity_field[0]['value'] = $date_text;
+    $result = $date_text;
   }
   else {
-    $entity_field[0]['value'] = $date_text . ', ' . str_replace('.00', '', $time_text);
+    $result = $date_text . ', ' . str_replace('.00', '', $time_text);
   }
+
+  return $result;
+}
+
+/*
+ * This function is called by CCK Computed Field to generate the display text of Field Date Text.
+ */
+function computed_field_field_date_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
+  $entity_field[0]['value'] = _computed_field_field_date_text_compute($entity_type, $entity);
 }
 
 /*
