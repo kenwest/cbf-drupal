@@ -598,24 +598,27 @@ function _computed_field_date_text_compute($entity_type, $entity) {
         if ($time_text != $midnight) {
           $time_text .= '-' . str_replace('.00', '', $end_time->format($time_format));
 
-          $nationalTime = [];
-          $query = new EntityFieldQuery();
-          $query
+          $ministryCentre = field_get_items($entity_type, $entity, 'taxonomy_vocabulary_1');
+          if (empty($ministryCentre)) {
+            $nationalTime = [];
+            $query = new EntityFieldQuery();
+            $query
             ->entityCondition('entity_type', 'taxonomy_term')
             ->entityCondition('bundle', 'vocabulary_1');
-          $result = $query->execute();
-          foreach ($result as $entityType => $entities) {
-            $terms = taxonomy_term_load_multiple(array_keys($entities));
-            foreach ($terms as $term) {
-              $tz = 'Australia/' . $term->name;
-              $time = new DateObject($startstamp, $tz);
-              $from = str_replace('.00', '', $time->format($time_format));
-              $time = new DateObject($endstamp, $tz);
-              $to = str_replace('.00', '', $time->format($time_format));
-              $nationalTime[$term->name] = $from . '-' . $to;
+            $result = $query->execute();
+            foreach ($result as $entityType => $entities) {
+              $terms = taxonomy_term_load_multiple(array_keys($entities));
+              foreach ($terms as $term) {
+                $tz = 'Australia/' . $term->name;
+                $time = new DateObject($startstamp, $tz);
+                $from = str_replace('.00', '', $time->format($time_format));
+                $time = new DateObject($endstamp, $tz);
+                $to = str_replace('.00', '', $time->format($time_format));
+                $nationalTime[$term->name] = $from . '-' . $to;
+              }
             }
+            ksort($nationalTime);
           }
-          ksort($nationalTime);
         }
       }
 
