@@ -680,7 +680,7 @@ function _computed_field_date_text_compute($entity_type, $entity) {
     $result['field_date_text'] =
     $result['field_national_date_text'] = '';
   }
-  if ($time_text === false || $time_text == $midnight) {
+  else if ($time_text === false || $time_text == $midnight) {
     $result['field_date_text'] =
     $result['field_national_date_text'] = $date_text;
   }
