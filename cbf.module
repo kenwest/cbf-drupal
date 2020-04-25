@@ -565,6 +565,7 @@ function _computed_field_date_text_compute($entity_type, $entity) {
   $midnight     = '12am';
   $date_text    = false;
   $time_text    = false;
+  $nationalTimeText = false;
   $first_text   = false;
   $last_text    = false;
 
@@ -618,6 +619,13 @@ function _computed_field_date_text_compute($entity_type, $entity) {
               }
             }
             ksort($nationalTime);
+
+            $nationalTimeText = '';
+            foreach ($nationalTime as $city => $cityTime) {
+              $nationalTimeText .=
+                '<div class="tz-city">' . $city . '</div>' .
+                '<div class="tz-time">' . $cityTime . '</div>';
+            }
           }
         }
       }
@@ -684,9 +692,15 @@ function _computed_field_date_text_compute($entity_type, $entity) {
     $result['field_date_text'] =
     $result['field_national_date_text'] = $date_text;
   }
-  else {
+  else if ($nationalTimeText === false) {
     $result['field_date_text'] =
     $result['field_national_date_text'] = $date_text . ', ' . $time_text;
+  }
+  else {
+    $result['field_date_text'] = $date_text;
+    $result['field_national_date_text'] =
+      '<div class="cbf-date">' . $date_text . '</div>' .
+      '<div class="cbf-time">' . $nationalTimeText . '</div>';
   }
 
   return $result;
