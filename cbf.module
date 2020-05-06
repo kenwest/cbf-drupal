@@ -32,12 +32,12 @@ function cbf_init() {
   }
 
   /*
-   * Add the Hello Bar script for staff accessing non-admin pages on either the
-   * CBF or CBF+ sites. Specifically exclude CiviCRM pages where we might prefer
+   * Add the Hello Bar script for anonymous users accessing non-admin pages on either
+   * the CBF or CBF+ sites. Specifically exclude CiviCRM pages where we might prefer
    * people sign up or donate!
    */
   if (
-    !user_is_anonymous() &&
+    user_is_anonymous() &&
     !path_is_admin(current_path()) &&
     stristr(domain_get_domain()['subdomain'], 'citybibleforum') !== false &&
     arg(0) != 'civicrm'
