@@ -2190,6 +2190,20 @@ function cbf_views_post_execute(&$view) {
       }
     }
   }
+
+  /*
+   * If the view is 'cbf2019_local_office' and the current Domain is
+   * Third Space, then overwrite the email address with the Third Space
+   * public email address.
+   */
+  if ($view->name == 'cbf2019_local_office') {
+    if (stristr(domain_get_domain()['subdomain'], 'thirdspace') !== false) {
+      foreach ($view->result as $i => $_) {
+        $view->result[$i]->civicrm_contact_field_data_field_organisation_contact__civic_11
+          = 'info@thirdspace.org.au';
+      }
+    }
+  }
 }
 
 /*
