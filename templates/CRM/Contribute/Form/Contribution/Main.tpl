@@ -181,7 +181,9 @@
           </span>
         {/if}
         <div id="recurHelp" class="description">
-          Please leave the number of instalments blank to make an open-ended commitment.
+          {if $is_recur_installments}
+            Please leave the number of instalments blank to make an open-ended commitment.
+          {/if}
           Your recurring contribution will be processed automatically and you will receive an email receipt for each contribution.
           You can cancel your recurring contribution at any time.
         </div>
