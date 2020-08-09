@@ -1,0 +1,15 @@
+diff --git a/includes/ajax.inc b/includes/ajax.inc
+index 8f560977..f5284b99 100644
+--- a/includes/ajax.inc
++++ b/includes/ajax.inc
+@@ -70,6 +70,10 @@ function views_ajax() {
+       if (isset($pager_element)) {
+         $commands[] = views_ajax_command_scroll_top('.view-dom-id-' . $dom_id);
+         $view->display[$display_id]->handler->set_option('pager_element', $pager_element);
++        // Set the pager-id.
++        $pager = $view->display_handler->get_option('pager');
++        $pager['options']['id'] = $pager_element;
++        $view->display_handler->set_option('pager', $pager);
+       }
+       // Reuse the same DOM id so it matches that in Drupal.settings.
+       $view->dom_id = $dom_id;
