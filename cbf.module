@@ -2512,7 +2512,10 @@ function cbf_entity_viewable($entity, $type, $operation) {
     ],
     'civicrm_event' => [
       'id' => 'id',
-      'status' => 'is_public',
+      'status' => [
+        'is_public',
+        'is_active',
+      ],
       'viewables' => [
         'dateable',
         'highlightable',
@@ -2561,7 +2564,15 @@ function cbf_entity_viewable($entity, $type, $operation) {
      * only be retrieved if($status) succeeds.
      */
     if (isset($entityTypes[$type]['status'])) {
-      $status = !empty($entity->{$entityTypes[$type]['status']});
+      if (is_array($entityTypes[$type]['status'])) {
+        $status = true;
+        foreach ($entityTypes[$type]['status'] as $statusFieldName) {
+          $status &= !empty($entity->{$statusFieldName});
+        }
+      }
+      else {
+        $status = !empty($entity->{$entityTypes[$type]['status']});
+      }
     }
     else {
       $status = true;
