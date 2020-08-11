@@ -3055,9 +3055,10 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
    * to be retrieved
    */
   if ($type == 'civicrm_event' && in_array('field_map_location', $fields)) {
-    // We cannot map it if its next action is zero.
+    // We should not map it if its 'next action' is in the past.
     $field_next_action = field_get_items($type, $entity, 'field_next_action');
-    if ($field_next_action !== false && empty($field_next_action[0]['value'])) {
+    $currentTime = strtotime('now');
+    if ($field_next_action === false || $field_next_action[0]['value'] < $currentTime) {
       return [ ];
     }
 
