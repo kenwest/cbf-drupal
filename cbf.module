@@ -3086,6 +3086,14 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
     $result['field_title'] = '';
   }
 
+  /*
+   * Special case - if the source $entity is a civicrm_event then its 
+   * field_order_url should be ignored (it is a non-CiviCRM registration link)
+   */
+  if ($type == 'civicrm_event' && in_array('field_order_url', $fields)) {
+    $result['field_order_url'] = null;
+  }
+
   return $result;
 }
 
