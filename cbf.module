@@ -3054,10 +3054,7 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
    * Special case - if the source $entity is a civicrm_event its location needs
    * to be retrieved
    */
-  if (
-    $type == 'civicrm_event'
-    && in_array('field_map_location', $fields)
-  ) {
+  if ($type == 'civicrm_event' && in_array('field_map_location', $fields)) {
     // We cannot map it if its next action is zero.
     $field_next_action = field_get_items($type, $entity, 'field_next_action');
     if ($field_next_action !== false && empty($field_next_action[0]['value'])) {
