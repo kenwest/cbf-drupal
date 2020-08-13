@@ -1475,6 +1475,31 @@ function cbf_cron() {
   }
 
   /*
+   * Find blogs that where field_third_space_restricted is NULL and set it to
+   * zero (Off).
+   *
+   * This is necessary since we don't want NULL values but the node edit
+   * function allows them.
+   */
+  $query = new EntityFieldQuery();
+  $result =
+    $query->entityCondition('entity_type', 'node')
+      ->entityCondition('bundle', 'blog')
+      ->addTag('third_space_restriction_is_null')
+      ->propertyCondition('status', 1)
+      ->propertyOrderBy('nid', 'DESC')
+      ->range(0, 50)
+      ->execute();
+  foreach ($result as $entityType => $entities) {
+    $nodes = entity_load('node', array_keys($entities));
+    foreach ($nodes as $node) {
+      $langcode = field_language('node', $node, 'field_third_space_restricted');
+      $node->field_third_space_restricted[$langcode][0]['value'] = 0;
+      node_save($node);
+    }
+  }
+
+  /*
    * This is a short-term action.
    *
    * Find every EntityForm of types Ministry Centre and Regular Venue
@@ -1494,6 +1519,19 @@ function cbf_cron() {
    */
 
   variable_set('cbf_cron_last_run', $current_time);
+}
+
+/*
+ * Implements hook_query_TAG_alter()
+ *
+ * Modify the query in cbf_cron() that searches for Blogs with
+ * field_third_space_restricted being NULL.
+ *
+ * See https://www.drupal.org/project/drupal/issues/1157006#comment-7634027
+ */
+function cbf_query_third_space_restriction_is_null_alter(QueryAlterableInterface $query) {
+  $query->leftJoin('field_data_field_third_space_restricted', 'tsr', 'node.nid = tsr.entity_id AND tsr.entity_type = :entity_type');
+  $query->isNull('tsr.field_third_space_restricted_value');
 }
 
 /*
