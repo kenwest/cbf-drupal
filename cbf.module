@@ -1460,8 +1460,8 @@ function cbf_cron() {
    */
   $query = new EntityFieldQuery();
   $result = $query->entityCondition('entity_type', 'node')
-    ->fieldCondition('field_post_to_twitter', 'status', 0, '<>')
-    ->execute();
+  ->fieldCondition('field_post_to_twitter', 'status', 0, '<>')
+  ->execute();
   foreach ($result as $entityType => $entities) {
     $nodes = entity_load('node', array_keys($entities));
     foreach ($nodes as $node) {
