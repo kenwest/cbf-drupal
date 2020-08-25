@@ -2607,7 +2607,8 @@ function cbf_entity_viewable($entity, $type, $operation) {
      * Warn if it is not unique
      */
     $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'entityform')
+    $query
+      ->entityCondition('entity_type', 'entityform')
       ->entityCondition('bundle', $viewable)
       ->fieldCondition('field_source_entity_type', 'value', $type, '=')
       ->fieldCondition('field_source_entity_id', 'value', $sourceEntityId, '=')
