@@ -1499,25 +1499,6 @@ function cbf_cron() {
     }
   }
 
-  /*
-   * This is a short-term action.
-   *
-   * Find every EntityForm of types Ministry Centre and Regular Venue
-   * and re-save them.
-   *  - these entities have no interface for searching
-   *  - the Mappable EntityForm is under development
-  $query = new EntityFieldQuery();
-  $result = $query->entityCondition('entity_type', 'entityform')
-    ->entityCondition('bundle', [ 'ministry_team', 'regular_venue' ], 'in')
-    ->execute();
-  foreach ($result as $entityType => $entities) {
-    $entities = entity_load($entityType, array_keys($entities));
-    foreach ($entities as $entity) {
-      entity_save($entityType, $entity);
-    }
-  }
-   */
-
   variable_set('cbf_cron_last_run', $current_time);
 }
 
