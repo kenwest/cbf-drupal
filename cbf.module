@@ -3211,9 +3211,20 @@ function cbf_admin_paths() {
 function cbf_convert_banner_to_city_tid() {
   $query_parameters = drupal_get_query_parameters();
   if (empty($query_parameters['field_highlight_location_tid'])) {
-    return null;
+    if (empty($query_parameters['field_networks_visibility_tid'])) {
+      return null;
+    }
+    else {
+      return _cbf_convert_banner_to_city_tid($query_parameters['field_networks_visibility_tid']);
+    }
   }
-  switch ($query_parameters['field_highlight_location_tid']) {
+  else {
+    return _cbf_convert_banner_to_city_tid($query_parameters['field_highlight_location_tid']);
+  }
+}
+
+function _cbf_convert_banner_to_city_tid($banner) {
+  switch ($banner) {
     case 1041; // Adelaide
       return 5;
     case 1042; // Brisbane
