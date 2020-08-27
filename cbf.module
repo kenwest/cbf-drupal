@@ -2312,6 +2312,43 @@ function cbf_views_post_execute(&$view) {
       }
     }
   }
+
+  /*
+   * If the view gets its Ministry Centre contextual filter from the enclosing
+   * view then filter out any results that don't match the Ministry Centre
+   * argument (arg[1]). A match means the result's Ministry Centre is either
+   * NULL or equals the view's argument.
+   *
+   * By convention the Ministry Centre is args[1].
+   */
+  if (
+    (
+      $view->name == 'cbf2019_national_activity_event_slider' ||
+      (
+        $view->name == 'cbf2019_content_highlight_slider' &&
+        $view->current_display == 'block_3') ||
+      (
+        $view->name == 'cbf2019_speakers' &&
+        $view->current_display == 'block_5')
+    ) &&
+    count($view->args) > 1 &&
+    is_numeric($view->args[1])
+  ) {
+    foreach ($view->result as $i => $result) {
+      $include = $exclude = false;
+      foreach ($result->field_taxonomy_vocabulary_1 as $ministryCentre) {
+        if ($ministryCentre['raw']['tid'] == $view->args[1]) {
+          $include = true;
+        }
+        else {
+          $exclude = true;
+        }
+      }
+      if (!$include && $exclude) {
+        unset($view->result[$i]);
+      }
+    }
+  }
 }
 
 /*
