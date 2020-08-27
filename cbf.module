@@ -1535,7 +1535,24 @@ function cbf_cron() {
         case 'node':
           node_save($entity);
           break;
+
         case 'civicrm_event':
+          /*
+           * The payment_processor field on the civicrm-event-form doesn't support
+           * multiselect, but we want people to be able to choose to pay via credit
+           * card or PayPal.
+           *
+           * Until this is resolved, prevent users changing this field. To do this we
+           * send a signal to cbf_civicrm_civicrm_pre() that input from this field on
+           * this form should be ignored. We do this by setting the payment_processor
+           * to be one that is never used. It's name is 'Hack for CiviCRM Event
+           * entities' and its number is 15.
+           */
+          if (isset($entity->payment_processor)) {
+            $dummyPaymentProcessor = '15';
+            $entity->payment_processor = $dummyPaymentProcessor;
+          }
+
           $entity->custom_62 = $entity->custom_62_id;
           entity_save($entityType, $entity);
           break;
