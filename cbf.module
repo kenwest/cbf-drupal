@@ -62,40 +62,129 @@ function cbf_init() {
  * "Perform alterations before a form is rendered"
  */
 function cbf_form_alter(&$form, &$form_state, $form_id) {
+  $alterations = &drupal_static(__FUNCTION__, []);
+
   /*
-   * Limit the views_exposed_form on the block-1 display of the
-   * cbf2019-national-activity-contents view. It should only list
-   * What's On locations where this Activity is active.
+   * Limit the views_exposed_form on the displays of the
+   * cbf2019-national-activity-contents view. It should only list What's On
+   * locations where this Activity is active, and there is either a Regular
+   * Venue, a Mappable item, an Upcoming Event or a Staff member.
    */
-  if ($form['#id'] == 'views-exposed-form-cbf2019-national-activity-contents-block-1'
-    && $form_id == 'views_exposed_form') {
+  if (
+      $form_id == 'views_exposed_form' &&
+      !empty($form_state['view']) &&
+      $form_state['view']->name == 'cbf2019_national_activity_contents'
+    ) {
     $node = menu_get_object();
-    if (empty($node)) {
-      $whatsOnLocations = [];
-    }
-    else {
-      $whatsOnLocations = field_get_items('node', $node, 'field_highlight_location');
-    }
-    $options = [];
-    foreach ($form['field_highlight_location_tid']['#options'] as $tid => $city) {
-      if (is_numeric($tid)) {
-        foreach ($whatsOnLocations as $i => $whatsOn) {
-          if ($whatsOn['tid'] == $tid) {
-            $options[$tid] = $city;
-            unset($whatsOnLocations[$i]);   // Optimisation - no need to look at this again
-            break;
+    if (!empty($node) && $node->type == 'activity') {
+      if (!isset($alterations['activity'])) {
+        $alterations['activity'] = [];
+      }
+
+      if (!isset($alterations['activity']['cities'])) {
+        // Find the Cities where there are Regular Venues or Mappable items
+        $cities = [];
+        $query = new EntityFieldQuery();
+        $result = $query
+          ->entityCondition('entity_type', 'entityform')
+          ->entityCondition('bundle', ['regular_venue', 'mappable'])
+          ->fieldCondition('field_in_activity', 'target_id', (int) $node->nid, '=')
+          ->execute();
+        foreach ($result as $entityType => $entityKeys) {
+          $entities = entity_load($entityType, array_keys($entityKeys));
+          foreach ($entities as $entityKey => $entity) {
+            foreach (field_get_items('entityform', $entity, 'taxonomy_vocabulary_1') as $city) {
+              $i = (int) $city['tid'];
+              $cities[$i] = $i;
+            }
+          }
+        }
+
+        // Find the Cities where there are upcoming CiviCRM Events
+        $current_time = strtotime('now');
+        $query = new EntityFieldQuery();
+        $result = $query
+          ->entityCondition('entity_type', 'civicrm_event')
+          ->fieldCondition('field_in_activity', 'target_id', (int) $node->nid, '=')
+          ->fieldCondition('field_next_action', 'value', $current_time, '>')
+          ->execute();
+        foreach ($result as $entityType => $entityKeys) {
+          $entities = entity_load($entityType, array_keys($entityKeys));
+          foreach ($entities as $entityKey => $entity) {
+            if ($entity->is_active && $entity->is_public) {
+              $city = null;
+              foreach (field_get_items('civicrm_event', $entity, 'taxonomy_vocabulary_1') as $city) {
+                $i = (int) $city['tid'];
+                $cities[$i] = $i;
+              }
+              if ($city === null) {
+                $cities['All'] = 'All';
+              }
+            }
+          }
+        }
+
+        // Find the Cities where there are staff
+        $query = new EntityFieldQuery();
+        $result = $query
+          ->entityCondition('entity_type', 'entityform')
+          ->entityCondition('bundle', 'staff')
+          ->fieldCondition('field_activities', 'target_id', (int) $node->nid, '=')
+          ->execute();
+        foreach ($result as $entityType => $entityKeys) {
+          $entities = entity_load($entityType, array_keys($entityKeys));
+          foreach ($entities as $entityKey => $entity) {
+            foreach (field_get_items('entityform', $entity, 'taxonomy_vocabulary_1') as $city) {
+              $i = (int) $city['tid'];
+              $cities[$i] = $i;
+            }
+          }
+        }
+
+        $alterations['activity']['cities'] = $cities;
+      }
+
+      if (isset($form['field_networks_visibility_tid'])) {
+        $exposedFilter = 'field_networks_visibility';
+        $exposedTid = 'field_networks_visibility_tid';
+      }
+      else {
+        $exposedFilter = 'field_highlight_location';
+        $exposedTid = 'field_highlight_location_tid';
+      }
+
+      if (!isset($alterations['activity'][$exposedTid])) {
+        // Find the What's on visibility for this Activity
+        $exposedLocations = [];
+        foreach (field_get_items('node', $node, $exposedFilter) as $location) {
+          $i = (int) $location['tid'];
+          $exposedLocations[$i] = $i;
+        }
+
+        $alterations['activity'][$exposedTid] = [];
+        foreach ($form[$exposedTid]['#options'] as $tid => $city) {
+          if (is_numeric($tid)) {
+            if (isset($exposedLocations[$tid])) {
+              if (
+                isset($alterations['activity']['cities']['All']) ||
+                isset($alterations['activity']['cities'][_cbf_convert_banner_to_city_tid($tid)])
+              ) {
+                $alterations['activity'][$exposedTid][$tid] = $city;
+              }
+            }
+          }
+          else {
+            $alterations['activity'][$exposedTid][$tid] = $city;
           }
         }
       }
-      else {
-        $options[$tid] = $city;
+
+      if (count($alterations['activity'][$exposedTid]) <= 2) {
+        $form['#access'] = false;   // No need to show form if only options are 'All' and one city
       }
-    }
-    if (count($options) <= 2) {
-      $form['#access'] = false;   // No need to show form if only options are 'All' and one city
-    }
-    else {
-      $form['field_highlight_location_tid']['#options'] = $options;
+      else {
+        $form[$exposedTid]['#options'] = $alterations['activity'][$exposedTid];
+      }
     }
   }
 
