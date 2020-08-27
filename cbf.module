@@ -1506,7 +1506,6 @@ function cbf_field_attach_presave($entity_type, $entity) {
  */
 function cbf_cron() {
   $current_time = strtotime('now');
-  $last_run     = variable_get('cbf_cron_last_run', 0);
 
   /*
    * Initialize CiviCRM. This is a precaution now that CiviCRM and Drupal are
@@ -1514,23 +1513,19 @@ function cbf_cron() {
    */
   civicrm_initialize();
 
-  /* Set operator and values for filtering field_next_action */
-  if ($last_run == 0) {
-    $operator = '>';
-    $values = array($last_run);
-  }
-  else {
-    $operator = 'BETWEEN';
-    $values = array($last_run, $current_time);
-  }
-
-  /* Update entities with actions due */
+  /*
+   * Find entities with field_next_action due. Order them so the most recent
+   * are processed first, so entities that get stuck don't mask later ones.
+   */
   $query = new EntityFieldQuery();
-  $result = $query->fieldCondition('field_next_action', 'value', $values, $operator)
+  $result = $query
+    ->fieldCondition('field_next_action', 'value', [1, $current_time], 'BETWEEN')
+    ->fieldOrderBy('field_next_action', 'value', 'DESC')
+    ->range(0, 50)
     ->execute();
-  foreach ($result as $entityType => $entities) {
-    $entities = entity_load($entityType, array_keys($entities));
-    foreach ($entities as $entity) {
+  foreach ($result as $entityType => $entityKeys) {
+    $entities = entity_load($entityType, array_keys($entityKeys));
+    foreach ($entities as $entityKey => $entity) {
       switch ($entityType) {
         case 'node':
           node_save($entity);
