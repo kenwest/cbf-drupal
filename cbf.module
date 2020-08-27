@@ -1552,6 +1552,15 @@ function cbf_cron() {
           entity_save($entityType, $entity);
           break;
       }
+      unset($entityKeys[$entityKey]);
+    }
+    if (!empty($entityKeys)) {
+      watchdog(
+        'CBF',
+        "Couldn't process $entityType entities with a field_next_action set: ". implode(', ',array_keys($entityKeys)),
+        null,
+        WATCHDOG_ERROR
+        );
     }
   }
 
