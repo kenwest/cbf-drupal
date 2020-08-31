@@ -1,34 +1,18 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 5                                                  |
- +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2019                                |
- +--------------------------------------------------------------------+
- | This file is a part of CiviCRM.                                    |
+ | Copyright CiviCRM LLC. All rights reserved.                        |
  |                                                                    |
- | CiviCRM is free software; you can copy, modify, and distribute it  |
- | under the terms of the GNU Affero General Public License           |
- | Version 3, 19 November 2007 and the CiviCRM Licensing Exception.   |
- |                                                                    |
- | CiviCRM is distributed in the hope that it will be useful, but     |
- | WITHOUT ANY WARRANTY; without even the implied warranty of         |
- | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               |
- | See the GNU Affero General Public License for more details.        |
- |                                                                    |
- | You should have received a copy of the GNU Affero General Public   |
- | License and the CiviCRM Licensing Exception along                  |
- | with this program; if not, contact CiviCRM LLC                     |
- | at info[AT]civicrm[DOT]org. If you have questions about the        |
- | GNU Affero General Public License or the licensing of CiviCRM,     |
- | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
+ | This work is published under the GNU AGPLv3 license with some      |
+ | permitted exceptions and without any warranty. For full license    |
+ | and copyright information, see https://civicrm.org/licensing       |
  +--------------------------------------------------------------------+
  */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2019
+ * @copyright CiviCRM LLC https://civicrm.org/licensing
  */
 
 /**
@@ -294,7 +278,7 @@ class CRM_Core_Permission {
     }
 
     $groups = self::ufGroup($type);
-    return !empty($groups) && in_array($gid, $groups) ? TRUE : FALSE;
+    return !empty($groups) && in_array($gid, $groups);
   }
 
   /**
@@ -481,7 +465,7 @@ class CRM_Core_Permission {
         'CiviMail' => 'access CiviMail',
         'CiviAuction' => 'add auction items',
       ];
-      $permissionName = CRM_Utils_Array::value($module, $editPermissions);
+      $permissionName = $editPermissions[$module] ?? NULL;
     }
 
     if ($module == 'CiviCase' && !$permissionName) {
@@ -524,7 +508,7 @@ class CRM_Core_Permission {
   public static function checkMenuItem(&$item) {
     if (!array_key_exists('access_callback', $item)) {
       CRM_Core_Error::backtrace();
-      CRM_Core_Error::fatal();
+      throw new CRM_Core_Exception('Missing Access Callback key in menu item');
     }
 
     // if component_id is present, ensure it is enabled
@@ -547,7 +531,7 @@ class CRM_Core_Permission {
     if (empty($item['access_callback']) ||
       is_numeric($item['access_callback'])
     ) {
-      return (boolean ) $item['access_callback'];
+      return (bool) $item['access_callback'];
     }
 
     // check whether the following Ajax requests submitted the right key
@@ -1643,7 +1627,7 @@ class CRM_Core_Permission {
    * @return bool
    */
   public static function isMultisiteEnabled() {
-    return Civi::settings()->get('is_enabled') ? TRUE : FALSE;
+    return (bool) Civi::settings()->get('is_enabled');
   }
 
   /**
