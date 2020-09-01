@@ -182,35 +182,6 @@ diff -ur ./extern/url.php /var/www/civicrm/sites/all/modules/civicrm/extern/url.
  CRM_Core_Config::singleton();
  
  // To keep backward compatibility for URLs generated
-diff -ur ./js/Common.js /var/www/civicrm/sites/all/modules/civicrm/js/Common.js
---- ./js/Common.js	2020-08-22 18:42:26.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/js/Common.js	2020-08-31 21:12:33.657948694 +1000
-@@ -1652,6 +1652,25 @@
-     return (yiq >= 128) ? 'black' : 'white';
-   };
- 
-+  // based on https://github.com/janl/mustache.js/blob/master/mustache.js
-+  // If you feel the need to use this function, consider whether assembling HTML
-+  // via DOM might be a cleaner approach rather than using string concatenation.
-+  CRM.utils.escapeHtml = function(string) {
-+    var entityMap = {
-+      '&': '&amp;',
-+      '<': '&lt;',
-+      '>': '&gt;',
-+      '"': '&quot;',
-+      "'": '&#39;',
-+      '/': '&#x2F;',
-+      '`': '&#x60;',
-+      '=': '&#x3D;'
-+    };
-+    return String(string).replace(/[&<>"'`=\/]/g, function fromEntityMap (s) {
-+      return entityMap[s];
-+    });
-+  }
-+
-   // CVE-2015-9251 - Prevent auto-execution of scripts when no explicit dataType was provided
-   $.ajaxPrefilter(function(s) {
-     if (s.crossDomain) {
 diff -ur ./js/wysiwyg/crm.ckeditor.js /var/www/civicrm/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js
 --- ./js/wysiwyg/crm.ckeditor.js	2020-08-06 12:54:52.000000000 +1000
 +++ /var/www/civicrm/sites/all/modules/civicrm/js/wysiwyg/crm.ckeditor.js	2020-08-31 21:12:33.661948735 +1000
@@ -264,18 +235,6 @@ diff -ur ./js/wysiwyg/crm.ckeditor.js /var/www/civicrm/sites/all/modules/civicrm
 +  CKEDITOR.tools.callFunction(cfunc[1], file.url);
 +  win.close();
 +};
-diff -ur ./packages/HTML/QuickForm/Controller.php /var/www/civicrm/sites/all/modules/civicrm/packages/HTML/QuickForm/Controller.php
---- ./packages/HTML/QuickForm/Controller.php	2019-08-30 17:45:35.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/packages/HTML/QuickForm/Controller.php	2020-08-31 21:12:33.661948735 +1000
-@@ -214,7 +214,7 @@
-                 return $this->_actions[$actionName]->perform($page, $actionName);
-                 break;
-             default:
--                return PEAR::raiseError('HTML_QuickForm_Controller: Unhandled action "' . $actionName . '" in page "' . $page->getAttribute('id') . '"');
-+                return PEAR::raiseError('HTML_QuickForm_Controller: Unhandled action "' . htmlspecialchars($actionName) . '" in page "' . $page->getAttribute('id') . '"');
-         } // switch
-     }
- 
 diff -ur ./packages/HTML/QuickForm/Rule/Email.php /var/www/civicrm/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php
 --- ./packages/HTML/QuickForm/Rule/Email.php	2020-01-02 13:36:09.000000000 +1100
 +++ /var/www/civicrm/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php	2020-08-31 21:12:33.661948735 +1000
