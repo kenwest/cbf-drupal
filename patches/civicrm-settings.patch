@@ -1,5 +1,7 @@
---- civicrm-5.10.4-drupal/templates/CRM/common/civicrm.settings.php.template	2019-02-23 15:52:12.000000000 +1100
-+++ civicrm-5.28.3-drupal/templates/CRM/common/civicrm.settings.php.template	2020-08-22 18:42:26.000000000 +1000
+diff --git a/var/www/test/sites/default/civicrm.settings.php b/sites/default/civicrm.settings.php
+index 072cee7..e347639 100644
+--- a/var/www/test/sites/default/civicrm.settings.php
++++ b/sites/default/civicrm.settings.php
 @@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 5                                                  |
@@ -9,10 +11,10 @@
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
-@@ -184,6 +184,21 @@
+@@ -184,5 +184,20 @@ if (!defined('CIVICRM_LOGGING_DSN')) {
  }
  
- /**
++/**
 + * SMARTY Compile Check:
 + *
 + * This tells Smarty whether to check for recompiling or not. Recompiling
@@ -27,11 +29,10 @@
 +//  define( 'CIVICRM_TEMPLATE_COMPILE_CHECK', FALSE);
 +//}
 +
-+/**
+ /**
   * Site URLs:
   *
-  * This section defines absolute and relative URLs to access the host CMS (Backdrop, Drupal, or Joomla) resources.
-@@ -220,49 +235,49 @@
+@@ -225,53 +240,60 @@ if (!defined('CIVICRM_UF_BASEURL')) {
  }
  
  /**
@@ -95,16 +96,47 @@
  
   // Override the CMS root path defined by cmsRootPath.
   // define('CIVICRM_CMSDIR', '/path/to/install/root/');
-@@ -272,7 +287,7 @@
-  //   "asks": requests for donations or membership signup/renewal to CiviCRM
-  //   "releases": major release announcements
-  //   "events": announcements of local/national upcoming events
-- // $civicrm_setting['CiviCRM Preferences']['communityMessagesUrl'] = 'https://alert.civicrm.org/alert?prot=1&ver={ver}&uf={uf}&sid={sid}&lang={lang}&co={co}&optout=offers,asks';
-+ // $civicrm_setting['domain']['communityMessagesUrl'] = 'https://alert.civicrm.org/alert?prot=1&ver={ver}&uf={uf}&sid={sid}&lang={lang}&co={co}&optout=offers,asks';
  
++ // Opt-out of announcements by the CiviCRM core team for releases, paid services, events, etc. Separate each preferred optout category with a comma:
++ //   "offers": paid service offers
++ //   "asks": requests for donations or membership signup/renewal to CiviCRM
++ //   "releases": major release announcements
++ //   "events": announcements of local/national upcoming events
++ // $civicrm_setting['domain']['communityMessagesUrl'] = 'https://alert.civicrm.org/alert?prot=1&ver={ver}&uf={uf}&sid={sid}&lang={lang}&co={co}&optout=offers,asks';
++
  
  /**
-@@ -457,12 +472,37 @@
+  * If you are using any CiviCRM script in the bin directory that
+@@ -366,7 +388,12 @@ if (!defined('CIVICRM_DB_CACHE_HOST')) {
+  * The standard port for Memcache & APCCache is 11211. For Redis it is 6379.
+  */
+ if (!defined('CIVICRM_DB_CACHE_PORT')) {
+-  define('CIVICRM_DB_CACHE_PORT', 11211 );
++  if (CIVICRM_DB_CACHE_CLASS === 'Redis') {
++    define('CIVICRM_DB_CACHE_PORT', 6379 );
++  }
++  else {
++    define('CIVICRM_DB_CACHE_PORT', 11211);
++  }
+ }
+ 
+ /**
+@@ -397,6 +424,14 @@ if (!defined('CIVICRM_DB_CACHE_PREFIX')) {
+   define('CIVICRM_DB_CACHE_PREFIX', '');
+ }
+ 
++/**
++ * The cache system traditionally allowed a wide range of cache-keys, but some
++ * cache-keys are prohibited by PSR-16.
++ */
++if (!defined('CIVICRM_PSR16_STRICT')) {
++  define('CIVICRM_PSR16_STRICT', FALSE);
++}
++
+ /**
+  * If you have multilingual site and you are using the "inherit CMS language"
+  * configuration option, but wish to, for example, use fr_CA instead of the
+@@ -442,11 +477,36 @@ define('CIVICRM_DEADLOCK_RETRIES', 3);
  // define('CIVICRM_MYSQL_STRICT', TRUE );
  // }
  
@@ -119,7 +151,7 @@
    if (!defined('CIVICRM_MYSQL_STRICT')) define('CIVICRM_MYSQL_STRICT', true);
  }
  
- /**
++/**
 + * Whether to include the hash in config log filenames. Defaults to TRUE.
 + * Disable only if you have configured the logfiles to be outside the docroot
 + * using the civicrm.log path setting.
@@ -138,11 +170,10 @@
 +//   define('CIVICRM_LOG_ROTATESIZE', 0 );
 +// }
 +
-+/**
+ /**
   *
   * Do not change anything below this line. Keep as is
-  *
-@@ -484,6 +524,9 @@
+@@ -469,6 +529,9 @@ if (!defined('CIVICRM_CLEANURL')) {
    elseif ( function_exists('config_get') && config_get('system.core', 'clean_url') != 0) {
      define('CIVICRM_CLEANURL', 1 );
    }
