@@ -93,7 +93,9 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
         foreach ($result as $entityType => $entityKeys) {
           $entities = entity_load($entityType, array_keys($entityKeys));
           foreach ($entities as $entityKey => $entity) {
-            foreach (field_get_items('entityform', $entity, 'taxonomy_vocabulary_1') as $city) {
+            $ministryCentres = field_get_items('entityform', $entity, 'taxonomy_vocabulary_1');
+            if ($ministryCentres === false) $ministryCentres = [];
+            foreach ($ministryCentres as $city) {
               $i = (int) $city['tid'];
               $cities[$i] = $i;
             }
@@ -113,7 +115,9 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
           foreach ($entities as $entityKey => $entity) {
             if ($entity->is_active && $entity->is_public) {
               $city = null;
-              foreach (field_get_items('civicrm_event', $entity, 'taxonomy_vocabulary_1') as $city) {
+              $ministryCentres = field_get_items('civicrm_event', $entity, 'taxonomy_vocabulary_1');
+              if ($ministryCentres === false) $ministryCentres = [];
+              foreach ($ministryCentres as $city) {
                 $i = (int) $city['tid'];
                 $cities[$i] = $i;
               }
@@ -134,7 +138,9 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
         foreach ($result as $entityType => $entityKeys) {
           $entities = entity_load($entityType, array_keys($entityKeys));
           foreach ($entities as $entityKey => $entity) {
-            foreach (field_get_items('entityform', $entity, 'taxonomy_vocabulary_1') as $city) {
+            $ministryCentres = field_get_items('entityform', $entity, 'taxonomy_vocabulary_1');
+            if ($ministryCentres === false) $ministryCentres = [];
+            foreach ($ministryCentres as $city) {
               $i = (int) $city['tid'];
               $cities[$i] = $i;
             }
@@ -156,7 +162,9 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
       if (!isset($alterations['activity'][$exposedTid])) {
         // Find the What's on visibility for this Activity
         $exposedLocations = [];
-        foreach (field_get_items('node', $node, $exposedFilter) as $location) {
+        $locations = field_get_items('node', $node, $exposedFilter);
+        if ($locations === false) $locations = [];
+        foreach ($locations as $location) {
           $i = (int) $location['tid'];
           $exposedLocations[$i] = $i;
         }
@@ -1912,7 +1920,7 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
 function cbf_metatag_metatags_view_alter(&$output, $instance, $options) {
   if (stripos($instance, 'node:') === 0 || stripos($instance, 'civicrm_event:') === 0) {
     $audienceTerm = field_get_items($options['entity_type'], $options['entity'], 'taxonomy_vocabulary_3');
-    if (!empty($audienceTerm[0]['tid']) && $audienceTerm[0]['tid'] == '48') {
+    if ($audienceTerm !== false && !empty($audienceTerm[0]['tid']) && $audienceTerm[0]['tid'] == '48') {
       if (isset($output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'])) {
         $canonical = $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'];
         $canonical = str_ireplace('//plus.', '//', $canonical);
@@ -3235,7 +3243,7 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
     // If the $currentForm already has a location recycle the Location ID
     if (!empty($result['field_map_location']) && isset($currentForm)) {
       $location = field_get_items('entityform', $currentForm, 'field_map_location');
-      if (isset($location[0]['lid'])) {
+      if ($location !== false && isset($location[0]['lid'])) {
         $result['field_map_location']['lid'] = $location[0]['lid'];
       }
     }
