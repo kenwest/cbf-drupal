@@ -773,6 +773,11 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
       'url' => '/sites/all/modules/civicrm/extern/url\.php',
       'guard' => 'Trackable URL issue',
     ],
+    [
+      // People who trigger the IDS
+      'message' => 'Your activity is a bit suspicious, hence aborting',
+      'guard' => 'IDS issue',
+    ],
   ];
 
   foreach ($ignore as $patternSet) {
