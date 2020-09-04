@@ -2769,9 +2769,9 @@ function cbf_entity_viewable($entity, $type, $operation) {
 
     $entityForm = null;
     $result = $query->execute();
-    foreach ($result as $entityType => $entities) {
+    foreach ($result as $viewableType => $entities) {
       foreach ($entities as $id => $_) {
-        $ent = entity_load_single($entityType, $id);
+        $ent = entity_load_single($viewableType, $id);
         if ($ent === false) {
           watchdog(
             'CBF',
