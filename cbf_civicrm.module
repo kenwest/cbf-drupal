@@ -259,8 +259,8 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       /*
        * Keep a count of anonymous users' credit card issues in their session
        */
-      if (user_is_anonymous() && isset($_SESSION['CiviCRM']['status'][0]['text'])) {
-        $status_text = $_SESSION['CiviCRM']['status'][0]['text'];
+      if (user_is_anonymous()) {
+        $status_text = $_SESSION['CiviCRM']['status'][0]['text'] ?? '';
         if (stristr($status_text, 'Payment Processor Error') !== false) {
           if (stristr($status_text, '9001') !== false) {
             if (isset($_SESSION['City Bible Forum']['Card issues'])) {
@@ -278,12 +278,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
        */
       if (isset($_SESSION['City Bible Forum']['Card issues'])) {
         if ($_SESSION['City Bible Forum']['Card issues'] > 2) {
-          if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-          }
-          else {
-            $ip = $_SERVER['REMOTE_ADDR'];
-          }
+          $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
           CRM_Core_Error::debug_log_message("|CiviCRM guard|Credit card issue|anonymous|$ip");
           if ($_SESSION['City Bible Forum']['Card issues'] > 6) {
             CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
@@ -572,7 +567,7 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawPara
     }
   }
 
-  if (isset($is_recur) && $is_recur) {
+  if ($is_recur ?? false) {
     if ($paymentObj instanceof org_civicrm_ewayrecurring) {
       // Set credit card holder
       if ($credit_card_holder) {
@@ -698,7 +693,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     $vars['ip']  = $_SERVER['REMOTE_ADDR'];
     $vars['url'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
   }
-  $vars['agent']  = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'not available';
+  $vars['agent']  = $_SERVER['HTTP_USER_AGENT'] ?? 'not available';
   if (user_is_logged_in()) {
     $vars['username'] = $GLOBALS['user']->name;
   }
@@ -878,10 +873,7 @@ function cbf_civicrm_civicrm_pre( $op, $objectName, $id, &$params ) {
       case 'create':
       case 'edit':
         $dummyPaymentProcessor = '15';
-        if (
-          isset($params['payment_processor'])
-            && $params['payment_processor'] == $dummyPaymentProcessor
-        ) {
+        if (($params['payment_processor'] ?? '') == $dummyPaymentProcessor) {
           unset($params['payment_processor']);
         }
         break;
