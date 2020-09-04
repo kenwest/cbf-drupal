@@ -1978,13 +1978,14 @@ function cbf_views_pre_render(&$view) {
   $watch = array('city_to_address');
   $displays = array('block_address');
 
-  if ( in_array($view->name, $watch) ) {
+  if (in_array($view->name, $watch)) {
 
     // Modifies the GMap Macro to ensure that the map gets properly centered.
-    if ( in_array($view->current_display, $displays)
-       && isset($view->result[0]->gmap_lat)
-       && isset($view->result[0]->gmap_lon) ) {
-
+    if (
+      in_array($view->current_display, $displays)
+      && isset($view->result[0]->gmap_lat)
+      && isset($view->result[0]->gmap_lon)
+    ) {
       $macro = $view->display[$view->current_display]->handler->view->style_plugin->options['macro'];
       if ( !strstr('|center=', $macro) ) {
         $latlong = "{$view->result[0]->gmap_lat},{$view->result[0]->gmap_lon}";
@@ -1998,13 +1999,14 @@ function cbf_views_pre_render(&$view) {
   $watch = array('reaching_city_civicrm_event_gmap');
   $displays = array('block_address');
 
-  if ( in_array($view->name, $watch) ) {
+  if (in_array($view->name, $watch)) {
 
     // Modifies the GMap Macro to ensure that the map gets properly centered.
-    if ( in_array($view->current_display, $displays)
-       && isset($view->result[0]->civicrm_address_geo_code_1)
-       && isset($view->result[0]->civicrm_address_geo_code_2) ) {
-
+    if (
+      in_array($view->current_display, $displays)
+      && isset($view->result[0]->civicrm_address_geo_code_1)
+      && isset($view->result[0]->civicrm_address_geo_code_2)
+    ) {
       $macro = $view->display[$view->current_display]->handler->view->style_plugin->options['macro'];
       if ( !strstr('|center=', $macro) ) {
         $latlong = "{$view->result[0]->civicrm_address_geo_code_1},{$view->result[0]->civicrm_address_geo_code_2}";
