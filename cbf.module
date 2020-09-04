@@ -1938,7 +1938,7 @@ function cbf_metatag_metatags_view_alter(&$output, $instance, $options) {
  * in the page display 'Library' in the view 'National Library'.
  */
 function cbf_library_view_topics_string(&$view) {
-  if ( ! isset($view->exposed_input['field_topic_tid']) ) {
+  if (!isset($view->exposed_input['field_topic_tid'])) {
     return ' ';
   }
 
