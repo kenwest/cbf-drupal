@@ -1740,12 +1740,8 @@ function cbf_visitor_city_string() {
         case 'ip_geoloc':
           if (function_exists('ip_geoloc_get_visitor_location')) {
             $result = ip_geoloc_get_visitor_location();
-            $country = isset($result['country'])
-              ? $result['country']
-              : '';
-            $state = isset($result['administrative_area_level_1'])
-              ? $result['administrative_area_level_1']
-              : '';
+            $country = $result['country'] ?? '';
+            $state = $result['administrative_area_level_1'] ?? '';
           }
           break;
 
@@ -2191,13 +2187,11 @@ function cbf_views_post_execute(&$view) {
       /*
        * Get the title
        */
-      if (isset($result->node_title)) {
-        $name = $result->node_title;
-      } elseif (isset($result->civicrm_event_title)) {
-        $name = $result->civicrm_event_title;
-      } elseif (isset($result->field_field_title)) {
-        $name = $result->field_field_title[0]['rendered']['#markup'];
-      } else {
+      $name = $result->node_title
+        ?? $result->civicrm_event_title
+        ?? $result->field_field_title[0]['rendered']['#markup']
+        ?? false;
+      if (empty($name)) {
         continue;
       }
 
@@ -2716,17 +2710,15 @@ function cbf_entity_viewable($entity, $type, $operation) {
    * Look up entity $type to determine what viewable entities are supported
    * Some entity $type's have bundles
    */
-  $viewables = [ ];
   if (isset($entityTypes[$type])) {
-    if (
-      isset($entityTypes[$type]['bundles']) &&
-      isset($entityTypes[$type]['bundles'][$entity->{$entityTypes[$type]['type']}])
-    ) {
-      $viewables = $entityTypes[$type]['bundles'][$entity->{$entityTypes[$type]['type']}];
+    $bundle = $type;
+    if (isset($entityTypes[$type]['type'])) {
+      $bundle = $entity->{$entityTypes[$type]['type']};
     }
-    elseif (isset($entityTypes[$type]['viewables'])) {
-      $viewables = $entityTypes[$type]['viewables'];
-    }
+
+    $viewables = $entityTypes[$type]['bundles'][$bundle]
+      ?? $entityTypes[$type]['viewables']
+      ?? [];
 
     /*
      * The $sourceEntityId is the Id of the source $entity.
@@ -2753,6 +2745,9 @@ function cbf_entity_viewable($entity, $type, $operation) {
     else {
       $status = true;
     }
+  }
+  else {
+    $viewables = [];
   }
 
   /*
