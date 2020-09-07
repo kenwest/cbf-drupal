@@ -1039,9 +1039,8 @@ abstract class CRM_Core_Payment {
         'size' => 30,
         'maxlength' => 60,
         'autocomplete' => 'off',
-        'class' => 'required',
       ],
-      'is_required' => TRUE,
+      'is_required' => FALSE,
     ];
 
     $metadata['billing_middle_name'] = [
@@ -1066,9 +1065,8 @@ abstract class CRM_Core_Payment {
         'size' => 30,
         'maxlength' => 60,
         'autocomplete' => 'off',
-        'class' => 'required',
       ],
-      'is_required' => TRUE,
+      'is_required' => FALSE,
     ];
 
     $metadata["billing_street_address-{$billingLocationID}"] = [
@@ -1080,9 +1078,8 @@ abstract class CRM_Core_Payment {
         'size' => 30,
         'maxlength' => 60,
         'autocomplete' => 'off',
-        'class' => 'required',
       ],
-      'is_required' => TRUE,
+      'is_required' => FALSE,
     ];
 
     $metadata["billing_city-{$billingLocationID}"] = [
@@ -1094,9 +1091,8 @@ abstract class CRM_Core_Payment {
         'size' => 30,
         'maxlength' => 60,
         'autocomplete' => 'off',
-        'class' => 'required',
       ],
-      'is_required' => TRUE,
+      'is_required' => FALSE,
     ];
 
     $metadata["billing_state_province_id-{$billingLocationID}"] = [
@@ -1104,8 +1100,8 @@ abstract class CRM_Core_Payment {
       'title' => ts('State/Province'),
       'name' => "billing_state_province_id-{$billingLocationID}",
       'cc_field' => TRUE,
-      'is_required' => TRUE,
-      'extra' => ['class' => 'required'],
+      'is_required' => FALSE,
+      'extra' => [],
     ];
 
     $metadata["billing_postal_code-{$billingLocationID}"] = [
@@ -1117,9 +1113,8 @@ abstract class CRM_Core_Payment {
         'size' => 30,
         'maxlength' => 60,
         'autocomplete' => 'off',
-        'class' => 'required',
       ],
-      'is_required' => TRUE,
+      'is_required' => FALSE,
     ];
 
     $metadata["billing_country_id-{$billingLocationID}"] = [
@@ -1130,8 +1125,8 @@ abstract class CRM_Core_Payment {
       'attributes' => [
         '' => ts('- select -'),
       ] + CRM_Core_PseudoConstant::country(),
-      'is_required' => TRUE,
-      'extra' => ['class' => 'required'],
+      'is_required' => FALSE,
+      'extra' => [],
     ];
     return $metadata;
   }
@@ -1384,9 +1379,11 @@ abstract class CRM_Core_Payment {
       if (is_array($result) && !isset($result['payment_status_id'])) {
         if (!empty($params['is_recur'])) {
           // See comment block.
+          CRM_Core_Error::debug_log_message("KW: Payment status not set: set to Pending");
           $result['payment_status_id'] = array_search('Pending', $statuses);
         }
         else {
+          CRM_Core_Error::debug_log_message("KW: Payment status not set: set to Completed");
           $result['payment_status_id'] = array_search('Completed', $statuses);
         }
       }
