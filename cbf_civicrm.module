@@ -119,6 +119,9 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
           if (isset($params['tplParams']['amount'])) {
             $isTaxInvoice = !empty($params['tplParams']['amount']);
           }
+          elseif (isset($params['tplParams']['fee'])) {
+            $isTaxInvoice = !empty($params['tplParams']['fee']);
+          }
           else {
             $isTaxInvoice = true;
           }
