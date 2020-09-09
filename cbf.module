@@ -205,6 +205,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
       'Textarea' => array(
         'fields' => array(
           'summary',
+          'pay_later_text',
         ),
         'actions' => array(
           '#type' => 'textarea',
@@ -219,6 +220,8 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
           'footer_text',
           'confirm_text',
           'confirm_footer_text',
+          'thankyou_text',
+          'thankyou_footer_text',
         ),
         'actions' => array(
           'format' => 'full_html',
