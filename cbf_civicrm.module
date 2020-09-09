@@ -27,8 +27,8 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
      *  The '/' is replaced by the CiviCRM User Framework Base URL, which terminates with a '/'
      */
     $config = CRM_Core_Config::singleton( );
-    $htmlMessage = str_replace(' href="//', ' href="http://', $htmlMessage);
-    $htmlMessage = str_replace(' src="//',  ' src="http://',  $htmlMessage);
+    $htmlMessage = str_replace(' href="//', ' href="https://', $htmlMessage);
+    $htmlMessage = str_replace(' src="//',  ' src="https://',  $htmlMessage);
     $htmlMessage = str_replace(' href="/',  ' href="'.$config->userFrameworkBaseURL, $htmlMessage);
     $htmlMessage = str_replace(' src="/',   ' src="'.$config->userFrameworkBaseURL,  $htmlMessage);
 
