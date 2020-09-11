@@ -214,10 +214,10 @@
                 {/if}
             </td>
             <td class="crm-note-note">
-                {$note.note|mb_truncate:80:"...":false|nl2br}
+                {$note.note|mb_truncate:200:"...":false|nl2br}
                 {* Include '(more)' link to view entire note if it has been truncated *}
                 {assign var="noteSize" value=$note.note|count_characters:true}
-                {if $noteSize GT 80}
+                {if $noteSize GT 200}
                   <a class="crm-popup" href="{crmURL p='civicrm/contact/view/note' q="action=view&selectedChild=note&reset=1&cid=`$contactId`&id=`$note.id`"}">{ts}(more){/ts}</a>
                 {/if}
             </td>
