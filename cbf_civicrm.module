@@ -52,12 +52,6 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     $htmlMessage = preg_replace('!<img ([^>]+attribute-width-([0-9]+)[^>]+)/>!i', '<img width="$2" $1/>', $htmlMessage);
 
     /*
-     * Legacy solution to width attribute stripping by CKeditor
-     */
-    $htmlMessage = preg_replace('!<img ([^w/>][^>]+width: 280px[^>]+)/>!i', '<img width="280" $1/>', $htmlMessage);
-    $htmlMessage = preg_replace('!<img width="280" ([^>]+)height: [0-9px%]+[;]?([^>]+)/>!i', '<img width="280" $1$2/>', $htmlMessage);
-
-    /*
      * Look for the closing tag for the BODY element, and add it if needed
      */
     if (stripos($htmlMessage, '</body>') === false) {
