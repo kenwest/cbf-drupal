@@ -248,11 +248,11 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
 
   switch ($formName) {
 
-    case 'CRM_Contribute_Form_Contribution':
-    case 'CRM_Contribute_Form_Contribution_Main':
-    case 'CRM_Event_Form_Participant':
-    case 'CRM_Event_Form_Registration_Register':
-    case 'CRM_Financial_Form_Payment':
+    case 'CRM_Contribute_Form_Contribution': // Offline contribution
+    case 'CRM_Contribute_Form_Contribution_Main': // Online contribution
+    case 'CRM_Event_Form_Participant': // Offline event registration
+    case 'CRM_Event_Form_Registration_Register': // Online event registration
+    case 'CRM_Financial_Form_Payment': // Invoked when changing payment processors etc
       /*
        * Keep a count of anonymous users' credit card issues in their session
        */
@@ -339,8 +339,8 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
        * defaults for these.
        */
       switch ($formName) {
-        case 'CRM_Contribute_Form_Contribution_Main':
-        case 'CRM_Event_Form_Registration_Register':
+        case 'CRM_Contribute_Form_Contribution_Main': // Online contribution
+        case 'CRM_Event_Form_Registration_Register': // Online event registration
           $protect = array(
             'first_name',
             'last_name',
@@ -362,8 +362,10 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
     case 'CRM_Contribute_Form_Contribution_ThankYou':
     case 'CRM_Event_Form_Registration_Confirm':
     case 'CRM_Event_Form_Registration_ThankYou':
-      // Set the Credit Card Holder in the Smarty template
-      // Clear the Address in the Smarty template
+      /*
+       * Set the Credit Card Holder in the Smarty template
+       * Clear the Address in the Smarty template
+       */
       $tpl = $form->getTemplate();
       $tpl_credit_card_number = $tpl->get_template_vars('credit_card_number');
       if ( isset($tpl_credit_card_number) ) {
@@ -386,8 +388,10 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         $tpl->assign('button', $makePaymentLabel);
       }
 
-      // Add participants who elect for future communications to the
-      // appropriate list
+      /*
+       * Add participants who elect for future communications to the
+       * appropriate list
+       */
       if ($formName == 'CRM_Event_Form_Registration_ThankYou') {
         if (isset($form->_params[0]['custom_28']) && $form->_params[0]['custom_28'] == 1) {
           _cbf_civicrm_civicrm_add_to_list_via_entity(
@@ -407,9 +411,11 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       break;
 
     case 'CRM_Mailing_Form_Upload':
-      // For CiviMails, unset the From email address when the Subject is empty.
-      // This is a roundabout way of unsetting the CiviMail default, to force
-      // the user to enter an From address.
+      /*
+       * For CiviMails, unset the From email address when the Subject is empty.
+       * This is a roundabout way of unsetting the CiviMail default, to force
+       * the user to enter an From address.
+       */
       if ( $form->getElementValue('subject') == null ) {
         $fromAddress = $form->getElement('from_email_address');
         $fromAddress->setSelected(0);
