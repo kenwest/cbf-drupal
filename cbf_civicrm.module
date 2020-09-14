@@ -246,6 +246,38 @@ function _cbf_civicrm_civicrm_no_contribution_page($params) {
 function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
   _cbf_civicrm_current_form($formName);
 
+  /*
+   * End users are getting confused when they enter email addresses with an additional space
+   * To avoid this we trim submitted email addresses
+   * Also trim other text fields: First Name, Last Name, and Phone fields
+   */
+  switch ($formName) {
+    case 'CRM_Contribute_Form_Contribution': // Offline contribution
+    case 'CRM_Contribute_Form_Contribution_Main': // Online contribution
+    case 'CRM_Event_Form_Participant': // Offline event registration
+    case 'CRM_Event_Form_Registration_Register': // Online event registration
+    case 'CRM_Profile_Form_Edit': // Sign up to list etc
+      $fieldPatterns = [
+        'first_name',
+        'last_name',
+        'email-',
+        'phone-',
+      ];
+      foreach ($form->getSubmitValues() as $field => $_) {
+        if (
+          $form->elementExists($field) &&
+          $form->getElement($field) instanceof HTML_QuickForm_text
+        ) {
+          foreach ($fieldPatterns as $fieldPattern) {
+            if (strpos($field, $fieldPattern) !== false) {
+              $form->applyFilter($field, 'trim');
+              break;
+            }
+          }
+        }
+      }
+  }
+
   switch ($formName) {
 
     case 'CRM_Contribute_Form_Contribution': // Offline contribution
@@ -280,14 +312,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
           if ($_SESSION['City Bible Forum']['Card issues'] > 6) {
             CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
           }
-        }
-      }
-
-      // End users are getting confused when they enter email addresses with an additional space
-      // To avoid this we trim submitted email addresses
-      foreach ($form->getSubmitValues() as $field => $value) {
-        if (strpos($field, 'email-') !== false) {
-          $form->applyFilter($field, 'trim');
         }
       }
 
