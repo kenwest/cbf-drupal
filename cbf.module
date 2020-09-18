@@ -185,6 +185,97 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
             $alterations['activity'][$exposedTid][$tid] = $city;
           }
         }
+
+        // Find the Cities where there are upcoming CiviCRM Events
+        $current_time = strtotime('now');
+        $query = new EntityFieldQuery();
+        $result = $query
+          ->entityCondition('entity_type', 'civicrm_event')
+          ->fieldCondition('field_in_activity', 'target_id', (int) $node->nid, '=')
+          ->fieldCondition('field_next_action', 'value', $current_time, '>')
+          ->execute();
+        foreach ($result as $entityType => $entityKeys) {
+          $entities = entity_load($entityType, array_keys($entityKeys));
+          foreach ($entities as $entityKey => $entity) {
+            if ($entity->is_active && $entity->is_public) {
+              $city = null;
+              $ministryCentres = field_get_items('civicrm_event', $entity, 'taxonomy_vocabulary_1');
+              if ($ministryCentres === false) $ministryCentres = [];
+              foreach ($ministryCentres as $city) {
+                $i = (int) $city['tid'];
+                $cities[$i] = $i;
+              }
+              if ($city === null) {
+                $cities['All'] = 'All';
+              }
+            }
+          }
+        }
+
+        // Find the Cities where there are staff
+        $query = new EntityFieldQuery();
+        $result = $query
+          ->entityCondition('entity_type', 'entityform')
+          ->entityCondition('bundle', 'staff')
+          ->fieldCondition('field_activities', 'target_id', (int) $node->nid, '=')
+          ->execute();
+        foreach ($result as $entityType => $entityKeys) {
+          $entities = entity_load($entityType, array_keys($entityKeys));
+          foreach ($entities as $entityKey => $entity) {
+            $ministryCentres = field_get_items('entityform', $entity, 'taxonomy_vocabulary_1');
+            if ($ministryCentres === false) $ministryCentres = [];
+            foreach ($ministryCentres as $city) {
+              $i = (int) $city['tid'];
+              $cities[$i] = $i;
+            }
+          }
+        }
+
+        $alterations['activity']['cities'] = $cities;
+      }
+
+      if (isset($form['field_networks_visibility_tid'])) {
+        $exposedFilter = 'field_networks_visibility';
+        $exposedTid = 'field_networks_visibility_tid';
+      }
+      else {
+        $exposedFilter = 'field_highlight_location';
+        $exposedTid = 'field_highlight_location_tid';
+      }
+
+      if (!isset($alterations['activity'][$exposedTid])) {
+        // Find the What's on visibility for this Activity
+        $exposedLocations = [];
+        $locations = field_get_items('node', $node, $exposedFilter);
+        if ($locations === false) $locations = [];
+        foreach ($locations as $location) {
+          $i = (int) $location['tid'];
+          $exposedLocations[$i] = $i;
+        }
+
+        $alterations['activity'][$exposedTid] = [];
+        foreach ($form[$exposedTid]['#options'] as $tid => $city) {
+          if (is_numeric($tid)) {
+            if (isset($exposedLocations[$tid])) {
+              if (
+                isset($alterations['activity']['cities']['All']) ||
+                isset($alterations['activity']['cities'][_cbf_convert_banner_to_city_tid($tid)])
+              ) {
+                $alterations['activity'][$exposedTid][$tid] = $city;
+              }
+            }
+          }
+          else {
+            $alterations['activity'][$exposedTid][$tid] = $city;
+          }
+        }
+      }
+
+      if (count($alterations['activity'][$exposedTid]) <= 2) {
+        $form['#access'] = false;   // No need to show form if only options are 'All' and one city
+      }
+      else {
+        $form[$exposedTid]['#options'] = $alterations['activity'][$exposedTid];
       }
 
       if (count($alterations['activity'][$exposedTid]) <= 2) {
@@ -205,6 +296,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
       'Textarea' => array(
         'fields' => array(
           'summary',
+          'pay_later_text',
         ),
         'actions' => array(
           '#type' => 'textarea',
@@ -219,6 +311,8 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
           'footer_text',
           'confirm_text',
           'confirm_footer_text',
+          'thankyou_text',
+          'thankyou_footer_text',
         ),
         'actions' => array(
           'format' => 'full_html',
@@ -843,6 +937,13 @@ function computed_field_field_date_text_display($field, $entity_field_item) {
 function computed_field_field_national_date_text_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
   $text = _computed_field_date_text_compute($entity_type, $entity);
   $entity_field[0]['value'] = $text['field_national_date_text'];
+
+  // A hack for the 2020 National Prayer Breakfast
+  if ($entity_type == 'civicrm_event' && $entity->id == '2377') {
+    $entity_field[0]['value'] =
+      '<div>Mon 12 Oct</div>' .
+      '<div>7.30-8.30am AEDT &amp; AWST</div>';
+  }
 }
 
 /*
