@@ -677,23 +677,24 @@ function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
  *  * Allow users to create/update Export mappings
  */
 function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$permissions) {
-  $permissions['account_contact']['create'] = array('access CiviCRM', 'edit contributions');
+  $permissions['account_contact']['create'] = ['access CiviCRM', 'edit contributions'];
+
   $permissions['payment_processor']['getlist'] =
-  $permissions['payment_processor']['get'] = array(
-    array(
-      'administer CiviCRM',
-      'edit all events',
-    ));
+  $permissions['payment_processor']['get'] = [ ['administer CiviCRM', 'edit all events'] ];
+
   $permissions['price_field']['create'] =
   $permissions['price_field']['update'] =
   $permissions['price_field_value']['create'] =
-  $permissions['price_field_value']['update'] = array(
-    array(
+  $permissions['price_field_value']['update'] = [
+    [
       'administer CiviCRM',
       'edit all events',
       'edit contributions',
-    ));
-  $permissions['csv_helper']['default'] = array('access CiviCRM');
+    ]
+  ];
+
+  $permissions['csv_helper']['default'] = ['access CiviCRM'];
+
   $permissions['mapping']['create'] =
   $permissions['mapping']['update'] =
   $permissions['mapping']['delete'] =
