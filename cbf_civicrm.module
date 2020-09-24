@@ -674,6 +674,7 @@ function cbf_civicrm_civicrm_tokenValues( &$details, &$contactIDs ) {
  *    either 'administer CiviCRM' (the default) or 'edit all events'.
  *  * Allow users to modify price fields
  *  * Allow users to access the CSV Import Helper objects
+ *  * Allow users to create/update Export mappings
  */
 function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$permissions) {
   $permissions['account_contact']['create'] = array('access CiviCRM', 'edit contributions');
@@ -693,6 +694,13 @@ function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$p
       'edit contributions',
     ));
   $permissions['csv_helper']['default'] = array('access CiviCRM');
+  $permissions['mapping']['create'] =
+  $permissions['mapping']['update'] =
+  $permissions['mapping']['delete'] =
+  $permissions['mapping_field']['get'] =
+  $permissions['mapping_field']['create'] =
+  $permissions['mapping_field']['update'] =
+  $permissions['mapping_field']['delete'] = [ ['administer CiviCRM', 'import contacts'] ];
 }
 
 /*
