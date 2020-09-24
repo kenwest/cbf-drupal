@@ -1,0 +1,36 @@
+From d1961207361fb5b4f39e0ad2ee7c290eade50876 Mon Sep 17 00:00:00 2001
+From: Coleman Watts <coleman@civicrm.org>
+Date: Fri, 11 Sep 2020 21:03:36 -0400
+Subject: [PATCH] APIv4 - Map specific action names to more generic versions
+
+---
+ Civi/Api4/Generic/AbstractAction.php | 16 +++++++++-------
+ 1 file changed, 9 insertions(+), 7 deletions(-)
+
+diff --git a/Civi/Api4/Generic/AbstractAction.php b/Civi/Api4/Generic/AbstractAction.php
+index 8d0111e6b35..fa995ce0d8d 100644
+--- a/Civi/Api4/Generic/AbstractAction.php
++++ b/Civi/Api4/Generic/AbstractAction.php
+@@ -407,13 +407,15 @@ public function getPermissions() {
+       'default' => ['administer CiviCRM'],
+     ];
+     $action = $this->getActionName();
+-    if (isset($permissions[$action])) {
+-      return $permissions[$action];
+-    }
+-    elseif (in_array($action, ['getActions', 'getFields'])) {
+-      return $permissions['meta'];
+-    }
+-    return $permissions['default'];
++    // Map specific action names to more generic versions
++    $map = [
++      'getActions' => 'meta',
++      'getFields' => 'meta',
++      'replace' => 'delete',
++      'save' => 'create',
++    ];
++    $generic = $map[$action] ?? 'default';
++    return $permissions[$action] ?? $permissions[$generic] ?? $permissions['default'];
+   }
+ 
+   /**

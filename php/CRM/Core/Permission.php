@@ -1483,7 +1483,6 @@ class CRM_Core_Permission {
 
     $permissions['message_template'] = [
       'get' => ['access CiviCRM'],
-      'save' => [['edit message templates', 'edit user-driven message templates', 'edit system workflow message templates']],
       'create' => [['edit message templates', 'edit user-driven message templates', 'edit system workflow message templates']],
       'update' => [['edit message templates', 'edit user-driven message templates', 'edit system workflow message templates']],
     ];
