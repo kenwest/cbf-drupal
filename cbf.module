@@ -277,13 +277,6 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
       else {
         $form[$exposedTid]['#options'] = $alterations['activity'][$exposedTid];
       }
-
-      if (count($alterations['activity'][$exposedTid]) <= 2) {
-        $form['#access'] = false;   // No need to show form if only options are 'All' and one city
-      }
-      else {
-        $form[$exposedTid]['#options'] = $alterations['activity'][$exposedTid];
-      }
     }
   }
 
