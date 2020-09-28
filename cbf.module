@@ -66,8 +66,8 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
   /*
    * Limit the views_exposed_form on the displays of the
-   * cbf2019-national-activity-contents view. It should only list What's On
-   * locations where this Activity is active, and there is either a Regular
+   * cbf2019-national-activity-contents view. It should only list locations
+   * where this Activity is active, and there is either a Regular
    * Venue, a Mappable item, an Upcoming Event or a Staff member.
    */
   if (
@@ -150,6 +150,9 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
         $alterations['activity']['cities'] = $cities;
       }
 
+      /*
+       * Detect which field is being used as the exposed filter
+       */
       if (isset($form['field_networks_visibility_tid'])) {
         $exposedFilter = 'field_networks_visibility';
         $exposedTid = 'field_networks_visibility_tid';
@@ -159,7 +162,13 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
         $exposedTid = 'field_highlight_location_tid';
       }
 
+      /*
+       * Find the valid options for this filter
+       */
       if (!isset($alterations['activity'][$exposedTid])) {
+        /*
+         * Find the possible options for this filter
+         */
         $exposedLocations = [];
         $locations = field_get_items('node', $node, $exposedFilter);
         if ($locations === false) $locations = [];
@@ -168,6 +177,12 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
           $exposedLocations[$i] = $i;
         }
 
+        /*
+         * The valid options for this filter are those where the corresponding
+         * city has a Regular Venue, Mappable item, upcoming CiviCRM Event or
+         * Staff member. The 'All' option is valid. All options are valid if
+         * any of the upcoming CiviCRM Events are not city-based.
+         */
         $alterations['activity'][$exposedTid] = [];
         foreach ($form[$exposedTid]['#options'] as $tid => $city) {
           if (is_numeric($tid)) {
@@ -186,8 +201,12 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
         }
       }
 
+      /*
+       * There is no need to show the form if the only valid options are 'All'
+       * and one city. Otherwise, only show the valid options.
+       */
       if (count($alterations['activity'][$exposedTid]) <= 2) {
-        $form['#access'] = false;   // No need to show form if only options are 'All' and one city
+        $form['#access'] = false;
       }
       else {
         $form[$exposedTid]['#options'] = $alterations['activity'][$exposedTid];
