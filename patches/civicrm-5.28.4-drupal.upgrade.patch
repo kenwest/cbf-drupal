@@ -1,0 +1,548 @@
+diff --git a/civicrm-5.28.3-drupal/CRM/Case/XMLProcessor/Process.php b/civicrm-5.28.4-drupal/CRM/Case/XMLProcessor/Process.php
+index 6bffb85..3ee34f9 100644
+--- a/civicrm-5.28.3-drupal/CRM/Case/XMLProcessor/Process.php
++++ b/civicrm-5.28.4-drupal/CRM/Case/XMLProcessor/Process.php
+@@ -85,7 +85,13 @@ class CRM_Case_XMLProcessor_Process extends CRM_Case_XMLProcessor {
+       // create relationships for the ones that are required
+       foreach ($xml->CaseRoles as $caseRoleXML) {
+         foreach ($caseRoleXML->RelationshipType as $relationshipTypeXML) {
+-          if ($relationshipTypeXML->creator) {
++          // simplexml treats node values differently than you'd expect,
++          // e.g. as an array
++          // Just using `if ($relationshipTypeXML->creator)` ends up always
++          // being true, so you have to cast to int or somehow force evaluation
++          // of the actual value. And casting to (bool) seems to behave
++          // differently on these objects than casting to (int).
++          if (!empty($relationshipTypeXML->creator)) {
+             if (!$this->createRelationships($relationshipTypeXML,
+               $params
+             )
+@@ -105,7 +111,7 @@ class CRM_Case_XMLProcessor_Process extends CRM_Case_XMLProcessor {
+     foreach ($xml->ActivitySets as $activitySetsXML) {
+       foreach ($activitySetsXML->ActivitySet as $activitySetXML) {
+         if ($standardTimeline) {
+-          if ($activitySetXML->timeline) {
++          if (!empty($activitySetXML->timeline)) {
+             return $this->processStandardTimeline($activitySetXML, $params);
+           }
+         }
+diff --git a/civicrm-5.28.3-drupal/CRM/Custom/Form/ChangeFieldType.php b/civicrm-5.28.4-drupal/CRM/Custom/Form/ChangeFieldType.php
+index 90d8791..e5436ce 100644
+--- a/civicrm-5.28.3-drupal/CRM/Custom/Form/ChangeFieldType.php
++++ b/civicrm-5.28.4-drupal/CRM/Custom/Form/ChangeFieldType.php
+@@ -56,6 +56,9 @@ class CRM_Custom_Form_ChangeFieldType extends CRM_Core_Form {
+     $params = ['id' => $this->_id];
+     CRM_Core_BAO_CustomField::retrieve($params, $this->_values);
+ 
++    if ($this->_values['html_type'] == 'Select' && $this->_values['serialize']) {
++      $this->_values['html_type'] = 'Multi-Select';
++    }
+     $this->_htmlTypeTransitions = self::fieldTypeTransitions(CRM_Utils_Array::value('data_type', $this->_values),
+       CRM_Utils_Array::value('html_type', $this->_values)
+     );
+@@ -148,13 +151,14 @@ class CRM_Custom_Form_ChangeFieldType extends CRM_Core_Form {
+     $customField = new CRM_Core_DAO_CustomField();
+     $customField->id = $this->_id;
+     $customField->find(TRUE);
++    $customField->serialize = in_array($dstHtmlType, $mutliValueOps, TRUE);
+ 
+     if ($dstHtmlType == 'Text' && in_array($srcHtmlType, [
+       'Select',
+       'Radio',
+       'Autocomplete-Select',
+     ])) {
+-      $customField->option_group_id = "NULL";
++      $customField->option_group_id = 'NULL';
+       CRM_Core_BAO_CustomField::checkOptionGroup($this->_values['option_group_id']);
+     }
+ 
+@@ -167,7 +171,7 @@ class CRM_Custom_Form_ChangeFieldType extends CRM_Core_Form {
+       $this->firstValueToFlatten($tableName, $this->_values['column_name']);
+     }
+ 
+-    $customField->html_type = $dstHtmlType;
++    $customField->html_type = ($dstHtmlType === 'Multi-Select') ? 'Select' : $dstHtmlType;
+     $customField->save();
+ 
+     // Reset cache for custom fields
+diff --git a/civicrm-5.28.3-drupal/CRM/Financial/BAO/Order.php b/civicrm-5.28.4-drupal/CRM/Financial/BAO/Order.php
+index cb43851..b7f9b83 100644
+--- a/civicrm-5.28.3-drupal/CRM/Financial/BAO/Order.php
++++ b/civicrm-5.28.4-drupal/CRM/Financial/BAO/Order.php
+@@ -237,18 +237,17 @@ class CRM_Financial_BAO_Order {
+       $lineItems[$valueID] = CRM_Price_BAO_PriceSet::getLine($params, $throwAwayArray, $this->getPriceSetID(), $this->getPriceFieldSpec($fieldID), $fieldID, 0)[1][$valueID];
+     }
+ 
+-    $taxRates = CRM_Core_PseudoConstant::getTaxRates();
+     foreach ($lineItems as &$lineItem) {
+       // Set any pre-calculation to zero as we will calculate.
+       $lineItem['tax_amount'] = 0;
+       if ($this->getOverrideFinancialTypeID() !== FALSE) {
+         $lineItem['financial_type_id'] = $this->getOverrideFinancialTypeID();
+       }
+-      $taxRate = $taxRates[$lineItem['financial_type_id']] ?? 0;
++      $taxRate = $this->getTaxRate((int) $lineItem['financial_type_id']);
+       if ($this->getOverrideTotalAmount() !== FALSE) {
+         if ($taxRate) {
+           // Total is tax inclusive.
+-          $lineItem['tax_amount'] = ($taxRate / 100) * $this->getOverrideTotalAmount();
++          $lineItem['tax_amount'] = ($taxRate / 100) * $this->getOverrideTotalAmount() / (1 + ($taxRate / 100));
+           $lineItem['line_total'] = $lineItem['unit_price'] = $this->getOverrideTotalAmount() - $lineItem['tax_amount'];
+         }
+         else {
+@@ -277,4 +276,19 @@ class CRM_Financial_BAO_Order {
+     return $amount;
+   }
+ 
++  /**
++   * Get the tax rate for the given financial type.
++   *
++   * @param int $financialTypeID
++   *
++   * @return float
++   */
++  public function getTaxRate(int $financialTypeID) {
++    $taxRates = CRM_Core_PseudoConstant::getTaxRates();
++    if (!isset($taxRates[$financialTypeID])) {
++      return 0;
++    }
++    return $taxRates[$financialTypeID];
++  }
++
+ }
+diff --git a/civicrm-5.28.3-drupal/CRM/Price/BAO/LineItem.php b/civicrm-5.28.4-drupal/CRM/Price/BAO/LineItem.php
+index c974eeb..c26c39e 100644
+--- a/civicrm-5.28.3-drupal/CRM/Price/BAO/LineItem.php
++++ b/civicrm-5.28.4-drupal/CRM/Price/BAO/LineItem.php
+@@ -654,8 +654,9 @@ WHERE li.contribution_id = %1";
+     $lineItems
+   ) {
+     $entityTable = "civicrm_" . $entity;
++    $newLineItems = [];
+     CRM_Price_BAO_PriceSet::processAmount($feeBlock,
+-      $params, $lineItems
++      $params, $newLineItems
+     );
+     // initialize empty Lineitem instance to call protected helper functions
+     $lineItemObj = new CRM_Price_BAO_LineItem();
+diff --git a/civicrm-5.28.3-drupal/CRM/Price/BAO/PriceSet.php b/civicrm-5.28.4-drupal/CRM/Price/BAO/PriceSet.php
+index 2ed80ff..a6e2167 100644
+--- a/civicrm-5.28.3-drupal/CRM/Price/BAO/PriceSet.php
++++ b/civicrm-5.28.4-drupal/CRM/Price/BAO/PriceSet.php
+@@ -673,13 +673,15 @@ WHERE  id = %1";
+         continue;
+       }
+ 
+-      list($params, $lineItem, $totalTax, $totalPrice) = self::getLine($params, $lineItem, $priceSetID, $field, $id, $totalPrice);
++      list($params, $lineItem) = self::getLine($params, $lineItem, $priceSetID, $field, $id, $totalPrice);
+     }
+ 
+     $amount_level = [];
+     $totalParticipant = 0;
+     if (is_array($lineItem)) {
+       foreach ($lineItem as $values) {
++        $totalPrice += $values['line_total'] + $values['tax_amount'];
++        $totalTax += $values['tax_amount'];
+         $totalParticipant += $values['participant_count'];
+         // This is a bit nasty. The logic of 'quick config' was because price set configuration was
+         // (and still is) too difficult to replace the 'quick config' price set configuration on the contribution
+@@ -1766,7 +1768,7 @@ WHERE     ct.id = cp.financial_type_id AND
+         }
+         break;
+     }
+-    return [$params, $lineItem, $totalTax, $totalPrice];
++    return [$params, $lineItem];
+   }
+ 
+ }
+diff --git a/civicrm-5.28.4-drupal/CRM/Upgrade/Incremental/sql/5.28.4.mysql.tpl b/civicrm-5.28.4-drupal/CRM/Upgrade/Incremental/sql/5.28.4.mysql.tpl
+new file mode 100644
+index 0000000..0931648
+--- /dev/null
++++ b/civicrm-5.28.4-drupal/CRM/Upgrade/Incremental/sql/5.28.4.mysql.tpl
+@@ -0,0 +1 @@
++{* file to handle db changes in 5.28.4 during upgrade *}
+diff --git a/civicrm-5.28.3-drupal/civicrm-version.php b/civicrm-5.28.4-drupal/civicrm-version.php
+index 39fc6b3..9f0c252 100644
+--- a/civicrm-5.28.3-drupal/civicrm-version.php
++++ b/civicrm-5.28.4-drupal/civicrm-version.php
+@@ -1,7 +1,7 @@
+ <?php
+ /** @deprecated */
+ function civicrmVersion( ) {
+-  return array( 'version'  => '5.28.3',
++  return array( 'version'  => '5.28.4',
+                 'cms'      => 'Drupal',
+                 'revision' => '' );
+ }
+diff --git a/civicrm-5.28.3-drupal/drupal/civicrm.info b/civicrm-5.28.4-drupal/drupal/civicrm.info
+index f2bc61d..76f3c8f 100644
+--- a/civicrm-5.28.3-drupal/drupal/civicrm.info
++++ b/civicrm-5.28.4-drupal/drupal/civicrm.info
+@@ -1,6 +1,6 @@
+ name = CiviCRM
+ description = Constituent relationship management system. Allows sites to manage contacts, relationships and groups, and track contact activities, contributions, memberships and events. See the <a href="https://civicrm.org/">CiviCRM website</a> for more information.
+-version = 7.x-5.28.3
++version = 7.x-5.28.4
+ package = CiviCRM
+ core = 7.x
+ project = civicrm
+diff --git a/civicrm-5.28.3-drupal/drupal/modules/civicrm_contact_ref/civicrm_contact_ref.info b/civicrm-5.28.4-drupal/drupal/modules/civicrm_contact_ref/civicrm_contact_ref.info
+index e2c3a31..201dc53 100644
+--- a/civicrm-5.28.3-drupal/drupal/modules/civicrm_contact_ref/civicrm_contact_ref.info
++++ b/civicrm-5.28.4-drupal/drupal/modules/civicrm_contact_ref/civicrm_contact_ref.info
+@@ -1,6 +1,6 @@
+ name = CiviCRM Contact Reference Field
+ description = Makes a CiviCRM Contact Reference Field.
+-version = 7.x-5.28.3
++version = 7.x-5.28.4
+ core = 7.x
+ package = CiviCRM
+ project = civicrm
+diff --git a/civicrm-5.28.3-drupal/drupal/modules/civicrm_engage/civicrm_engage.info b/civicrm-5.28.4-drupal/drupal/modules/civicrm_engage/civicrm_engage.info
+index 1d851df..afaba61 100755
+--- a/civicrm-5.28.3-drupal/drupal/modules/civicrm_engage/civicrm_engage.info
++++ b/civicrm-5.28.4-drupal/drupal/modules/civicrm_engage/civicrm_engage.info
+@@ -1,6 +1,6 @@
+ name = CiviEngage
+ description = DEPRECATED Walklist and Phone-banking support for CiviCRM. This module will not be ported to Drupal 8. Please see: https://civicrm.org/blog/jamie/civicrmengage-is-dead-long-live-civicrmengage
+-version = 7.x-5.28.3
++version = 7.x-5.28.4
+ core = 7.x
+ package = CiviCRM
+ project = civicrm
+diff --git a/civicrm-5.28.3-drupal/drupal/modules/civicrm_group_roles/civicrm_group_roles.info b/civicrm-5.28.4-drupal/drupal/modules/civicrm_group_roles/civicrm_group_roles.info
+index 83c726e..9bd64b3 100644
+--- a/civicrm-5.28.3-drupal/drupal/modules/civicrm_group_roles/civicrm_group_roles.info
++++ b/civicrm-5.28.4-drupal/drupal/modules/civicrm_group_roles/civicrm_group_roles.info
+@@ -1,6 +1,6 @@
+ name = CiviGroup Roles Sync
+ description = Sync Drupal Roles to CiviCRM Groups.
+-version = 7.x-5.28.3
++version = 7.x-5.28.4
+ core = 7.x
+ package = CiviCRM
+ project = civicrm
+diff --git a/civicrm-5.28.3-drupal/drupal/modules/civicrm_member_roles/civicrm_member_roles.info b/civicrm-5.28.4-drupal/drupal/modules/civicrm_member_roles/civicrm_member_roles.info
+index 31bd905..11f88d7 100644
+--- a/civicrm-5.28.3-drupal/drupal/modules/civicrm_member_roles/civicrm_member_roles.info
++++ b/civicrm-5.28.4-drupal/drupal/modules/civicrm_member_roles/civicrm_member_roles.info
+@@ -1,6 +1,6 @@
+ name = CiviMember Roles Sync
+ description = Synchronize CiviCRM Contacts with Membership Status to a specified Drupal Role both automatically and manually.
+-version = 7.x-5.28.3
++version = 7.x-5.28.4
+ core = 7.x
+ package = CiviCRM
+ project = civicrm
+diff --git a/civicrm-5.28.3-drupal/drupal/modules/civicrm_og_sync/civicrm_og_sync.info b/civicrm-5.28.4-drupal/drupal/modules/civicrm_og_sync/civicrm_og_sync.info
+index 2f2ac56..d28d4de 100644
+--- a/civicrm-5.28.3-drupal/drupal/modules/civicrm_og_sync/civicrm_og_sync.info
++++ b/civicrm-5.28.4-drupal/drupal/modules/civicrm_og_sync/civicrm_og_sync.info
+@@ -1,6 +1,6 @@
+ name = CiviCRM OG Sync
+ description = Synchronize Organic Groups and CiviCRM Groups and ACL's. More information at: https://docs.civicrm.org/sysadmin/en/latest/integration/drupal/#civicrm-organic-groups-sync
+-version = 7.x-5.28.3
++version = 7.x-5.28.4
+ core = 7.x
+ package = CiviCRM
+ project = civicrm
+diff --git a/civicrm-5.28.3-drupal/drupal/modules/civicrm_rules/civicrm_rules.info b/civicrm-5.28.4-drupal/drupal/modules/civicrm_rules/civicrm_rules.info
+index b550096..bc12fc9 100644
+--- a/civicrm-5.28.3-drupal/drupal/modules/civicrm_rules/civicrm_rules.info
++++ b/civicrm-5.28.4-drupal/drupal/modules/civicrm_rules/civicrm_rules.info
+@@ -1,6 +1,6 @@
+ name = CiviCRM Rules Integration
+ description = Integrate CiviCRM and Drupal Rules Module. Expose Contact, Contribution and other Objects along with Form / Page Operations.
+-version = 7.x-5.28.3
++version = 7.x-5.28.4
+ core = 7.x
+ package = CiviCRM
+ project = civicrm
+diff --git a/civicrm-5.28.3-drupal/drupal/modules/civicrmtheme/civicrmtheme.info b/civicrm-5.28.4-drupal/drupal/modules/civicrmtheme/civicrmtheme.info
+index 3f750bf..5f4f11f 100644
+--- a/civicrm-5.28.3-drupal/drupal/modules/civicrmtheme/civicrmtheme.info
++++ b/civicrm-5.28.4-drupal/drupal/modules/civicrmtheme/civicrmtheme.info
+@@ -1,6 +1,6 @@
+ name = CiviCRM Theme
+ description =  Define alternate themes for CiviCRM.
+-version = 7.x-5.28.3
++version = 7.x-5.28.4
+ core = 7.x
+ package = CiviCRM
+ project = civicrm
+diff --git a/civicrm-5.28.3-drupal/release-notes/5.28.3.md b/civicrm-5.28.4-drupal/release-notes/5.28.3.md
+index 3d89063..ceac9f0 100644
+--- a/civicrm-5.28.3-drupal/release-notes/5.28.3.md
++++ b/civicrm-5.28.4-drupal/release-notes/5.28.3.md
+@@ -7,7 +7,7 @@ Released August 22, 2020
+ - **[Credits](#credits)**
+ - **[Feedback](#feedback)**
+ 
+-## <a href="synopsis"></a>Synopsis
++## <a name="synopsis"></a>Synopsis
+ 
+ | *Does this version...?*                                         |          |
+ | --------------------------------------------------------------- | -------- |
+@@ -18,17 +18,23 @@ Released August 22, 2020
+ | Introduce features?                                             | no       |
+ | **Fix bugs?**                                                   | **yes**  |
+ 
+-## <a href="bugs"></a>Bugs resolved
++## <a name="bugs"></a>Bugs resolved
+ 
+ * **_CiviContribute_: Re-enable "Cancel" button in backend UI for recurring contributions ([dev/core#1961](https://lab.civicrm.org/dev/core/-/issues/1961): [#18204](https://github.com/civicrm/civicrm-core/pull/18204))**
++
++  Only affects some payment-processors
++
+ * **_CiviContribute_: Contributions sometimes display "RoundingNecessaryException" ([dev/core#1959](https://lab.civicrm.org/dev/core/-/issues/1959): [#18206](https://github.com/civicrm/civicrm-core/pull/18206))**
+ * **_Dedupe_: Merging certain contacts raises DB error ([dev/core#1964](https://lab.civicrm.org/dev/core/-/issues/1964): [#18223](https://github.com/civicrm/civicrm-core/pull/18223))**
++
++  Only affects contacts with dedupe exception records
++
+ * **_Dedupe_: Deleted contacts are incorrectly displayed ([#18214](https://github.com/civicrm/civicrm-core/pull/18214))**
+ * **_Drupal Views_: Filtering on multi-select custom fields ([dev/core#1966](https://lab.civicrm.org/dev/core/-/issues/1966): [drupal#615](https://github.com/civicrm/civicrm-drupal/pull/615), [drupal#618](https://github.com/civicrm/civicrm-drupal/pull/618))**
+ * **_Quick Search_: Deleted contacts are incorrectly displayed ([#18213](https://github.com/civicrm/civicrm-core/pull/18213))**
+ * **_Styling_: Collapse icon is incorrect ([dev/core#1963](https://lab.civicrm.org/dev/core/-/issues/1963): [#18205](https://github.com/civicrm/civicrm-core/pull/18205))**
+ 
+-## <a href="credits"></a>Credits
++## <a name="credits"></a>Credits
+ 
+ This release was developed by the following authors and reviewers:
+ 
+@@ -36,7 +42,7 @@ Wikimedia Foundation - Eileen McNaughton; MillerTech - Chamil Wijesooriya; MJW C
+ Wire; JMA Consulting - Seamus Lee; Dave D; CiviCoop - Jaap Jansma; CiviCRM - Tim Otten; Circle
+ Interactive - Pradeep Nayak; Australian Greens - Andrew Cormick-Dockery
+ 
+-## <a href="feedback"></a>Feedback
++## <a name="feedback"></a>Feedback
+ 
+ These release notes are edited by Tim Otten and Andrew Hunt.  If you'd like to
+ provide feedback on them, please login to https://chat.civicrm.org/civicrm and
+diff --git a/civicrm-5.28.4-drupal/release-notes/5.28.4.md b/civicrm-5.28.4-drupal/release-notes/5.28.4.md
+new file mode 100644
+index 0000000..6851eba
+--- /dev/null
++++ b/civicrm-5.28.4-drupal/release-notes/5.28.4.md
+@@ -0,0 +1,40 @@
++# CiviCRM 5.28.4
++
++Released September 1, 2020
++
++- **[Synopsis](#synopsis)**
++- **[Bugs resolved](#bugs)**
++- **[Credits](#credits)**
++- **[Feedback](#feedback)**
++
++## <a name="synopsis"></a>Synopsis
++
++| *Does this version...?*                                         |          |
++| --------------------------------------------------------------- | -------- |
++| Change the database schema?                                     | no       |
++| Alter the API?                                                  | no       |
++| Require attention to configuration options?                     | no       |
++| Fix problems installing or upgrading to a previous version?     | no       |
++| Introduce features?                                             | no       |
++| **Fix bugs?**                                                   | **yes**  |
++
++## <a name="bugs"></a>Bugs resolved
++
++* **_CiviCase_: Fix interpretation of "Assign to Creator" option (when disabled) ([dev/core#1982](https://lab.civicrm.org/dev/core/-/issues/1982): [#18301](https://github.com/civicrm/civicrm-core/pull/18301))**
++* **_CiviContribute_: Fix tax calculation for multiline transactions ([dev/core#1983](https://lab.civicrm.org/dev/core/-/issues/1983): [#18290](https://github.com/civicrm/civicrm-core/pull/18290))**
++* **_CiviContribute_: Fix tax calculation for offline membership renewals ([dev/core#1972](https://lab.civicrm.org/dev/core/-/issues/1972): [#18271](https://github.com/civicrm/civicrm-core/pull/18271))**
++* **_Custom Fields_: Fix conversion from "Multi-Select" to "Select" ([dev/core#1974](https://lab.civicrm.org/dev/core/-/issues/1974): [#18304](https://github.com/civicrm/civicrm-core/pull/18304), [#18272](https://github.com/civicrm/civicrm-core/pull/18272))**
++
++## <a name="credits"></a>Credits
++
++This release was developed by the following authors and reviewers:
++
++Wikimedia Foundation - Eileen McNaughton; Semper IT - Karin Gerritsen; Lighthouse Consulting and
++Design - Brian Shaughnessy; Lemniscus - Noah Miller; JMA Consulting - Seamus Lee; Dave D; CiviCRM -
++Tim Otten; Circle Interactive - Pradeep Nayak
++
++## <a name="feedback"></a>Feedback
++
++These release notes are edited by Tim Otten and Andrew Hunt.  If you'd like to
++provide feedback on them, please login to https://chat.civicrm.org/civicrm and
++contact `@agh1`.
+diff --git a/civicrm-5.28.3-drupal/release-notes.md b/civicrm-5.28.4-drupal/release-notes.md
+index 4baa73d..8352474 100644
+--- a/civicrm-5.28.3-drupal/release-notes.md
++++ b/civicrm-5.28.4-drupal/release-notes.md
+@@ -15,6 +15,15 @@ Other resources for identifying changes are:
+     * https://github.com/civicrm/civicrm-joomla
+     * https://github.com/civicrm/civicrm-wordpress
+ 
++## CiviCRM 5.28.4
++
++Released September 1, 2020
++
++- **[Synopsis](release-notes/5.28.4.md#synopsis)**
++- **[Bugs resolved](release-notes/5.28.4.md#bugs)**
++- **[Credits](release-notes/5.28.4.md#credits)**
++- **[Feedback](release-notes/5.28.4.md#feedback)**
++
+ ## CiviCRM 5.28.3
+ 
+ Released August 22, 2020
+diff --git a/civicrm-5.28.3-drupal/sql/civicrm_data.mysql b/civicrm-5.28.4-drupal/sql/civicrm_data.mysql
+index cd4ce76..1d59ea7 100644
+--- a/civicrm-5.28.3-drupal/sql/civicrm_data.mysql
++++ b/civicrm-5.28.4-drupal/sql/civicrm_data.mysql
+@@ -23897,4 +23897,4 @@ INSERT INTO `civicrm_report_instance`
+     ( `domain_id`, `title`, `report_id`, `description`, `permission`, `form_values`)
+ VALUES
+     (  @domainID, 'Survey Details', 'survey/detail', 'Detailed report for canvassing, phone-banking, walk lists or other surveys.', 'access CiviReport', 'a:39:{s:6:"fields";a:2:{s:9:"sort_name";s:1:"1";s:6:"result";s:1:"1";}s:22:"assignee_contact_id_op";s:2:"eq";s:25:"assignee_contact_id_value";s:0:"";s:12:"sort_name_op";s:3:"has";s:15:"sort_name_value";s:0:"";s:17:"street_number_min";s:0:"";s:17:"street_number_max";s:0:"";s:16:"street_number_op";s:3:"lte";s:19:"street_number_value";s:0:"";s:14:"street_name_op";s:3:"has";s:17:"street_name_value";s:0:"";s:15:"postal_code_min";s:0:"";s:15:"postal_code_max";s:0:"";s:14:"postal_code_op";s:3:"lte";s:17:"postal_code_value";s:0:"";s:7:"city_op";s:3:"has";s:10:"city_value";s:0:"";s:20:"state_province_id_op";s:2:"in";s:23:"state_province_id_value";a:0:{}s:13:"country_id_op";s:2:"in";s:16:"country_id_value";a:0:{}s:12:"survey_id_op";s:2:"in";s:15:"survey_id_value";a:0:{}s:12:"status_id_op";s:2:"eq";s:15:"status_id_value";s:1:"1";s:11:"custom_1_op";s:2:"in";s:14:"custom_1_value";a:0:{}s:11:"custom_2_op";s:2:"in";s:14:"custom_2_value";a:0:{}s:17:"custom_3_relative";s:1:"0";s:13:"custom_3_from";s:0:"";s:11:"custom_3_to";s:0:"";s:11:"description";s:75:"Detailed report for canvassing, phone-banking, walk lists or other surveys.";s:13:"email_subject";s:0:"";s:8:"email_to";s:0:"";s:8:"email_cc";s:0:"";s:10:"permission";s:17:"access CiviReport";s:6:"groups";s:0:"";s:9:"domain_id";i:1;}');
+-UPDATE civicrm_domain SET version = '5.28.3';
++UPDATE civicrm_domain SET version = '5.28.4';
+diff --git a/civicrm-5.28.3-drupal/sql/civicrm_generated.mysql b/civicrm-5.28.4-drupal/sql/civicrm_generated.mysql
+index dfa649a..563d1c5 100644
+--- a/civicrm-5.28.3-drupal/sql/civicrm_generated.mysql
++++ b/civicrm-5.28.4-drupal/sql/civicrm_generated.mysql
+@@ -399,7 +399,7 @@ UNLOCK TABLES;
+ 
+ LOCK TABLES `civicrm_domain` WRITE;
+ /*!40000 ALTER TABLE `civicrm_domain` DISABLE KEYS */;
+-INSERT INTO `civicrm_domain` (`id`, `name`, `description`, `version`, `contact_id`, `locales`, `locale_custom_strings`) VALUES (1,'Default Domain Name',NULL,'5.28.3',1,NULL,'a:1:{s:5:\"en_US\";a:0:{}}');
++INSERT INTO `civicrm_domain` (`id`, `name`, `description`, `version`, `contact_id`, `locales`, `locale_custom_strings`) VALUES (1,'Default Domain Name',NULL,'5.28.4',1,NULL,'a:1:{s:5:\"en_US\";a:0:{}}');
+ /*!40000 ALTER TABLE `civicrm_domain` ENABLE KEYS */;
+ UNLOCK TABLES;
+ 
+diff --git a/civicrm-5.28.3-drupal/templates/CRM/Custom/Form/Field.tpl b/civicrm-5.28.4-drupal/templates/CRM/Custom/Form/Field.tpl
+index f6be9fb..41700a8 100644
+--- a/civicrm-5.28.3-drupal/templates/CRM/Custom/Form/Field.tpl
++++ b/civicrm-5.28.4-drupal/templates/CRM/Custom/Form/Field.tpl
+@@ -21,6 +21,9 @@
+     <tr class="crm-custom-field-form-block-data_type">
+       <td class="label">{$form.data_type.label}</td>
+       <td class="html-adjust">{$form.data_type.html}
++        {if $action neq 1 && $form.data_type.value[1][0] eq "Select" && $form.serialize.value}
++          <span>({ts}Multi-Select{/ts})</span>
++        {/if}
+         {if $action neq 4 and $action neq 2}
+           <br /><span class="description">{ts}Select the type of data you want to collect and store for this contact. Then select from the available HTML input field types (choices are based on the type of data being collected).{/ts}</span>
+         {/if}
+@@ -34,10 +37,12 @@
+         {/if}
+       </td>
+     </tr>
+-    <tr class="crm-custom-field-form-block-serialize">
+-      <td class="label">{$form.serialize.label}</td>
+-      <td class="html-adjust">{$form.serialize.html}</td>
+-    </tr>
++    {if $action eq 1}
++      <tr class="crm-custom-field-form-block-serialize">
++        <td class="label">{$form.serialize.label}</td>
++        <td class="html-adjust">{$form.serialize.html}</td>
++      </tr>
++    {/if}
+     {if $form.in_selector}
+       <tr class='crm-custom-field-form-block-in_selector'>
+         <td class='label'>{$form.in_selector.label}</td>
+diff --git a/civicrm-5.28.3-drupal/vendor/autoload.php b/civicrm-5.28.4-drupal/vendor/autoload.php
+index f43d758..f415eb7 100644
+--- a/civicrm-5.28.3-drupal/vendor/autoload.php
++++ b/civicrm-5.28.4-drupal/vendor/autoload.php
+@@ -4,4 +4,4 @@
+ 
+ require_once __DIR__ . '/composer/autoload_real.php';
+ 
+-return ComposerAutoloaderInitc69fc457976bd588df70c17890ca67e1::getLoader();
++return ComposerAutoloaderInit5d1590a84317c7221c13a6c8764590a7::getLoader();
+diff --git a/civicrm-5.28.3-drupal/vendor/composer/autoload_real.php b/civicrm-5.28.4-drupal/vendor/composer/autoload_real.php
+index 3b30c79..f5102f8 100644
+--- a/civicrm-5.28.3-drupal/vendor/composer/autoload_real.php
++++ b/civicrm-5.28.4-drupal/vendor/composer/autoload_real.php
+@@ -2,7 +2,7 @@
+ 
+ // autoload_real.php @generated by Composer
+ 
+-class ComposerAutoloaderInitc69fc457976bd588df70c17890ca67e1
++class ComposerAutoloaderInit5d1590a84317c7221c13a6c8764590a7
+ {
+     private static $loader;
+ 
+@@ -19,9 +19,9 @@ class ComposerAutoloaderInitc69fc457976bd588df70c17890ca67e1
+             return self::$loader;
+         }
+ 
+-        spl_autoload_register(array('ComposerAutoloaderInitc69fc457976bd588df70c17890ca67e1', 'loadClassLoader'), true, true);
++        spl_autoload_register(array('ComposerAutoloaderInit5d1590a84317c7221c13a6c8764590a7', 'loadClassLoader'), true, true);
+         self::$loader = $loader = new \Composer\Autoload\ClassLoader();
+-        spl_autoload_unregister(array('ComposerAutoloaderInitc69fc457976bd588df70c17890ca67e1', 'loadClassLoader'));
++        spl_autoload_unregister(array('ComposerAutoloaderInit5d1590a84317c7221c13a6c8764590a7', 'loadClassLoader'));
+ 
+         $includePaths = require __DIR__ . '/include_paths.php';
+         $includePaths[] = get_include_path();
+@@ -31,7 +31,7 @@ class ComposerAutoloaderInitc69fc457976bd588df70c17890ca67e1
+         if ($useStaticLoader) {
+             require_once __DIR__ . '/autoload_static.php';
+ 
+-            call_user_func(\Composer\Autoload\ComposerStaticInitc69fc457976bd588df70c17890ca67e1::getInitializer($loader));
++            call_user_func(\Composer\Autoload\ComposerStaticInit5d1590a84317c7221c13a6c8764590a7::getInitializer($loader));
+         } else {
+             $map = require __DIR__ . '/autoload_namespaces.php';
+             foreach ($map as $namespace => $path) {
+@@ -52,19 +52,19 @@ class ComposerAutoloaderInitc69fc457976bd588df70c17890ca67e1
+         $loader->register(true);
+ 
+         if ($useStaticLoader) {
+-            $includeFiles = Composer\Autoload\ComposerStaticInitc69fc457976bd588df70c17890ca67e1::$files;
++            $includeFiles = Composer\Autoload\ComposerStaticInit5d1590a84317c7221c13a6c8764590a7::$files;
+         } else {
+             $includeFiles = require __DIR__ . '/autoload_files.php';
+         }
+         foreach ($includeFiles as $fileIdentifier => $file) {
+-            composerRequirec69fc457976bd588df70c17890ca67e1($fileIdentifier, $file);
++            composerRequire5d1590a84317c7221c13a6c8764590a7($fileIdentifier, $file);
+         }
+ 
+         return $loader;
+     }
+ }
+ 
+-function composerRequirec69fc457976bd588df70c17890ca67e1($fileIdentifier, $file)
++function composerRequire5d1590a84317c7221c13a6c8764590a7($fileIdentifier, $file)
+ {
+     if (empty($GLOBALS['__composer_autoload_files'][$fileIdentifier])) {
+         require $file;
+diff --git a/civicrm-5.28.3-drupal/vendor/composer/autoload_static.php b/civicrm-5.28.4-drupal/vendor/composer/autoload_static.php
+index 4e97d46..4c1f88d 100644
+--- a/civicrm-5.28.3-drupal/vendor/composer/autoload_static.php
++++ b/civicrm-5.28.4-drupal/vendor/composer/autoload_static.php
+@@ -4,7 +4,7 @@
+ 
+ namespace Composer\Autoload;
+ 
+-class ComposerStaticInitc69fc457976bd588df70c17890ca67e1
++class ComposerStaticInit5d1590a84317c7221c13a6c8764590a7
+ {
+     public static $files = array (
+         '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
+@@ -530,11 +530,11 @@ class ComposerStaticInitc69fc457976bd588df70c17890ca67e1
+     public static function getInitializer(ClassLoader $loader)
+     {
+         return \Closure::bind(function () use ($loader) {
+-            $loader->prefixLengthsPsr4 = ComposerStaticInitc69fc457976bd588df70c17890ca67e1::$prefixLengthsPsr4;
+-            $loader->prefixDirsPsr4 = ComposerStaticInitc69fc457976bd588df70c17890ca67e1::$prefixDirsPsr4;
+-            $loader->prefixesPsr0 = ComposerStaticInitc69fc457976bd588df70c17890ca67e1::$prefixesPsr0;
+-            $loader->fallbackDirsPsr0 = ComposerStaticInitc69fc457976bd588df70c17890ca67e1::$fallbackDirsPsr0;
+-            $loader->classMap = ComposerStaticInitc69fc457976bd588df70c17890ca67e1::$classMap;
++            $loader->prefixLengthsPsr4 = ComposerStaticInit5d1590a84317c7221c13a6c8764590a7::$prefixLengthsPsr4;
++            $loader->prefixDirsPsr4 = ComposerStaticInit5d1590a84317c7221c13a6c8764590a7::$prefixDirsPsr4;
++            $loader->prefixesPsr0 = ComposerStaticInit5d1590a84317c7221c13a6c8764590a7::$prefixesPsr0;
++            $loader->fallbackDirsPsr0 = ComposerStaticInit5d1590a84317c7221c13a6c8764590a7::$fallbackDirsPsr0;
++            $loader->classMap = ComposerStaticInit5d1590a84317c7221c13a6c8764590a7::$classMap;
+ 
+         }, null, ClassLoader::class);
+     }
+diff --git a/civicrm-5.28.3-drupal/xml/version.xml b/civicrm-5.28.4-drupal/xml/version.xml
+index 031493b..90be684 100644
+--- a/civicrm-5.28.3-drupal/xml/version.xml
++++ b/civicrm-5.28.4-drupal/xml/version.xml
+@@ -1,4 +1,4 @@
+ <?xml version="1.0" encoding="iso-8859-1" ?>
+ <version>
+-  <version_no>5.28.3</version_no>
++  <version_no>5.28.4</version_no>
+ </version>
