@@ -817,7 +817,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
       if ($element == 'guard') {
         $guard = $pattern;
       }
-      else if (preg_match('#' . $pattern . '#i', $vars[$element]) != 1) {
+      else if (preg_match('#' . $pattern . '#i', $vars[$element] ?? '') != 1) {
         continue 2;
       }
     }
