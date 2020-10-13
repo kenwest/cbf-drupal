@@ -1552,106 +1552,127 @@ function cbf_cron() {
   $current_time = strtotime('now');
 
   /*
-   * Initialize CiviCRM. This is a precaution now that CiviCRM and Drupal are
-   * becoming more tightly coupled.
-   */
-  civicrm_initialize();
-
-  /*
-   * Find entities with field_next_action due. Order them so the most recent
-   * are processed first, so entities that get stuck don't mask later ones.
-   */
-  $query = new EntityFieldQuery();
-  $result = $query
-    ->fieldCondition('field_next_action', 'value', [1, $current_time], 'BETWEEN')
-    ->fieldOrderBy('field_next_action', 'value', 'DESC')
-    ->range(0, 50)
-    ->execute();
-  foreach ($result as $entityType => $entityKeys) {
-    $entities = entity_load($entityType, array_keys($entityKeys));
-    foreach ($entities as $entityKey => $entity) {
-      switch ($entityType) {
-        case 'node':
-          node_save($entity);
-          break;
-
-        case 'civicrm_event':
-          /*
-           * The payment_processor field on the civicrm-event-form doesn't support
-           * multiselect, but we want people to be able to choose to pay via credit
-           * card or PayPal.
-           *
-           * Until this is resolved, prevent users changing this field. To do this we
-           * send a signal to cbf_civicrm_civicrm_pre() that input from this field on
-           * this form should be ignored. We do this by setting the payment_processor
-           * to be one that is never used. It's name is 'Hack for CiviCRM Event
-           * entities' and its number is 15.
-           */
-          if (isset($entity->payment_processor)) {
-            $dummyPaymentProcessor = '15';
-            $entity->payment_processor = $dummyPaymentProcessor;
-          }
-
-          $entity->custom_62 = $entity->custom_62_id;
-          entity_save($entityType, $entity);
-          break;
-      }
-      unset($entityKeys[$entityKey]);
-    }
-    if (!empty($entityKeys)) {
-      watchdog(
-        'CBF',
-        "Couldn't process $entityType entities with a field_next_action set: ". implode(', ',array_keys($entityKeys)),
-        null,
-        WATCHDOG_ERROR
-        );
-    }
-  }
-
-  /*
-   * Find nodes that were Tweeted using Post to Twitter. Set their status so
-   * they are not tweeted again if any calls are made to node_save().
-   */
-  $query = new EntityFieldQuery();
-  $result = $query->entityCondition('entity_type', 'node')
-  ->fieldCondition('field_post_to_twitter', 'status', 0, '<>')
-  ->execute();
-  foreach ($result as $entityType => $entities) {
-    $nodes = entity_load('node', array_keys($entities));
-    foreach ($nodes as $node) {
-      // Prevent a post being made again to Twitter
-      $langcode = field_language('node', $node, 'field_post_to_twitter');
-      if (isset($node->field_post_to_twitter[$langcode][0])) {
-        $node->field_post_to_twitter[$langcode][0]['status'] = 0;
-      }
-      node_save($node);
-    }
-  }
-
-  /*
-   * Find blogs that where field_third_space_restricted is NULL and set it to
-   * zero (Off).
+   * Run this cron function as the super-user to avoid access restrictions
+   * with Domain Entity.
    *
-   * This is necessary since we don't want NULL values but the node edit
-   * function allows them.
+   * Following the pattern in https://www.drupal.org/node/1793862
    */
-  $query = new EntityFieldQuery();
-  $result =
-    $query->entityCondition('entity_type', 'node')
-      ->entityCondition('bundle', 'blog')
-      ->addTag('third_space_restriction_is_null')
-      ->propertyCondition('status', 1)
-      ->propertyOrderBy('nid', 'DESC')
+  global $user;
+
+  try {
+    // Switch to the super-user
+    $originalUser = $user;
+    $originalState = drupal_save_session(false);
+    $user = user_load(1);
+
+    /*
+     * Initialize CiviCRM. This is a precaution now that CiviCRM and Drupal are
+     * becoming more tightly coupled.
+     */
+    civicrm_initialize();
+
+    /*
+     * Find entities with field_next_action due. Order them so the most recent
+     * are processed first, so entities that get stuck don't mask later ones.
+     */
+    $query = new EntityFieldQuery();
+    $result = $query
+      ->fieldCondition('field_next_action', 'value', [1, $current_time], 'BETWEEN')
+      ->fieldOrderBy('field_next_action', 'value', 'DESC')
       ->range(0, 50)
       ->execute();
-  foreach ($result as $entityType => $entities) {
-    $nodes = entity_load('node', array_keys($entities));
-    foreach ($nodes as $node) {
-      $langcode = field_language('node', $node, 'field_third_space_restricted');
-      $node->field_third_space_restricted[$langcode][0]['value'] = 0;
-      node_save($node);
+    foreach ($result as $entityType => $entityKeys) {
+      $entities = entity_load($entityType, array_keys($entityKeys));
+      foreach ($entities as $entityKey => $entity) {
+        switch ($entityType) {
+          case 'node':
+            node_save($entity);
+            break;
+
+          case 'civicrm_event':
+            /*
+             * The payment_processor field on the civicrm-event-form doesn't support
+             * multiselect, but we want people to be able to choose to pay via credit
+             * card or PayPal.
+             *
+             * Until this is resolved, prevent users changing this field. To do this we
+             * send a signal to cbf_civicrm_civicrm_pre() that input from this field on
+             * this form should be ignored. We do this by setting the payment_processor
+             * to be one that is never used. It's name is 'Hack for CiviCRM Event
+             * entities' and its number is 15.
+             */
+            if (isset($entity->payment_processor)) {
+              $dummyPaymentProcessor = '15';
+              $entity->payment_processor = $dummyPaymentProcessor;
+            }
+
+            $entity->custom_62 = $entity->custom_62_id;
+            entity_save($entityType, $entity);
+            break;
+        }
+        unset($entityKeys[$entityKey]);
+      }
+      if (!empty($entityKeys)) {
+        watchdog(
+          'CBF',
+          "Couldn't process $entityType entities with a field_next_action set: ". implode(', ',array_keys($entityKeys)),
+          null,
+          WATCHDOG_ERROR
+        );
+      }
     }
+
+    /*
+     * Find nodes that were Tweeted using Post to Twitter. Set their status so
+     * they are not tweeted again if any calls are made to node_save().
+     */
+    $query = new EntityFieldQuery();
+    $result = $query->entityCondition('entity_type', 'node')
+    ->fieldCondition('field_post_to_twitter', 'status', 0, '<>')
+    ->execute();
+    foreach ($result as $entityType => $entities) {
+      $nodes = entity_load('node', array_keys($entities));
+      foreach ($nodes as $node) {
+        // Prevent a post being made again to Twitter
+        $langcode = field_language('node', $node, 'field_post_to_twitter');
+        if (isset($node->field_post_to_twitter[$langcode][0])) {
+          $node->field_post_to_twitter[$langcode][0]['status'] = 0;
+        }
+        node_save($node);
+      }
+    }
+
+    /*
+     * Find blogs where field_third_space_restricted is NULL and set it to
+     * zero (Off).
+     *
+     * This is necessary since we don't want NULL values but the node edit
+     * function allows them.
+     */
+    $query = new EntityFieldQuery();
+    $result =
+      $query->entityCondition('entity_type', 'node')
+        ->entityCondition('bundle', 'blog')
+        ->addTag('third_space_restriction_is_null')
+        ->propertyCondition('status', 1)
+        ->propertyOrderBy('nid', 'DESC')
+        ->range(0, 50)
+        ->execute();
+    foreach ($result as $entityType => $entities) {
+      $nodes = entity_load('node', array_keys($entities));
+      foreach ($nodes as $node) {
+        $langcode = field_language('node', $node, 'field_third_space_restricted');
+        $node->field_third_space_restricted[$langcode][0]['value'] = 0;
+        node_save($node);
+      }
+    }
+  } catch (Exception $e) {
+    // Do nothing
   }
+
+  // Switch back to the original user
+  $user = $originalUser;
+  drupal_save_session($originalState);
 
   variable_set('cbf_cron_last_run', $current_time);
 }
