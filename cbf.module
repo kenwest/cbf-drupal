@@ -3283,6 +3283,24 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
   }
 
   /*
+   * Special case - if there is no Ministry Centre but the location has a 'province'
+   * then use the Ministry Centre which matches that.
+   */
+  if (empty($result['taxonomy_vocabulary_1']) && !empty($result['field_map_location']['province'])) {
+    $query = new EntityFieldQuery();
+    $query
+    ->entityCondition('entity_type', 'taxonomy_term')
+    ->entityCondition('bundle', 'vocabulary_1')
+    ->propertyCondition('description', $result['field_map_location']['province']);
+    foreach ($query->execute() as $entities) {
+      $terms = taxonomy_term_load_multiple(array_keys($entities));
+      foreach ($terms as $term) {
+        $result['taxonomy_vocabulary_1'] = $term->tid;
+      }
+    }
+  }
+
+  /*
    * Special case - if creating a mappable from a regular_venue, field_title is empty.
    * The title isn't needed because the regular_venue is associated with an activity.
    */
