@@ -394,6 +394,13 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
     }
   }
 
+  /* Ditto when editing EntityForms except the field is domain_entityform */
+  if (stripos($form['#id'], '-entityform-edit-form') !== false) {
+    if (empty($form['domain_entityform']['und']['domain_id']['#default_value'])) {
+      $form['domain_entityform']['und']['domain_id']['#default_value'] = array(1 => 1);
+    }
+  }
+
   /*
    * Grab the mailing list default from the arguments
    */
