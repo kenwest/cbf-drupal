@@ -1343,6 +1343,7 @@ function cbf_entity_presave($entity, $type) {
         'regular_venue' => true,
         'title_header' => true,
         'home_page_slider' => true,
+        'collection' => true,
       ];
       $skipDomainBundles = [
         'dateable' => true,
