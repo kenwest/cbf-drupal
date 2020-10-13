@@ -3391,8 +3391,11 @@ function cbf_admin_paths() {
      * When 'civicrm-event/NNNN/edit' is not an admin path, the call to
      * entity_load() in cbf_entity_viewable() fails to return entities
      * which are not visible in this domain.
+     *
+     * Ditto for Entity Forms.
      */
     'civicrm-event/*/edit' => true,
+    'entityform/*/edit' => true,
   ];
   return $paths;
 }
