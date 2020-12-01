@@ -1392,7 +1392,7 @@ function cbf_entity_presave($entity, $type) {
           $entityAudience = 'christian';
           break;
         case '48':
-        case '1870': // Unlisted content is treated like General content
+        case '1957': // Unlisted content is treated like General content
           $entityAudience = 'general';
           break;
         default:
