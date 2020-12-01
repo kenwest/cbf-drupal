@@ -1392,6 +1392,7 @@ function cbf_entity_presave($entity, $type) {
           $entityAudience = 'christian';
           break;
         case '48':
+        case '1870': // Unlisted content is treated like General content
           $entityAudience = 'general';
           break;
         default:
@@ -1957,9 +1958,11 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
  * This hook is invoked prior to the meta tags for a given page are cached.
  *
  * For SEO purposes, content that appears on both the citybibleforum.org and the
- * plus.citybibleforum.org site should have a canonical URL pointing to citybibleforum.org.
- * So, if this is a Node or a CiviCRM Event, whose Audience is General, remove the 'plus.'
- * from the canonical URL.
+ * plus.citybibleforum.org site should have a canonical URL pointing to
+ * citybibleforum.org.
+ *
+ * So, if this is a Node or a CiviCRM Event, whose Audience is not Christian,
+ * remove the 'plus.' from the canonical URL.
  *
  * @param array $output
  *   All of the meta tags to be output for this page in their raw format. This
@@ -1973,7 +1976,7 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
 function cbf_metatag_metatags_view_alter(&$output, $instance, $options) {
   if (stripos($instance, 'node:') === 0 || stripos($instance, 'civicrm_event:') === 0) {
     $audienceTerm = field_get_items($options['entity_type'], $options['entity'], 'taxonomy_vocabulary_3');
-    if ($audienceTerm !== false && !empty($audienceTerm[0]['tid']) && $audienceTerm[0]['tid'] == '48') {
+    if ($audienceTerm !== false && !empty($audienceTerm[0]['tid']) && $audienceTerm[0]['tid'] != '47') {
       if (isset($output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'])) {
         $canonical = $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'];
         $canonical = str_ireplace('//plus.', '//', $canonical);
