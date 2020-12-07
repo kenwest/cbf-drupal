@@ -1271,12 +1271,11 @@ function cbf_field_event_date_validate($form, &$form_state) {
         $duration += $endstamp - $startstamp;
       }
     }
-    if ($duration > 3 * 24 * 60 * 60) {
+    if ($duration > 5 * 24 * 60 * 60) {
       form_set_error(
         'field_event_date',
-        'The overall duration of this event is greater than 3 daya. ' .
-        'This doesn\'t seem like an event. ' .
-        'Try a forward dated News Story instead.');
+        'The overall duration of this event is greater than 5 days. ' .
+        'This doesn\'t seem like an event.');
     }
   }
 }
