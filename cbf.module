@@ -1627,9 +1627,11 @@ function cbf_cron() {
      * they are not tweeted again if any calls are made to node_save().
      */
     $query = new EntityFieldQuery();
-    $result = $query->entityCondition('entity_type', 'node')
-    ->fieldCondition('field_post_to_twitter', 'status', 0, '<>')
-    ->execute();
+    $result =
+      $query
+        ->entityCondition('entity_type', 'node')
+        ->fieldCondition('field_post_to_twitter', 'status', 0, '<>')
+        ->execute();
     foreach ($result as $entityType => $entities) {
       $nodes = entity_load('node', array_keys($entities));
       foreach ($nodes as $node) {
