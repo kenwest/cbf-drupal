@@ -1,0 +1,16 @@
+diff --git a/entityreference/plugins/selection/EntityReference_SelectionHandler_Generic.class.php b/entityreference/plugins/selection/EntityReference_SelectionHandler_Generic.class.php
+index 6ec28a4..9020a80 100644
+--- a/entityreference/plugins/selection/EntityReference_SelectionHandler_Generic.class.php
++++ b/entityreference/plugins/selection/EntityReference_SelectionHandler_Generic.class.php
+@@ -253,6 +253,11 @@ class EntityReference_SelectionHandler_Generic implements EntityReference_Select
+       if (isset($entity_info['entity keys']['label'])) {
+         $query->propertyCondition($entity_info['entity keys']['label'], $match, $match_operator);
+       }
++      else {
++        // Give hook_entity_query_alter or hook_query_TAG_alter an opportunity to make the $match
++        $query->addMetaData('entityreference_match', $match);
++        $query->addMetaData('entityreference_match_operator', $match_operator);
++      }
+     }
+ 
+     // Add a generic entity access tag to the query.
