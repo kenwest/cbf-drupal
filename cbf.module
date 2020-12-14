@@ -3529,3 +3529,26 @@ function cbf_entityform_label_callback($entity, $entity_type) {
   }
   return $title;
 }
+
+/*
+ * Implements hook_entity_query_alter()
+ *
+ * "Alter or execute an EntityFieldQuery"
+ */
+function cbf_entity_query_alter(EntityFieldQuery $query) {
+  /*
+   * If the query has 'entityreference_match' metadata then EntityReference_SelectionHandler_Generic::
+   * buildEntityFieldQuery($match, $match_operator) hasn't added a condition for $match, as the entity
+   * has no 'label' property. For EntityForms filter on field_title.
+   */
+  $match = $query->metaData['entityreference_match'] ?? null;
+  if (!empty($match)) {
+    $entity_type = $query->entityConditions['entity_type']['value'] ?? null;
+    if ($entity_type == 'entityform') {
+      $operator = $query->metaData['entityreference_match_operator'] ?? null;
+      if (!empty($operator)) {
+        $query->fieldCondition('field_title', 'value', $match, $operator);
+      }
+    }
+  }
+}
