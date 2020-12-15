@@ -1693,66 +1693,25 @@ function cbf_cron() {
             ->entityCondition('bundle', 'collection')
             ->fieldCondition('field_title', 'value', $term->name, '=')
             ->execute();
-        if (empty($result1)) {
-          $entityForm = entity_create(
-            'entityform',
-            [
-              'type' => 'collection',
-              'created' => time(),
-              'changed' => time(),
-              'language' => LANGUAGE_NONE,
-              'uid' => $user->uid,
-            ]
-          );
+        if (!empty($result1)) {
+          foreach ($result1 as $entityType1 => $entities1) {
+            $entityForms = entity_load('entityform', array_keys($entities1));
+            $entityForm = reset($entityForms);
+            $redirectFrom = 'collection/' . $term->tid;
+            $redirectTo = 'collection/' . $entityForm->entityform_id;
 
-          $wrapper = entity_metadata_wrapper('entityform', $entityForm);
-          $wrapper->field_title = $term->name;
-          $wrapper->field_subtitle = reset(field_get_items('taxonomy_term', $term, 'field_subtitle'))['value'];
-          $wrapper->field_short_form = [ 'value' => $term->description, 'format' => '2', ];
-          $wrapper->field_title_image = reset(field_get_items('taxonomy_term', $term, 'field_title_image'));
-
-          $relatedEpisodes = [];
-          $relatedBlogs = [];
-          $relatedCategories = [];
-
-          $query2 = new EntityFieldQuery();
-          $result2 =
-            $query2
-              ->entityCondition('entity_type', 'node')
-              ->fieldCondition('field_collection', 'tid', $term->tid, '=')
-              ->fieldOrderBy('field_episode_date', 'value', 'DESC')
-              ->execute();
-          foreach ($result2 as $entityType2 => $entityKeys2) {
-            $entities2 = entity_load($entityType2, array_keys($entityKeys2));
-            foreach ($entities2 as $entity2) {
-              switch ($entity2->type) {
-                case 'episode':
-                  $relatedEpisodes[] = $entity2->nid;
-                  break;
-                case 'blog':
-                  $relatedBlogs[] = $entity2->nid;
-                  break;
-              }
+            if (redirect_load_by_source($redirectFrom) === false) {
+              $redirect = new stdClass();
+              redirect_object_prepare(
+                $redirect,
+                [
+                  'source' => $redirectFrom,
+                  'redirect' => $redirectTo,
+                ]
+              );
+              redirect_save($redirect);
             }
           }
-
-          $query2 = new EntityFieldQuery();
-          $result2 =
-            $query2
-              ->entityCondition('entity_type', 'taxonomy_term')
-              ->fieldCondition('field_collection', 'tid', $term->tid, '=')
-              ->execute();
-          foreach ($result2 as $entityType2 => $entityKeys2) {
-            $entities2 = entity_load($entityType2, array_keys($entityKeys2));
-            foreach ($entities2 as $entity2) {
-              $relatedCategories[] = $entity2->tid;
-            }
-          }
-
-          $wrapper->field_related_episodes = $relatedEpisodes;
-          $wrapper->field_related_blogs = $relatedBlogs;
-          $wrapper->field_third_space_category = $relatedCategories;
-          $wrapper->save();
         }
       }
     }
