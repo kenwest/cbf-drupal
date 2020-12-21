@@ -103,6 +103,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
         }
 
         // Find the Cities where there are upcoming CiviCRM Events
+        // If the event has no City, then it is visible in all cities
         $current_time = strtotime('now');
         $query = new EntityFieldQuery();
         $result = $query
@@ -129,6 +130,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
         }
 
         // Find the Cities where there are staff
+        // If the staff member has no City, then they are visible in all cities
         $query = new EntityFieldQuery();
         $result = $query
           ->entityCondition('entity_type', 'entityform')
@@ -143,6 +145,9 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
             foreach ($ministryCentres as $city) {
               $i = (int) $city['tid'];
               $cities[$i] = $i;
+            }
+            if ($city === null) {
+              $cities['All'] = 'All';
             }
           }
         }
@@ -1255,7 +1260,7 @@ function computed_field_field_source_entity_alias_display($field, $entity_field_
 
 /*
  * Validate field_event_date elements on forms.
- *  - an event can't last longer than 3 days. This prevents staff misusing
+ *  - an event can't last longer than 5 days. This prevents staff misusing
  *    Events and CiviCRM Events when they should be using a News Story.
  */
 function cbf_field_event_date_validate($form, &$form_state) {
@@ -2462,7 +2467,10 @@ function cbf_views_post_execute(&$view) {
         $view->current_display == 'block_3') ||
       (
         $view->name == 'cbf2019_speakers' &&
-        $view->current_display == 'block_5')
+        $view->current_display == 'block_5') ||
+      (
+        $view->name == 'cbf2019_staff_slider' &&
+        $view->current_display == 'block_2')
     ) &&
     count($view->args) > 1 &&
     is_numeric($view->args[1])
