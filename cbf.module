@@ -1902,7 +1902,7 @@ function cbf_visitor_city_string() {
 }
 
 /*
- * Populate the metatags for a node's Twitter Card and Facebook Open Graph.
+ * Populate the metatags for an entity's Twitter Card and Facebook Open Graph.
  *
  * The Twitter Card preferences are ...
  *
@@ -1927,8 +1927,17 @@ function cbf_visitor_city_string() {
  * 6  Logo          No matching image fields
  */
 function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
-  if (isset($types['node'])) {
-    $node = $types['node'];
+  $entity = null;
+  $entityTypes = ['node', 'civicrm_event'];
+
+  foreach ($entityTypes as $entityType) {
+    if (isset($types[$entityType])) {
+      $entity = $types[$entityType];
+      break;
+    }
+  }
+
+  if (isset($entity)) {
     $largeImages = array('field_highlight', 'field_image', 'field_series_image');
     switch ($tag_name) {
       case 'twitter:card':
@@ -1938,23 +1947,23 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
         $src = '';
         /* Try Option 1 */
         foreach ($largeImages as $largeImage) {
-          $image = field_get_items('node', $node, $largeImage);
+          $image = field_get_items($entityType, $entity, $largeImage);
           if ($image !== false && !empty($image)) {
             if (isset($image[0]['width']) && $image[0]['width'] >= 280 &&
                 isset($image[0]['height']) && $image[0]['height'] >= 150) {
               $card = 'summary_large_image';
-              $src = "[node:$largeImage]";
+              $src = "[$entityType:$largeImage]";
               break;
             }
           }
         }
         /* Try Option 2 */
         if ($src == '') {
-          $image = field_get_items('node', $node, 'field_thumbnail_image');
+          $image = field_get_items($entityType, $entity, 'field_thumbnail_image');
           if ($image !== false && !empty($image)) {
             if (isset($image[0]['width']) && $image[0]['width'] >= 120 &&
                 isset($image[0]['height']) && $image[0]['height'] >= 120) {
-              $src = "[node:field_thumbnail_image]";
+              $src = "[$entityType:field_thumbnail_image]";
             }
           }
         }
@@ -1976,11 +1985,11 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
         $src = '';
         /* Try Option 4 */
         foreach ($largeImages as $largeImage) {
-          $image = field_get_items('node', $node, $largeImage);
+          $image = field_get_items($entityType, $entity, $largeImage);
           if ($image !== false && !empty($image)) {
             if (isset($image[0]['width']) && $image[0]['width'] >= 600 &&
                 isset($image[0]['height']) && $image[0]['height'] >= 316) {
-              $src = "[node:$largeImage]";
+              $src = "[$entityType:$largeImage]";
               break;
             }
           }
@@ -1988,10 +1997,10 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
         /* Try Option 5 */
         if ($src == '') {
           foreach ($largeImages as $largeImage) {
-            $image = field_get_items('node', $node, $largeImage);
+            $image = field_get_items($entityType, $entity, $largeImage);
             if ($image !== false && !empty($image)) {
               if (isset($image[0]['width']) && $image[0]['width'] >= 280) {
-                $src = "[node:$largeImage]";
+                $src = "[$entityType:$largeImage]";
                 break;
               }
             }
