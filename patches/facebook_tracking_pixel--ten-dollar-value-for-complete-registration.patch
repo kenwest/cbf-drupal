@@ -1,0 +1,13 @@
+diff --git a/facebook_tracking_pixel.module b/facebook_tracking_pixel.module
+index 7c7064e..ea0952e 100644
+--- a/facebook_tracking_pixel.module
++++ b/facebook_tracking_pixel.module
+@@ -409,7 +409,7 @@ function facebook_tracking_pixel_facebook_tracking_pixel_events() {
+   ];
+   $events['registration'] = [
+     'name' => t('Complete Registration'),
+-    'code' => 'fbq(\'track\', \'CompleteRegistration\');',
++    'code' => 'fbq(\'track\', \'CompleteRegistration\', {value: \'10.00\', currency: \'AUD\'});',
+   ];
+   return $events;
+ }
