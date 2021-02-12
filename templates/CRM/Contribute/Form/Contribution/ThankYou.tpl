@@ -91,7 +91,7 @@
     <div class="crm-group amount_display-group">
       {if !$useForMember}
         <div class="header-dark">
-          {if !$membershipBlock AND $amount OR ( $priceSetID and $lineItem )}{ts}Contribution Information{/ts}{else}{ts}Membership Fee{/ts}{/if}
+          {ts}Contribution Information{/ts}
         </div>
       {/if}
       <div class="display-block">
