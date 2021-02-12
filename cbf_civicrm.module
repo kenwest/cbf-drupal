@@ -414,7 +414,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       }
       $form->assign( 'address', '' );
 
-      if ($formName == 'CRM_Contribute_Form_Contribution_Confirm' && $form->elementExists('buttons')) {
+      if ($formName == 'CRM_Contribute_Form_Contribution_Confirm' && $form->elementExists('buttons') && $form->_amount) {
         $makePaymentLabel = 'Make payment';
 
         $buttons = $form->getElement('buttons');
