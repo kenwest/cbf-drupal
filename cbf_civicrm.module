@@ -152,6 +152,18 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
       $htmlMessage = preg_replace('#<!-- civimailBlock -->.*<!-- /civimailBlock -->#is', '', $htmlMessage);
     }
 
+    /*
+     * When sending a Contribution confirmation for a Thinkific registration
+     * replace 'THINKIFIC_EMAIL' with the email address. This will personalise
+     * the user's Express Sign On link.
+     */
+    switch ($params['valueName'] ?? '') {
+      case 'contribution_offline_receipt':
+      case 'contribution_online_receipt':
+        $htmlMessage = preg_replace('#THINKIFIC_EMAIL#', $params['toEmail'], $htmlMessage);
+        break;
+    }
+
     $params['html'] = $htmlMessage;
   }
 }
