@@ -471,6 +471,16 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             $thinkificCourse['id'],
             $thinkificCourse['expiry']
           );
+          foreach (['thankyou_text', 'thankyou_footer'] as $tplVar) {
+            $form->assign(
+              $tplVar,
+              preg_replace(
+                '#THINKIFIC_EMAIL#',
+                $form->_params["email-{$bltID}"],
+                $form->_values[$tplVar]
+              )
+            );
+          }
           drupal_set_message(
             implode('. ', $enrolment['progress']),
             $enrolment['status'] != 'Success' ? 'error' : 'status'
