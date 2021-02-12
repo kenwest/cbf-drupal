@@ -432,6 +432,38 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             46); // 'News and updates' list
         }
       }
+
+      /*
+       * If making a Contribution for a Thinkific course, then enrol the user in the course
+       */
+      if ($formName == 'CRM_Contribute_Form_Contribution_ThankYou') {
+        $thinkificCourses = [
+          10 => null, // Contribution page was used in testing
+          15 => 871216,
+          16 => 1150926,
+        ];
+        $thinkificCourse = $thinkificCourses[$form->_id] ?? null;
+        if (isset($thinkificCourse)) {
+          $bltID = $form->_bltID ?? 5;
+          $enrolment = _cbf_civicrm_thinkific_enrolment(
+            $form->_params['first_name'],
+            $form->_params['last_name'],
+            $form->_params["email-{$bltID}"],
+            $form->_contactID,
+            $thinkificCourse
+          );
+          drupal_set_message(
+            implode('. ', $enrolment['progress']),
+            $enrolment['status'] != 'Success' ? 'error' : 'status'
+          );
+          if ($enrolment['status'] != 'Success') {
+            drupal_set_message(
+              'Contact us to resolve this issue with your course.',
+              'error'
+            );
+          }
+        }
+      }
       break;
 
     case 'CRM_Mailing_Form_Upload':
