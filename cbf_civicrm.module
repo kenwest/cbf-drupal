@@ -1620,3 +1620,119 @@ function cbf_civicrm_ministry_team_viewable_fields($team) {
   }
   return $result;
 }
+
+function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $course) {
+  $api = 'https://api.thinkific.com/api/public/v1/';
+  $headers = [
+    'X-Auth-API-Key' => variable_get('cbf_thinkific_api'),
+    'X-Auth-Subdomain' => variable_get('cbf_thinkific_subdomain'),
+    'Content-Type' => 'application/json',
+  ];
+  $thinkificDateFormat = 'Y-m-d\TH:i:s\Z';
+  $activation_time = new DateObject(strtotime('now'), 'UTC');
+  $activation_time = $activation_time->format($thinkificDateFormat);
+  $expiry_time = new DateObject(strtotime('+3 month'), 'UTC');
+  $expiry_time = $expiry_time->format($thinkificDateFormat);
+
+  $result = [
+    'status' => 'find user',
+    'progress' => [],
+    'thinkific' => [
+      'user' => '',
+      'course' => '',
+    ],
+  ];
+
+  while (true) {
+    $steps = [
+      'find user' => [
+        'method' => 'GET',
+        'endpoint' => 'users?query[email]=' . $email,
+        'data' => [],
+      ],
+      'create user' => [
+        'method' => 'POST',
+        'endpoint' => 'users',
+        'data' => [
+          'first_name' => $first,
+          'last_name' => $last,
+          'email' => $email,
+          'external_id' => $id . '',
+        ],
+      ],
+      'find course' => [
+        'method' => 'GET',
+        'endpoint' => 'courses/' . $course,
+        'data' => [],
+      ],
+      'enrol user' => [
+        'method' => 'POST',
+        'endpoint' => 'enrollments',
+        'data' => [
+          'course_id' => $course . '',
+          'user_id' => $result['thinkific']['user'] . '',
+          'activated_at' => $activation_time,
+          'expiry_date' => $expiry_time,
+        ],
+      ],
+    ];
+
+    $step = $steps[$result['status']];
+    $httpResult = drupal_http_request(
+      $api . $step['endpoint'],
+      [
+        'headers' => $headers,
+        'method' => $step['method'],
+        'data' => json_encode($step['data']),
+      ]
+    );
+
+    switch ($httpResult->code) {
+      case 200: // OK
+      case 201: // Created
+        $httpResponse = json_decode($httpResult->data);
+        switch ($result['status']) {
+          case 'find user':
+            if (empty($httpResponse->items)) {
+              $result['progress'][] = "No existing user for {$email}";
+              $result['status'] = 'create user';
+            }
+            else {
+              $result['thinkific']['user'] = $httpResponse->items[0]->id;
+              $result['progress'][] = "User {$email} found";
+              $result['status'] = 'find course';
+            }
+            break;
+
+          case 'create user':
+            $result['thinkific']['user'] = $httpResponse->id;
+            $result['progress'][] = "User {$email} created";
+            $result['status'] = 'find course';
+            break;
+
+          case 'find course':
+            $result['thinkific']['course'] = $httpResponse->name;
+            $result['progress'][] = "Course '{$result['thinkific']['course']}' found";
+            $result['status'] = 'enrol user';
+            break;
+
+          case 'enrol user':
+            $result['progress'][] = "User {$email} enrolled in course";
+            $result['status'] = 'Success';
+            return $result;
+        }
+        break;
+
+      case 400: // Bad request
+      case 403: // Access forbidden
+      case 404: // Not found
+      case 422: // Validation error
+      case 500: // Internal server error
+      default:  // Unexpected error
+        $result['progress'][] = "Failed to {$result['status']}";
+        $result['progress'][] = "HTTP code was {$httpResult->code}";
+        $result['status'] = 'Failure';
+        return $result;
+    }
+  }
+}
