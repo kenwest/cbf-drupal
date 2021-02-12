@@ -451,8 +451,14 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       if ($formName == 'CRM_Contribute_Form_Contribution_ThankYou') {
         $thinkificCourses = [
           10 => null, // Contribution page was used in testing
-          15 => 871216,
-          16 => 1150926,
+          15 => [
+            'id' => 871216,
+            'expiry' => '6 months',
+          ],
+          16 => [
+            'id' => 1150926,
+            'expiry' => '1 month',
+          ],
         ];
         $thinkificCourse = $thinkificCourses[$form->_id] ?? null;
         if (isset($thinkificCourse)) {
@@ -462,7 +468,8 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             $form->_params['last_name'],
             $form->_params["email-{$bltID}"],
             $form->_contactID,
-            $thinkificCourse
+            $thinkificCourse['id'],
+            $thinkificCourse['expiry']
           );
           drupal_set_message(
             implode('. ', $enrolment['progress']),
@@ -1665,7 +1672,7 @@ function cbf_civicrm_ministry_team_viewable_fields($team) {
   return $result;
 }
 
-function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $course) {
+function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $course, $expiry) {
   $api = 'https://api.thinkific.com/api/public/v1/';
   $headers = [
     'X-Auth-API-Key' => variable_get('cbf_thinkific_api'),
@@ -1675,7 +1682,7 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $course) {
   $thinkificDateFormat = 'Y-m-d\TH:i:s\Z';
   $activation_time = new DateObject(strtotime('now'), 'UTC');
   $activation_time = $activation_time->format($thinkificDateFormat);
-  $expiry_time = new DateObject(strtotime('+3 month'), 'UTC');
+  $expiry_time = new DateObject(strtotime($expiry), 'UTC');
   $expiry_time = $expiry_time->format($thinkificDateFormat);
 
   $result = [
