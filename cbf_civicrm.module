@@ -489,7 +489,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
           );
           if ($enrolment['status'] != 'Success') {
             drupal_set_message(
-              'Contact us to resolve this issue with your course.',
+              'Unfortunately we will need to complete your enrolment manually. Please contact us to resolve this issue.',
               'error'
             );
           }
