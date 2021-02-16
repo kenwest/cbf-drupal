@@ -64,9 +64,9 @@
         {if $is_email_receipt}
       <div>
         {if $onBehalfEmail AND ($onBehalfEmail neq $email)}
-          {ts 1=$email 2=$onBehalfEmail}An email receipt will be sent to %1 and to %2 once the transaction is processed successfully.{/ts}
+          {ts 1=$email 2=$onBehalfEmail}An email confirmation will be sent to %1 and to %2 once the transaction is processed successfully.{/ts}
         {else}
-          {ts 1=$email}An email receipt will be sent to %1 once the transaction is processed successfully.{/ts}
+          {ts 1=$email}An email confirmation will be sent to %1 once the transaction is processed successfully.{/ts}
         {/if}
       </div>
     {/if}
@@ -75,9 +75,9 @@
       {if $is_email_receipt}
         <div>
           {if $onBehalfEmail AND ($onBehalfEmail neq $email)}
-            {ts 1=$email 2=$onBehalfEmail}An email receipt has also been sent to %1 and to %2{/ts}
+            {ts 1=$email 2=$onBehalfEmail}An email confirmation has also been sent to %1 and to %2{/ts}
           {elseif $email}
-            {ts 1=$email}An email receipt has also been sent to %1{/ts}
+            {ts 1=$email}An email confirmation has also been sent to %1{/ts}
           {/if}
         </div>
       {/if}
@@ -138,7 +138,7 @@
               {else}
                 <strong>{ts 1=$frequency_unit}This membership will be renewed automatically every %1.{/ts}</strong>
               {/if}
-              <div class="description crm-auto-renew-cancel-info">({ts}You will receive an email receipt which includes information about how to cancel the auto-renewal option.{/ts})</div>
+              <div class="description crm-auto-renew-cancel-info">({ts}You will receive an email confirmation which includes information about how to cancel the auto-renewal option.{/ts})</div>
             {/crmRegion}
           {else}
             {crmRegion name="contribution-thankyou-recur"}
@@ -157,7 +157,7 @@
                 {/if}
                   <p>
                   {if $is_email_receipt}
-                    {ts}You will receive an email receipt which includes information about how to update or cancel this recurring contribution.{/ts}
+                    {ts}You will receive an email confirmation which includes information about how to update or cancel this recurring contribution.{/ts}
                   {/if}
                 </p>
             {/crmRegion}
