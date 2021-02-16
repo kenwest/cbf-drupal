@@ -481,9 +481,11 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
               )
             );
           }
-          drupal_set_message(
-            implode('. ', $enrolment['progress']),
-            $enrolment['status'] != 'Success' ? 'error' : 'status'
+          watchdog(
+            'CBF',
+            'Thinkific enrolment: ' . implode('. ', $enrolment['progress']),
+            null,
+            $enrolment['status'] != 'Success' ? WATCHDOG_ERROR : WATCHDOG_INFO
           );
           if ($enrolment['status'] != 'Success') {
             drupal_set_message(
