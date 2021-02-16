@@ -452,11 +452,17 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         $thinkificCourses = [
           10 => null, // Contribution page was used in testing
           15 => [
-            'id' => 871216,
-            'expiry' => '6 months',
+            'free' => [
+              'course' => 1150926,
+              'expiry' => '1 month',
+            ],
+            'paid' => [
+              'course' => 871216,
+              'expiry' => '6 months',
+            ],
           ],
           16 => [
-            'id' => 1150926,
+            'course' => 1150926,
             'expiry' => '1 month',
           ],
         ];
@@ -468,8 +474,14 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             $form->_params['last_name'],
             $form->_params["email-{$bltID}"],
             $form->_contactID,
-            $thinkificCourse['id'],
-            $thinkificCourse['expiry']
+            $thinkificCourse['course'] ?? (
+              $form->_amount == 0
+                ? $thinkificCourse['free']['course']
+                : $thinkificCourse['paid']['course']),
+            $thinkificCourse['expiry'] ?? (
+              $form->_amount == 0
+                ? $thinkificCourse['free']['expiry']
+                : $thinkificCourse['paid']['expiry'])
           );
           foreach (['thankyou_text', 'thankyou_footer'] as $tplVar) {
             $form->assign(
