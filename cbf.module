@@ -53,7 +53,7 @@ function cbf_init() {
     );
   }
 
-  return array();
+  return [];
 }
 
 /*
