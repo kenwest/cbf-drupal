@@ -784,20 +784,6 @@ function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$p
  * the standard error handling continues.
  */
 function cbf_civicrm_fatal_error_handler(&$vars) {
-  /*
-   * There is an issue where users being redirected back to our site after making
-   * a PayPal payment are sent an error message because their session has changed.
-   * Redirect them to get a thankyou message. The page to which they will be
-   * redirected has no personal information.
-   */
-  if (stripos($vars['message'], 'Could not find a valid session key') !== false
-      && stripos($_SERVER['QUERY_STRING'], '_qf_ThankYou_display') !== false
-      && stripos($_SERVER['HTTP_REFERER'], 'paypal.com') !== false) {
-    CRM_Core_Error::debug_var('PayPal error', $vars, true, true, '', PEAR_LOG_ERR);
-    CRM_Core_Error::backtrace('backTrace', true);
-    CRM_Utils_System::redirect('/paypal-thankyou');
-  }
-
   if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
     $vars['ip']  = $_SERVER['HTTP_X_FORWARDED_FOR'];
     $vars['url'] = $_SERVER['HTTP_X_FORWARDED_PROTO'] . '://' . $_SERVER['HTTP_X_HOST'] . $_SERVER['REQUEST_URI'];
@@ -809,6 +795,20 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
   $vars['agent']  = $_SERVER['HTTP_USER_AGENT'] ?? 'not available';
   if (user_is_logged_in()) {
     $vars['username'] = $GLOBALS['user']->name;
+  }
+
+  /*
+   * There is an issue where users being redirected back to our site after making
+   * a PayPal payment are sent an error message because their session has changed.
+   * Redirect them to get a thank you message. The page to which they will be
+   * redirected has no personal information.
+   */
+  if (stripos($vars['message'], 'Could not find a valid session key') !== false
+      && stripos($_SERVER['QUERY_STRING'], '_qf_ThankYou_display') !== false
+      && stripos($_SERVER['HTTP_REFERER'], 'paypal.com') !== false) {
+          CRM_Core_Error::debug_var('PayPal error', $vars, true, true, '', PEAR_LOG_ERR);
+          CRM_Core_Error::backtrace('backTrace', true);
+          CRM_Utils_System::redirect('/paypal-thankyou');
   }
 
   /*
