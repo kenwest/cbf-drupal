@@ -493,6 +493,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
               )
             );
           }
+          CRM_Core_Error::debug_var('Thinkific enrolment', implode('. ', $enrolment['progress']));
           watchdog(
             'CBF',
             'Thinkific enrolment: ' . implode('. ', $enrolment['progress']),
