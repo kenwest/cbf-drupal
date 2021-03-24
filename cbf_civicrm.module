@@ -642,47 +642,39 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
 
 /*
  * This function is called before CiviCRM passes payment details to a Payment Processor.
- * If the contact names have not been captured then get them from the contact.
- * The Credit Card Holder is captured.
- * The Purchaser Address details are cleared, since the Billing Address is not captured.
  */
 function cbf_civicrm_civicrm_alterPaymentProcessorParams($paymentObj, &$rawParams, &$cookedParams) {
-  $is_recur = CRM_Utils_Array::value('is_recur', $rawParams);
-  $credit_card_holder = CRM_Utils_Array::value('credit_card_holder', $rawParams);
-  $first_name = null;
-  $last_name = null;
+  /*
+   * For the eWAY processor ...
+   * If the contact names have not been captured then get them from the contact.
+   * Capture the Credit Card Holder is captured.
+   * Clear the Purchaser Address details, since the Billing Address is not captured.
+   */
+  if ($paymentObj instanceof CRM_Core_Payment_Ewayrecurring) {
+    $is_recur = CRM_Utils_Array::value('is_recur', $rawParams);
+    $credit_card_holder = CRM_Utils_Array::value('credit_card_holder', $rawParams);
+    $first_name = null;
+    $last_name = null;
 
-  if (
-    !empty(CRM_Utils_Array::value('contact_id', $rawParams))
-    && (empty(CRM_Utils_Array::value('first_name', $rawParams))
-      || empty(CRM_Utils_Array::value('last_name', $rawParams)))
+    if (
+      !empty(CRM_Utils_Array::value('contact_id', $rawParams))
+      && (empty(CRM_Utils_Array::value('first_name', $rawParams))
+          || empty(CRM_Utils_Array::value('last_name', $rawParams)))
     ) {
-    try {
-      $record = civicrm_api3('Contact', 'get', [
-        'sequential' => 1,
-        'return' => ['first_name', 'last_name'],
-        'id' => CRM_Utils_Array::value('contact_id', $rawParams),
-      ]);
-      $first_name = $record['values'][0]['first_name'];
-      $last_name = $record['values'][0]['last_name'];
-    } catch (CiviCRM_API3_Exception $e) {
-      ;
-    }
-  }
-
-  if ($is_recur ?? false) {
-    if ($paymentObj instanceof org_civicrm_ewayrecurring) {
-      // Set credit card holder
-      if ($credit_card_holder) {
-        $cookedParams['CCNameOnCard'] = $credit_card_holder;
+      try {
+        $record = civicrm_api3('Contact', 'get', [
+          'sequential' => 1,
+          'return' => ['first_name', 'last_name'],
+          'id' => CRM_Utils_Array::value('contact_id', $rawParams),
+        ]);
+        $first_name = $record['values'][0]['first_name'];
+        $last_name = $record['values'][0]['last_name'];
+      } catch (CiviCRM_API3_Exception $e) {
+        ;
       }
-      // Set address
-      $cookedParams['Address']  = 'c/o Level 3, 13-15 Bridge St';
-      $cookedParams['Suburb']   = 'Sydney';
-      $cookedParams['State']    = 'NSW';
-      $cookedParams['PostCode'] = '2000';
     }
-    else if ($paymentObj instanceof CRM_Core_Payment_Ewayrecurring) {
+
+    if ($is_recur ?? false) {
       // Set credit card holder
       if ($credit_card_holder) {
         $cookedParams['man:CCNameOnCard'] = $credit_card_holder;
@@ -700,11 +692,7 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams($paymentObj, &$rawParam
       $cookedParams['man:State']    = 'NSW';
       $cookedParams['man:PostCode'] = '2000';
     }
-  }
-  else {
-    if ($paymentObj instanceof CRM_Core_Payment_eWAY  ||
-        $paymentObj instanceof org_civicrm_ewayrecurring  ||
-        $paymentObj instanceof CRM_Core_Payment_Ewayrecurring) {
+    else {
       // Set credit card holder
       if ($credit_card_holder) {
         $cookedParams->CardHolderName($credit_card_holder);
