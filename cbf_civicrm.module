@@ -827,6 +827,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     && stripos($_SERVER['QUERY_STRING'], '_qf_ThankYou_display') !== false
     && stripos($_SERVER['HTTP_REFERER'], 'paypal.com') !== false) {
       CRM_Core_Error::debug_var('PayPal error', $vars, true, true, '', PEAR_LOG_ERR);
+      CRM_Core_Error::debug_var('Cookies', $_COOKIE, true, true, '', PEAR_LOG_ERR);
       CRM_Core_Error::backtrace('backTrace', true);
       CRM_Utils_System::redirect('/paypal-thankyou');
   }
