@@ -722,12 +722,13 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams($paymentObj, &$rawParam
     }
   }
 
-  if (CRM_Core_Payment_PayPalImpl instanceof CRM_Core_Payment_PayPalImpl) {
+  if ($paymentObj instanceof CRM_Core_Payment_PayPalImpl) {
     CRM_Core_Error::debug_var('PayPal variables', [
         'this' => $paymentObj,
         'raw' => $rawParams,
         'cooked' => $cookedParams,
     ]);
+    CRM_Core_Error::backtrace('backTrace', true);
   }
 }
 
