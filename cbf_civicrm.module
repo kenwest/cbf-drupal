@@ -721,6 +721,11 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams($paymentObj, &$rawParam
     else {
       $host = $_SERVER['SERVER_NAME'];
     }
+    $cookedParams['notify_url'] = str_replace(
+      '//citybibleforum.org/',
+      '//' . $host . '/',
+      $cookedParams['notify_url']
+      );
     $cookedParams['cancel_return'] = str_replace(
       '//citybibleforum.org/',
       '//' . $host . '/',
