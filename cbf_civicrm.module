@@ -723,12 +723,25 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams($paymentObj, &$rawParam
   }
 
   if ($paymentObj instanceof CRM_Core_Payment_PayPalImpl) {
+    if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+      $host = $_SERVER['HTTP_X_HOST'];
+    }
+    else {
+      $host = $_SERVER['SERVER_NAME'];
+    }
+    $cookedParams['cancel_return'] = str_replace(
+      '//citybibleforum.org/',
+      '//' . $host . '/',
+      $cookedParams['cancel_return']
+      );
+    $cookedParams['return'] = str_replace(
+      '//citybibleforum.org/',
+      '//' . $host . '/',
+      $cookedParams['return']
+      );
     CRM_Core_Error::debug_var('PayPal variables', [
-        'this' => $paymentObj,
-        'raw' => $rawParams,
-        'cooked' => $cookedParams,
+      'cooked' => $cookedParams,
     ]);
-    CRM_Core_Error::backtrace('backTrace', true);
   }
 }
 
