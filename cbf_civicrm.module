@@ -646,7 +646,7 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
  * The Credit Card Holder is captured.
  * The Purchaser Address details are cleared, since the Billing Address is not captured.
  */
-function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawParams, &$cookedParams ) {
+function cbf_civicrm_civicrm_alterPaymentProcessorParams($paymentObj, &$rawParams, &$cookedParams) {
   $is_recur = CRM_Utils_Array::value('is_recur', $rawParams);
   $credit_card_holder = CRM_Utils_Array::value('credit_card_holder', $rawParams);
   $first_name = null;
@@ -720,6 +720,14 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawPara
       $cookedParams->PurchaserAddress('');
       $cookedParams->PurchaserPostalCode('');
     }
+  }
+
+  if (CRM_Core_Payment_PayPalImpl instanceof CRM_Core_Payment_PayPalImpl) {
+    CRM_Core_Error::debug_var('PayPal variables', [
+        'this' => $paymentObj,
+        'raw' => $rawParams,
+        'cooked' => $cookedParams,
+    ]);
   }
 }
 
