@@ -710,6 +710,10 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams($paymentObj, &$rawParam
     }
   }
 
+  /*
+   * For the PayPal Standard processor ...
+   * Set the return URLs to come back to this $host to avoid invalid session issues
+   */
   if ($paymentObj instanceof CRM_Core_Payment_PayPalImpl) {
     if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
       $host = $_SERVER['HTTP_X_HOST'];
@@ -795,6 +799,9 @@ function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$p
  * the standard error handling continues.
  */
 function cbf_civicrm_fatal_error_handler(&$vars) {
+  /*
+   * Add extra $vars to help with debugging
+   */
   if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
     $vars['ip']   = $_SERVER['HTTP_X_FORWARDED_FOR'];
     $vars['host'] = $_SERVER['HTTP_X_HOST'];
@@ -821,12 +828,6 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
     && stripos($_SERVER['HTTP_REFERER'], 'paypal.com') !== false) {
       CRM_Core_Error::debug_var('PayPal error', $vars, true, true, '', PEAR_LOG_ERR);
       CRM_Core_Error::backtrace('backTrace', true);
-      $replacements = null;
-      $newUrl = str_replace('//citybibleforum.org/', '//plus.citybibleforum.org/', $vars['url'], $replacements);
-      CRM_Core_Error::debug_var('newUrl', $newUrl, true, true, '', PEAR_LOG_ERR);
-      if ($replacements == 1) {
-        CRM_Utils_System::redirect($newUrl);
-      }
       CRM_Utils_System::redirect('/paypal-thankyou');
   }
 

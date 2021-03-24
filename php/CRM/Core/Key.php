@@ -109,6 +109,10 @@ class CRM_Core_Key {
    *   if valid, else null
    */
   public static function validate($key, $name, $addSequence = FALSE) {
+    /*
+     * KW 2021-03-24
+     * Log debugging information about this key validation when the referrer is PayPal
+     */
     if (stripos($_SERVER['HTTP_REFERER'], 'paypal.com') !== false) {
       if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
         $ip  = $_SERVER['HTTP_X_FORWARDED_FOR'];
@@ -118,7 +122,7 @@ class CRM_Core_Key {
         $ip  = $_SERVER['REMOTE_ADDR'];
         $url = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
       }
-      CRM_Core_Error::debug_var('Key validate', [
+      CRM_Core_Error::debug_var('Key validation for PayPal referral', [
         'key' => $key,
         'name' => $name,
         'addSequence' => $addSequence,
