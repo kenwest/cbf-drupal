@@ -1913,6 +1913,7 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
     $thisSession = session_encode();
     try {
       foreach ($sessions as $session) {
+        $progress[] = 'Trying session with ssid = ' . $session['ssid'];
         if (session_decode($session['session'])) {
           list($k, $t) = explode('_', $qfKey);
           $hashKey = hash_hmac(
@@ -1920,6 +1921,9 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
             $_SESSION['CiviCRM']['qfSessionID'] . chr(0) . $controller,
             $_SESSION['CiviCRM']['qfPrivateKey']
           );
+          $progress[] = 'qfSessionID = ' . $_SESSION['CiviCRM']['qfSessionID'];
+          $progress[] = 'qfPrivateKey = ' . $_SESSION['CiviCRM']['qfPrivateKey'];
+          $progress[] = 'hashed key = ' . $hashKey;
           if ($t >= 1 && $t < 10000) {
             if (hash_equals($k, $hashKey)) {
               $matches[] = $session;
