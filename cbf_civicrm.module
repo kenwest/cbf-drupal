@@ -1891,8 +1891,9 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
     /*
      * Reproduce the logic for validating a qfKey from CRM_Core_Key
      * But: lookup the name of the CiviCRM controller
-     *      load each session into $_SESSION
+     *      Ensure a Drupal session has started as we intend to encode an decode sessions
      *      preserve the original $_SESSION and restore it even if there is an
+     *      load each session into $_SESSION
      *      exception
      *      track the sessions which match the qfKey
      */
@@ -1910,6 +1911,7 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
     $progress[] = 'controller = ' . $controller;
 
     $matches = [];
+    drupal_session_start();
     $thisSession = session_encode();
     $progress[] = 'original session = ' . $thisSession;
     try {
