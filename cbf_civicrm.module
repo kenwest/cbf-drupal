@@ -1911,6 +1911,7 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
 
     $matches = [];
     $thisSession = session_encode();
+    $progress[] = 'original session = ' . $thisSession;
     try {
       foreach ($sessions as $session) {
         $progress[] = 'Trying session with ssid = ' . $session['ssid'];
@@ -1930,6 +1931,9 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
               $progress[] = 'Matched session with ssid = ' . $session['ssid'];
             }
           }
+        }
+        else {
+          $progress[] = 'Failed to decode session with ssid = ' . $session['ssid'];
         }
       }
     } catch (Exception $e) {
