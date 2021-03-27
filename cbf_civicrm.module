@@ -1853,8 +1853,11 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $course, $
  * The calling logic should assume that if this function returns that's a failure.
  */
 function _cbf_civicrm_redirect_to_session_for_qfKey() {
+  $progress = [];
   $qfKey = CRM_Utils_Request::retrieve('qfKey', 'String') ?? false;
+  $progress[] = 'qfKey = ' . $qfKey;
   $beenHere = CRM_Utils_Request::retrieve('cbf', 'Boolean') ?? false;
+  $progress[] = 'beenHere = ' . $beenHere;
 
   if ($qfKey && !$beenHere) { // We have a qfKey and we've not been here before
     /*
@@ -1869,6 +1872,7 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
     else {
       $hostname = $_SERVER['REMOTE_ADDR'];
     }
+    $progress[] = 'hostname = ' . $hostname;
     $result =
       db_query(
         "SELECT u.*, s.* FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid WHERE s.hostname = :hostname",
@@ -1877,9 +1881,11 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
     $sessions = [];
     foreach ($result as $session) {
       $sessions[] = [
+        'ssid' => $session->ssid,
         'uid' => $session->uid ?? 0,
         'session' => $session->session
       ];
+      $progress[] = 'Found session with ssid = ' . $session->ssid;
     }
 
     /*
@@ -1891,7 +1897,9 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
      *      track the sessions which match the qfKey
      */
     $controller = '';
-    switch (drupal_parse_url($_SERVER['REQUEST_URI'])['path']) {
+    $path = drupal_parse_url($_SERVER['REQUEST_URI'])['path'];
+    $progress[] = 'path = ' . $path;
+    switch ($path) {
       case '/civicrm/contribute/transact':
         $controller = 'CRM_Contribute_Controller_Contribution';
         break;
@@ -1899,6 +1907,7 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
         $controller = 'CRM_Event_Controller_Registration';
         break;
     }
+    $progress[] = 'controller = ' . $controller;
 
     $matches = [];
     $thisSession = session_encode();
@@ -1914,6 +1923,7 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
           if ($t >= 1 && $t < 10000) {
             if (hash_equals($k, $hashKey)) {
               $matches[] = $session;
+              $progress[] = 'Matched session with ssid = ' . $session['ssid'];
             }
           }
         }
@@ -1936,6 +1946,8 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
        *      this doesn't work if the current method is not POST
        */
       $uri = $_SERVER['REQUEST_URI'] . '&cbf=1';
+      $progress[] = 'Redirect to URI = ' . $uri;
+      CRM_Core_Error::debug_var('_cbf_civicrm_redirect_to_session_for_qfKey', $progress);
       http_response_code(307);
       CRM_Utils_System::redirect($uri);
     }
@@ -1943,5 +1955,6 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
     session_decode($thisSession);
   }
 
+  CRM_Core_Error::debug_var('_cbf_civicrm_redirect_to_session_for_qfKey', $progress);
   return false;
 }
