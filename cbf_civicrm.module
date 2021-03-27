@@ -834,6 +834,7 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
       CRM_Core_Error::debug_var('PayPal error', $vars, true, true, '', PEAR_LOG_ERR);
       CRM_Core_Error::debug_var('Cookies', $_COOKIE, true, true, '', PEAR_LOG_ERR);
       CRM_Core_Error::backtrace('backTrace', true);
+      _cbf_civicrm_redirect_to_session_for_qfKey();
       CRM_Utils_System::redirect('/paypal-thankyou');
   }
 
@@ -1838,4 +1839,109 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $course, $
         return $result;
     }
   }
+}
+
+/*
+ * Redirect the visitor to a session that matches the qfKey they specify.
+ *
+ * If not “we have been here before”, then
+ *   If can find the original session, then
+ *     Load data from original session into this session
+ *     Redirect to try again, marking “we have been here before” to avoid a loop
+ *
+ * If the redirect doesn't happen for any reason, this function will return false.
+ * The calling logic should assume that if this function returns that's a failure.
+ */
+function _cbf_civicrm_redirect_to_session_for_qfKey() {
+  $qfKey = CRM_Utils_Request::retrieve('qfKey', 'String') ?? false;
+  $beenHere = CRM_Utils_Request::retrieve('cbf', 'Boolean') ?? false;
+
+  if ($qfKey && !$beenHere) { // We have a qfKey and we've not been here before
+    /*
+     * Reproduce the logic for finding a session from _drupal_session_read
+     * But: assume HTTPS;
+     *      search by hostname rather than ssid;
+     *      allow for zero to many results.
+     */
+    if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+      $hostname = $_SERVER['HTTP_X_FORWARDED_FOR'];
+    }
+    else {
+      $hostname = $_SERVER['REMOTE_ADDR'];
+    }
+    $result =
+      db_query(
+        "SELECT u.*, s.* FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid WHERE s.hostname = :hostname",
+        [':hostname' => $hostname]
+      )->fetchAll();
+    $sessions = [];
+    foreach ($result as $session) {
+      $sessions[] = [
+        'uid' => $session->uid ?? 0,
+        'session' => $session->session
+      ];
+    }
+
+    /*
+     * Reproduce the logic for validating a qfKey from CRM_Core_Key
+     * But: lookup the name of the CiviCRM controller
+     *      load each session into $_SESSION
+     *      preserve the original $_SESSION and restore it even if there is an
+     *      exception
+     *      track the sessions which match the qfKey
+     */
+    $controller = '';
+    switch (drupal_parse_url($_SERVER['REQUEST_URI'])['path']) {
+      case '/civicrm/contribute/transact':
+        $controller = 'CRM_Contribute_Controller_Contribution';
+        break;
+      case '/civicrm/event/register':
+        $controller = 'CRM_Event_Controller_Registration';
+        break;
+    }
+
+    $matches = [];
+    $thisSession = session_encode();
+    try {
+      foreach ($sessions as $session) {
+        if (session_decode($session['session'])) {
+          list($k, $t) = explode('_', $qfKey);
+          $hashKey = hash_hmac(
+            CRM_Core_Key::HASH_ALGO,
+            $_SESSION['CiviCRM']['qfSessionID'] . chr(0) . $controller,
+            $_SESSION['CiviCRM']['qfPrivateKey']
+          );
+          if ($t >= 1 && $t < 10000) {
+            if (hash_equals($k, $hashKey)) {
+              $matches[] = $session;
+            }
+          }
+        }
+      }
+    } catch (Exception $e) {
+      ;
+    }
+
+    if (count($matches) == 1) { // We have found the original session
+      /*
+       * Load data from the original session into this session, borrowing logic
+       * from hybridauth_session_start()
+       */
+      session_decode($matches[0]['session']);
+
+      /*
+       * Redirect to try again, marking “we have been here before” to avoid a loop
+       * But: this implements CRM_Utils_System::redirect with response code 307
+       *      this doesn't work if the current URL was redirected internally
+       *      this doesn't work if the current method is not POST
+       */
+      $uri = $_SERVER['REQUEST_URI'] . '&cbf=1';
+      http_response_code(307);
+      CRM_Utils_System::redirect($uri);
+    }
+
+    session_decode($thisSession);
+  }
+
+  return false;
 }
