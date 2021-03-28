@@ -1873,6 +1873,10 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
       $hostname = $_SERVER['REMOTE_ADDR'];
     }
     $progress[] = 'hostname = ' . $hostname;
+    $progress[] = 'ip_address = ' . ip_address();
+    $progress[] = 'SERVER_NAME = ' . $_SERVER['SERVER_NAME'];
+    $progress[] = 'HTTP_HOST = ' . $_SERVER['HTTP_HOST'];
+    $progress[] = 'HTTP_X_HOST = ' . $_SERVER['HTTP_X_HOST'];
     $result =
       db_query(
         "SELECT u.*, s.* FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid WHERE s.hostname = :hostname",
@@ -1913,7 +1917,7 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
     $matches = [];
     drupal_session_start();
     $thisSession = session_encode();
-    $progress[] = 'original session = ' . $thisSession;
+    $progress[] = 'Current session = ' . $thisSession;
     try {
       foreach ($sessions as $session) {
         $_SESSION = [];
@@ -1950,12 +1954,15 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
        */
       $_SESSION = [];
       session_decode($matches[0]['session']);
+      $progress[] = 'Loaded session = ' . $session['session'];
+      db_delete('sessions')->condition('ssid', $matches[0]['ssid'])->execute();
+      $progress[] = 'Deleted row from sessions table with ssid = ' . $session['ssid'];
 
       /*
        * Redirect to try again, marking “we have been here before” to avoid a loop
        * But: this implements CRM_Utils_System::redirect with response code 307
        *      this doesn't work if the current URL was redirected internally
-       *      this doesn't work if the current method is not POST
+       *      this may not work if the current method is not POST
        */
       $uri = $_SERVER['REQUEST_URI'] . '&cbf=1';
       $progress[] = 'Redirect to URI = ' . $uri;
@@ -1966,6 +1973,7 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
 
     $_SESSION = [];
     session_decode($thisSession);
+    $progress[] = 'Reloaded the starting session = ' . $thisSession;
   }
 
   CRM_Core_Error::debug_var('_cbf_civicrm_redirect_to_session_for_qfKey', $progress);
