@@ -1954,9 +1954,9 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
        */
       $_SESSION = [];
       session_decode($matches[0]['session']);
-      $progress[] = 'Loaded session = ' . $session['session'];
+      $progress[] = 'Loaded session = ' . $matches[0]['session'];
       db_delete('sessions')->condition('ssid', $matches[0]['ssid'])->execute();
-      $progress[] = 'Deleted row from sessions table with ssid = ' . $session['ssid'];
+      $progress[] = 'Deleted row from sessions table with ssid = ' . $matches[0]['ssid'];
 
       /*
        * Redirect to try again, marking “we have been here before” to avoid a loop
