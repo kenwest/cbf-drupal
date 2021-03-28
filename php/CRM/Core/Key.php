@@ -114,14 +114,6 @@ class CRM_Core_Key {
      * Log debugging information about this key validation when the referrer is PayPal
      */
     if (stripos($_SERVER['HTTP_REFERER'], 'paypal.com') !== false) {
-      if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $ip  = $_SERVER['HTTP_X_FORWARDED_FOR'];
-        $url = $_SERVER['HTTP_X_FORWARDED_PROTO'] . '://' . $_SERVER['HTTP_X_HOST'] . $_SERVER['REQUEST_URI'];
-      }
-      else {
-        $ip  = $_SERVER['REMOTE_ADDR'];
-        $url = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
-      }
       CRM_Core_Error::debug_var('Key validation for PayPal referral', [
         'key' => $key,
         'name' => $name,
@@ -129,8 +121,8 @@ class CRM_Core_Key {
         'privateKey' => self::privateKey(),
         'sessionID' => self::sessionID(),
         'signed' => self::sign($name),
-        'ip' => $ip,
-        'url' => $url,
+        'ip' => ip_address(),
+        'url' => 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'],
       ]);
     }
 

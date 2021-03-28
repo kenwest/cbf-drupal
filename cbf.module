@@ -1064,12 +1064,7 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
   else {
     $city = '';
   }
-  if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-    $host = $_SERVER['HTTP_X_HOST'];
-  }
-  else {
-    $host = $_SERVER['SERVER_NAME'];
-  }
+  $host = $_SERVER['SERVER_NAME'];
   $schemes = array();
   $results = array();
   $types = array();

@@ -319,8 +319,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
        */
       if (isset($_SESSION['City Bible Forum']['Card issues'])) {
         if ($_SESSION['City Bible Forum']['Card issues'] > 2) {
-          $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
-          CRM_Core_Error::debug_log_message("|CiviCRM guard|Credit card issue|anonymous|$ip");
+          CRM_Core_Error::debug_log_message('|CiviCRM guard|Credit card issue|anonymous|' . ip_address());
           if ($_SESSION['City Bible Forum']['Card issues'] > 6) {
             CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
           }
@@ -715,12 +714,7 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams($paymentObj, &$rawParam
    * Set the return URLs to come back to this $host to avoid invalid session issues
    */
   if ($paymentObj instanceof CRM_Core_Payment_PayPalImpl) {
-    if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-      $host = $_SERVER['HTTP_X_HOST'];
-    }
-    else {
-      $host = $_SERVER['SERVER_NAME'];
-    }
+    $host = $_SERVER['SERVER_NAME'];
     $cookedParams['notify_url'] = str_replace(
       '//citybibleforum.org/',
       '//' . $host . '/',
@@ -807,17 +801,10 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
   /*
    * Add extra $vars to help with debugging
    */
-  if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-    $vars['ip']   = $_SERVER['HTTP_X_FORWARDED_FOR'];
-    $vars['host'] = $_SERVER['HTTP_X_HOST'];
-    $vars['url']  = $_SERVER['HTTP_X_FORWARDED_PROTO'] . '://' . $_SERVER['HTTP_X_HOST'] . $_SERVER['REQUEST_URI'];
-  }
-  else {
-    $vars['ip']   = $_SERVER['REMOTE_ADDR'];
-    $vars['host'] = $_SERVER['SERVER_NAME'];
-    $vars['url']  = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
-  }
-  $vars['agent']  = $_SERVER['HTTP_USER_AGENT'] ?? 'not available';
+  $vars['ip'] = ip_address();
+  $vars['host'] = $_SERVER['HTTP_HOST'];
+  $vars['url']  = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+  $vars['agent'] = $_SERVER['HTTP_USER_AGENT'] ?? 'not available';
   if (user_is_logged_in()) {
     $vars['username'] = $GLOBALS['user']->name;
   }
@@ -1866,17 +1853,9 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
      *      search by hostname rather than ssid;
      *      allow for zero to many results.
      */
-    if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-      $hostname = $_SERVER['HTTP_X_FORWARDED_FOR'];
-    }
-    else {
-      $hostname = $_SERVER['REMOTE_ADDR'];
-    }
-    $progress[] = 'hostname = ' . $hostname;
-    $progress[] = 'ip_address = ' . ip_address();
-    $progress[] = 'SERVER_NAME = ' . $_SERVER['SERVER_NAME'];
+    $hostname = ip_address();
+    $progress[] = 'hostname = ' . ip_address();
     $progress[] = 'HTTP_HOST = ' . $_SERVER['HTTP_HOST'];
-    $progress[] = 'HTTP_X_HOST = ' . $_SERVER['HTTP_X_HOST'];
     $result =
       db_query(
         "SELECT u.*, s.* FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid WHERE s.hostname = :hostname",
