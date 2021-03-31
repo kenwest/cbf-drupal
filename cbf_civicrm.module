@@ -305,8 +305,12 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         $status_text = $_SESSION['CiviCRM']['status'][0]['text'] ?? '';
         if (!empty($status_text)) {
           CRM_Core_Error::debug_var(
-            'CiviCRM status text',
-            $status_text);
+            'CiviCRM status',
+            [
+              'CiviCRM status text' => $status_text,
+              'ip' => ip_address(),
+            ],
+          );
           if (stristr($status_text, 'Payment Processor Error') !== false) {
             if (preg_match('#\[(0[1-9])|([1-9][0-9])\]#i', $status_text) == 1) {
               $cardIssueDetected = true;
