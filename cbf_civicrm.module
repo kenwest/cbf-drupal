@@ -300,11 +300,13 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       /*
        * Keep a count of anonymous users' credit card issues in their session
        */
+      $cardIssueDetected = false;
       if (user_is_anonymous()) {
         $status_text = $_SESSION['CiviCRM']['status'][0]['text'] ?? '';
         CRM_Core_Error::debug_var('Credit card text', $status_text, true, true, '', PEAR_LOG_ERR);
         if (stristr($status_text, 'Payment Processor Error') !== false) {
           if (preg_match('#\[(0[1-9])|([1-9][0-9])\]#i', $status_text) == 1) {
+            $cardIssueDetected = true;
             if (isset($_SESSION['City Bible Forum']['Card issues'])) {
               $_SESSION['City Bible Forum']['Card issues']++;
             } else {
@@ -329,7 +331,9 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       $CardIssuesError = 6;
       if (isset($_SESSION['City Bible Forum']['Card issues'])) {
         if ($_SESSION['City Bible Forum']['Card issues'] > $CardIssuesWarning) {
-          CRM_Core_Error::debug_log_message('|CiviCRM guard|Credit card issue|anonymous|' . ip_address());
+          if ($cardIssueDetected) {
+            CRM_Core_Error::debug_log_message('|CiviCRM guard|Credit card issue|anonymous|' . ip_address());
+          }
           if ($_SESSION['City Bible Forum']['Card issues'] > $CardIssuesError) {
             CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
           }
