@@ -320,10 +320,10 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
        * If more than $CardIssuesError send them to a dead end, assuming
        * they're trying to crack a card.
        *
-       * 2021-03-31 Set $CardIssuesWarning to zero as this solution fails when
-       *            the attacker uses a new session each time
+       * 2021-03-31 Set $CardIssuesWarning to zero as this solution failed when
+       *            the attacker used a new session each time (value was 2)
        */
-      $CardIssuesWarning = 0; // Was 2
+      $CardIssuesWarning = 0;
       $CardIssuesError = 6;
       if (isset($_SESSION['City Bible Forum']['Card issues'])) {
         if ($_SESSION['City Bible Forum']['Card issues'] > $CardIssuesWarning) {
