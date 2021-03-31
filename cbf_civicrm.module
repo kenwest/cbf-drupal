@@ -302,6 +302,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
        */
       if (user_is_anonymous()) {
         $status_text = $_SESSION['CiviCRM']['status'][0]['text'] ?? '';
+        CRM_Core_Error::debug_var('Credit card text', $status_text, true, true, '', PEAR_LOG_ERR);
         if (stristr($status_text, 'Payment Processor Error') !== false) {
           if (stristr($status_text, '9001') !== false) {
             if (isset($_SESSION['City Bible Forum']['Card issues'])) {
@@ -309,6 +310,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             } else {
               $_SESSION['City Bible Forum']['Card issues'] = 1;
             }
+            CRM_Core_Error::debug_var('Credit card issues', $_SESSION['City Bible Forum']['Card issues'], true, true, '', PEAR_LOG_ERR);
           }
         }
       }
