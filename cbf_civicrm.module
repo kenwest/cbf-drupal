@@ -314,13 +314,21 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       }
 
       /*
-       * If a user has more than 2 credit card issues in a session, log it.
-       * If more than 6 send them to a dead end, assuming they're trying to crack a card.
+       * If a user has more than $CardIssuesWarning credit card issues in a
+       * session, log it.
+       *
+       * If more than $CardIssuesError send them to a dead end, assuming
+       * they're trying to crack a card.
+       *
+       * 2021-03-31 Set $CardIssuesWarning to zero as this solution fails when
+       *            the attacker uses a new session each time
        */
+      $CardIssuesWarning = 0; // Was 2
+      $CardIssuesError = 6;
       if (isset($_SESSION['City Bible Forum']['Card issues'])) {
-        if ($_SESSION['City Bible Forum']['Card issues'] > 2) {
+        if ($_SESSION['City Bible Forum']['Card issues'] > $CardIssuesWarning) {
           CRM_Core_Error::debug_log_message('|CiviCRM guard|Credit card issue|anonymous|' . ip_address());
-          if ($_SESSION['City Bible Forum']['Card issues'] > 6) {
+          if ($_SESSION['City Bible Forum']['Card issues'] > $CardIssuesError) {
             CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
           }
         }
