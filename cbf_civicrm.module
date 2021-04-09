@@ -350,6 +350,45 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         }
       }
 
+      /*
+       * If more than N Contributions have failed in the last period, then
+       * add a reCAPTCHA to the form
+       */
+      $contributionFailureThreshold = 0;
+      $contributionFailurePeriod = '1 month ago';
+      if (user_is_anonymous()) {
+        try {
+          $dateTime = new DateObject($contributionFailurePeriod);
+          $contributionFailureTime = $dateTime->format('Y-m-d H:i:s', true);
+          $result = civicrm_api3('Contribution', 'get', [
+            'sequential' => 1,
+            'receive_date' => ['>=' => $contributionFailureTime],
+            'contribution_status_id' => 'Failed',
+            'payment_instrument_id' => 'Credit Card',
+          ]);
+          $addCaptcha = ($result['count'] > $contributionFailureThreshold || $result['is_error']);
+        } catch (CiviCRM_API3_Exception $e) {
+          $addCaptcha = true;
+        }
+
+        if ($addCaptcha) {
+          CRM_Utils_ReCAPTCHA::enableCaptchaOnForm($form);
+        }
+
+        CRM_Core_Error::debug_var(
+          'reCAPTCHA logic',
+          [
+            'Threshold' => $contributionFailureThreshold,
+            'Period' => $contributionFailurePeriod,
+            'Time at start of period' => $contributionFailureTime,
+            'Count of failed credit card payments' => $result['count'] ?? 'unknown',
+            'Error getting failed credit card payments' => $result['is_error'] ?? 'yes',
+            'Add reCAPTCHA' => $addCaptcha,
+            'ip' => ip_address(),
+          ]
+        );
+      }
+
       // Add a form element for the credit card holder
       // It is required if the credit card number is required
       if ($form->elementExists('credit_card_number') && !$form->elementExists('credit_card_holder')) {
