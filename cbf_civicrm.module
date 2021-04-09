@@ -376,15 +376,15 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         }
 
         CRM_Core_Error::debug_var(
-          'reCAPTCHA logic',
+          'Test for failed credit card payments',
           [
-            'Threshold' => $contributionFailureThreshold,
-            'Period' => $contributionFailurePeriod,
-            'Time at start of period' => $contributionFailureTime,
-            'Count of failed credit card payments' => $result['count'] ?? 'unknown',
-            'Error getting failed credit card payments' => $result['is_error'] ?? 'yes',
+            'reCAPTCHA Threshold' => $contributionFailureThreshold,
+            'reCAPTCHA Period' => $contributionFailurePeriod,
+            'Time at start of reCAPTCHA period' => $contributionFailureTime,
+            'reCAPTCHA failed credit card payments' => $result['count'] ?? 'unknown',
+            'reCAPTCHA Error getting failed payments' => $result['is_error'] ?? 'yes',
             'Add reCAPTCHA' => $addCaptcha,
-            'ip' => ip_address(),
+            'reCAPTCHA ip' => ip_address(),
           ]
         );
       }
