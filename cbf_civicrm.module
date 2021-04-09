@@ -355,7 +355,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
        * add a reCAPTCHA to the form
        */
       $contributionFailureThreshold = 0;
-      $contributionFailurePeriod = '1 month ago';
+      $contributionFailurePeriod = '1 hour ago';
       if (user_is_anonymous()) {
         try {
           $dateTime = new DateObject($contributionFailurePeriod);
