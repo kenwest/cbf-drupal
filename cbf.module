@@ -140,6 +140,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
         foreach ($result as $entityType => $entityKeys) {
           $entities = entity_load($entityType, array_keys($entityKeys));
           foreach ($entities as $entityKey => $entity) {
+            $city = null;
             $ministryCentres = field_get_items('entityform', $entity, 'taxonomy_vocabulary_1');
             if ($ministryCentres === false) $ministryCentres = [];
             foreach ($ministryCentres as $city) {
