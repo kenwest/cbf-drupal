@@ -1668,53 +1668,6 @@ function cbf_cron() {
         node_save($node);
       }
     }
-
-    /*
-     * Convert Collection terms into Collection entityforms.
-     *  - find all the terms
-     *  - loop until 20 terms have been copied or there are no more terms to copy
-     *     - skip term if an entityform already exists
-     *     - create entityform
-     *     - add fields to entityform
-     */
-    $query = new EntityFieldQuery();
-    $result =
-      $query
-        ->entityCondition('entity_type', 'taxonomy_term')
-        ->entityCondition('bundle', 'collection')
-        ->execute();
-    foreach ($result as $entityType => $entities) {
-      $terms = entity_load('taxonomy_term', array_keys($entities));
-      foreach ($terms as $term) {
-        $query1 = new EntityFieldQuery();
-        $result1 =
-          $query1
-            ->entityCondition('entity_type', 'entityform')
-            ->entityCondition('bundle', 'collection')
-            ->fieldCondition('field_title', 'value', $term->name, '=')
-            ->execute();
-        if (!empty($result1)) {
-          foreach ($result1 as $entityType1 => $entities1) {
-            $entityForms = entity_load('entityform', array_keys($entities1));
-            $entityForm = reset($entityForms);
-            $redirectFrom = 'collection/' . $term->tid;
-            $redirectTo = 'collection/' . $entityForm->entityform_id;
-
-            if (redirect_load_by_source($redirectFrom) === false) {
-              $redirect = new stdClass();
-              redirect_object_prepare(
-                $redirect,
-                [
-                  'source' => $redirectFrom,
-                  'redirect' => $redirectTo,
-                ]
-              );
-              redirect_save($redirect);
-            }
-          }
-        }
-      }
-    }
   } catch (Exception $e) {
     // Do nothing
   }
