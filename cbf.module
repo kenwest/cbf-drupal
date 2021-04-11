@@ -437,7 +437,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
           ),
         );
       $params = drupal_get_query_parameters();
-      if (filter_var($params['gid'], FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)))) {
+      if (isset($params['gid']) && filter_var($params['gid'], FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)))) {
         $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#default_value'] = array($params['gid']);
       }
     }
