@@ -724,7 +724,7 @@ function _computed_field_date_text_compute($entity_type, $entity) {
       $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
       $endstamp = strtotime($end_time->format('Y-m-d H:i:s O'));
 
-      if ($time_text === false) {
+      if ($time_text === false && $endstamp > $current_time) {
         $time_text = str_replace('.00', '', $start_time->format($time_format));
         if ($time_text != $midnight) {
           $time_text .= '-' . str_replace('.00', '', $end_time->format($time_format));
