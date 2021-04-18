@@ -53,7 +53,7 @@ function cbf_init() {
     );
   }
 
-  return array();
+  return [];
 }
 
 /*
@@ -140,6 +140,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
         foreach ($result as $entityType => $entityKeys) {
           $entities = entity_load($entityType, array_keys($entityKeys));
           foreach ($entities as $entityKey => $entity) {
+            $city = null;
             $ministryCentres = field_get_items('entityform', $entity, 'taxonomy_vocabulary_1');
             if ($ministryCentres === false) $ministryCentres = [];
             foreach ($ministryCentres as $city) {
@@ -436,7 +437,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
           ),
         );
       $params = drupal_get_query_parameters();
-      if (filter_var($params['gid'], FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)))) {
+      if (isset($params['gid']) && filter_var($params['gid'], FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)))) {
         $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#default_value'] = array($params['gid']);
       }
     }
@@ -1064,12 +1065,7 @@ function computed_field_field_add_to_calendar_compute(&$entity_field, $entity_ty
   else {
     $city = '';
   }
-  if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-    $host = $_SERVER['HTTP_X_HOST'];
-  }
-  else {
-    $host = $_SERVER['SERVER_NAME'];
-  }
+  $host = $_SERVER['SERVER_NAME'];
   $schemes = array();
   $results = array();
   $types = array();
@@ -1347,7 +1343,6 @@ function cbf_entity_presave($entity, $type) {
         'regular_venue' => true,
         'title_header' => true,
         'home_page_slider' => true,
-        'collection' => true,
       ];
       $skipDomainBundles = [
         'dateable' => true,
@@ -1671,53 +1666,6 @@ function cbf_cron() {
         $langcode = field_language('node', $node, 'field_third_space_restricted');
         $node->field_third_space_restricted[$langcode][0]['value'] = 0;
         node_save($node);
-      }
-    }
-
-    /*
-     * Convert Collection terms into Collection entityforms.
-     *  - find all the terms
-     *  - loop until 20 terms have been copied or there are no more terms to copy
-     *     - skip term if an entityform already exists
-     *     - create entityform
-     *     - add fields to entityform
-     */
-    $query = new EntityFieldQuery();
-    $result =
-      $query
-        ->entityCondition('entity_type', 'taxonomy_term')
-        ->entityCondition('bundle', 'collection')
-        ->execute();
-    foreach ($result as $entityType => $entities) {
-      $terms = entity_load('taxonomy_term', array_keys($entities));
-      foreach ($terms as $term) {
-        $query1 = new EntityFieldQuery();
-        $result1 =
-          $query1
-            ->entityCondition('entity_type', 'entityform')
-            ->entityCondition('bundle', 'collection')
-            ->fieldCondition('field_title', 'value', $term->name, '=')
-            ->execute();
-        if (!empty($result1)) {
-          foreach ($result1 as $entityType1 => $entities1) {
-            $entityForms = entity_load('entityform', array_keys($entities1));
-            $entityForm = reset($entityForms);
-            $redirectFrom = 'collection/' . $term->tid;
-            $redirectTo = 'collection/' . $entityForm->entityform_id;
-
-            if (redirect_load_by_source($redirectFrom) === false) {
-              $redirect = new stdClass();
-              redirect_object_prepare(
-                $redirect,
-                [
-                  'source' => $redirectFrom,
-                  'redirect' => $redirectTo,
-                ]
-              );
-              redirect_save($redirect);
-            }
-          }
-        }
       }
     }
   } catch (Exception $e) {

@@ -300,31 +300,93 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       /*
        * Keep a count of anonymous users' credit card issues in their session
        */
+      $cardIssueDetected = false;
       if (user_is_anonymous()) {
         $status_text = $_SESSION['CiviCRM']['status'][0]['text'] ?? '';
-        if (stristr($status_text, 'Payment Processor Error') !== false) {
-          if (stristr($status_text, '9001') !== false) {
-            if (isset($_SESSION['City Bible Forum']['Card issues'])) {
-              $_SESSION['City Bible Forum']['Card issues']++;
-            } else {
-              $_SESSION['City Bible Forum']['Card issues'] = 1;
+        if (!empty($status_text)) {
+          CRM_Core_Error::debug_var(
+            'CiviCRM status',
+            [
+              'CiviCRM status text' => $status_text,
+              'ip' => ip_address(),
+            ]
+          );
+          if (stristr($status_text, 'Payment Processor Error') !== false) {
+            if (preg_match('#\[(0[1-9])|([1-9][0-9])\]#i', $status_text) == 1) {
+              $cardIssueDetected = true;
+              if (isset($_SESSION['City Bible Forum']['Card issues'])) {
+                $_SESSION['City Bible Forum']['Card issues']++;
+              } else {
+                $_SESSION['City Bible Forum']['Card issues'] = 1;
+              }
+              CRM_Core_Error::debug_var(
+                'Credit card issues',
+                $_SESSION['City Bible Forum']['Card issues']);
             }
           }
         }
       }
 
       /*
-       * If a user has more than 2 credit card issues in a session, log it.
-       * If more than 6 send them to a dead end, assuming they're trying to crack a card.
+       * If a user has more than $CardIssuesWarning credit card issues in a
+       * session, log it.
+       *
+       * If more than $CardIssuesError send them to a dead end, assuming
+       * they're trying to crack a card.
+       *
+       * 2021-03-31 Set $CardIssuesWarning to zero as this solution failed when
+       *            the attacker used a new session each time (value was 2)
        */
+      $CardIssuesWarning = 0;
+      $CardIssuesError = 6;
       if (isset($_SESSION['City Bible Forum']['Card issues'])) {
-        if ($_SESSION['City Bible Forum']['Card issues'] > 2) {
-          $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
-          CRM_Core_Error::debug_log_message("|CiviCRM guard|Credit card issue|anonymous|$ip");
-          if ($_SESSION['City Bible Forum']['Card issues'] > 6) {
+        if ($_SESSION['City Bible Forum']['Card issues'] > $CardIssuesWarning) {
+          if ($cardIssueDetected) {
+            CRM_Core_Error::debug_log_message('|CiviCRM guard|Credit card issue|anonymous|' . ip_address());
+          }
+          if ($_SESSION['City Bible Forum']['Card issues'] > $CardIssuesError) {
             CRM_Utils_System::redirect(CRM_Utils_System::url('full-stop.html'));
           }
         }
+      }
+
+      /*
+       * If more than N Contributions have failed in the last period, then
+       * add a reCAPTCHA to the form
+       */
+      $contributionFailureThreshold = 0;
+      $contributionFailurePeriod = '1 hour ago';
+      if (user_is_anonymous()) {
+        try {
+          $dateTime = new DateObject($contributionFailurePeriod);
+          $contributionFailureTime = $dateTime->format('Y-m-d H:i:s', true);
+          $result = civicrm_api3('Contribution', 'get', [
+            'sequential' => 1,
+            'receive_date' => ['>=' => $contributionFailureTime],
+            'contribution_status_id' => 'Failed',
+            'payment_instrument_id' => 'Credit Card',
+          ]);
+          $addCaptcha = ($result['count'] > $contributionFailureThreshold || $result['is_error']);
+        } catch (CiviCRM_API3_Exception $e) {
+          $addCaptcha = true;
+        }
+
+        if ($addCaptcha) {
+          CRM_Utils_ReCAPTCHA::enableCaptchaOnForm($form);
+        }
+
+        CRM_Core_Error::debug_var(
+          'Test for failed credit card payments',
+          [
+            'reCAPTCHA Threshold' => $contributionFailureThreshold,
+            'reCAPTCHA Period' => $contributionFailurePeriod,
+            'Time at start of reCAPTCHA period' => $contributionFailureTime,
+            'reCAPTCHA failed credit card payments' => $result['count'] ?? 'unknown',
+            'reCAPTCHA Error getting failed payments' => $result['is_error'] ?? 'yes',
+            'Add reCAPTCHA' => $addCaptcha,
+            'reCAPTCHA ip' => ip_address(),
+          ]
+        );
       }
 
       // Add a form element for the credit card holder
@@ -493,6 +555,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
               )
             );
           }
+          CRM_Core_Error::debug_var('Thinkific enrolment', implode('. ', $enrolment['progress']));
           watchdog(
             'CBF',
             'Thinkific enrolment: ' . implode('. ', $enrolment['progress']),
@@ -641,47 +704,39 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
 
 /*
  * This function is called before CiviCRM passes payment details to a Payment Processor.
- * If the contact names have not been captured then get them from the contact.
- * The Credit Card Holder is captured.
- * The Purchaser Address details are cleared, since the Billing Address is not captured.
  */
-function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawParams, &$cookedParams ) {
-  $is_recur = CRM_Utils_Array::value('is_recur', $rawParams);
-  $credit_card_holder = CRM_Utils_Array::value('credit_card_holder', $rawParams);
-  $first_name = null;
-  $last_name = null;
+function cbf_civicrm_civicrm_alterPaymentProcessorParams($paymentObj, &$rawParams, &$cookedParams) {
+  /*
+   * For the eWAY processor ...
+   * If the contact names have not been captured then get them from the contact.
+   * Capture the Credit Card Holder is captured.
+   * Clear the Purchaser Address details, since the Billing Address is not captured.
+   */
+  if ($paymentObj instanceof CRM_Core_Payment_Ewayrecurring) {
+    $is_recur = CRM_Utils_Array::value('is_recur', $rawParams);
+    $credit_card_holder = CRM_Utils_Array::value('credit_card_holder', $rawParams);
+    $first_name = null;
+    $last_name = null;
 
-  if (
-    !empty(CRM_Utils_Array::value('contact_id', $rawParams))
-    && (empty(CRM_Utils_Array::value('first_name', $rawParams))
-      || empty(CRM_Utils_Array::value('last_name', $rawParams)))
+    if (
+      !empty(CRM_Utils_Array::value('contact_id', $rawParams))
+      && (empty(CRM_Utils_Array::value('first_name', $rawParams))
+          || empty(CRM_Utils_Array::value('last_name', $rawParams)))
     ) {
-    try {
-      $record = civicrm_api3('Contact', 'get', [
-        'sequential' => 1,
-        'return' => ['first_name', 'last_name'],
-        'id' => CRM_Utils_Array::value('contact_id', $rawParams),
-      ]);
-      $first_name = $record['values'][0]['first_name'];
-      $last_name = $record['values'][0]['last_name'];
-    } catch (CiviCRM_API3_Exception $e) {
-      ;
-    }
-  }
-
-  if ($is_recur ?? false) {
-    if ($paymentObj instanceof org_civicrm_ewayrecurring) {
-      // Set credit card holder
-      if ($credit_card_holder) {
-        $cookedParams['CCNameOnCard'] = $credit_card_holder;
+      try {
+        $record = civicrm_api3('Contact', 'get', [
+          'sequential' => 1,
+          'return' => ['first_name', 'last_name'],
+          'id' => CRM_Utils_Array::value('contact_id', $rawParams),
+        ]);
+        $first_name = $record['values'][0]['first_name'];
+        $last_name = $record['values'][0]['last_name'];
+      } catch (CiviCRM_API3_Exception $e) {
+        ;
       }
-      // Set address
-      $cookedParams['Address']  = 'c/o Level 3, 13-15 Bridge St';
-      $cookedParams['Suburb']   = 'Sydney';
-      $cookedParams['State']    = 'NSW';
-      $cookedParams['PostCode'] = '2000';
     }
-    else if ($paymentObj instanceof CRM_Core_Payment_Ewayrecurring) {
+
+    if ($is_recur ?? false) {
       // Set credit card holder
       if ($credit_card_holder) {
         $cookedParams['man:CCNameOnCard'] = $credit_card_holder;
@@ -699,11 +754,7 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawPara
       $cookedParams['man:State']    = 'NSW';
       $cookedParams['man:PostCode'] = '2000';
     }
-  }
-  else {
-    if ($paymentObj instanceof CRM_Core_Payment_eWAY  ||
-        $paymentObj instanceof org_civicrm_ewayrecurring  ||
-        $paymentObj instanceof CRM_Core_Payment_Ewayrecurring) {
+    else {
       // Set credit card holder
       if ($credit_card_holder) {
         $cookedParams->CardHolderName($credit_card_holder);
@@ -719,6 +770,32 @@ function cbf_civicrm_civicrm_alterPaymentProcessorParams( $paymentObj, &$rawPara
       $cookedParams->PurchaserAddress('');
       $cookedParams->PurchaserPostalCode('');
     }
+  }
+
+  /*
+   * For the PayPal Standard processor ...
+   * Set the return URLs to come back to this $host to avoid invalid session issues
+   */
+  if ($paymentObj instanceof CRM_Core_Payment_PayPalImpl) {
+    $host = $_SERVER['SERVER_NAME'];
+    $cookedParams['notify_url'] = str_replace(
+      '//citybibleforum.org/',
+      '//' . $host . '/',
+      $cookedParams['notify_url']
+      );
+    $cookedParams['cancel_return'] = str_replace(
+      '//citybibleforum.org/',
+      '//' . $host . '/',
+      $cookedParams['cancel_return']
+      );
+    $cookedParams['return'] = str_replace(
+      '//citybibleforum.org/',
+      '//' . $host . '/',
+      $cookedParams['return']
+      );
+    CRM_Core_Error::debug_var('PayPal variables', [
+      'cooked' => $cookedParams,
+    ]);
   }
 }
 
@@ -785,28 +862,30 @@ function cbf_civicrm_civicrm_alterAPIPermissions($entity, $action, &$params, &$p
  */
 function cbf_civicrm_fatal_error_handler(&$vars) {
   /*
+   * Add extra $vars to help with debugging
+   */
+  $vars['ip'] = ip_address();
+  $vars['host'] = $_SERVER['HTTP_HOST'];
+  $vars['url']  = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+  $vars['agent'] = $_SERVER['HTTP_USER_AGENT'] ?? 'not available';
+  if (user_is_logged_in()) {
+    $vars['username'] = $GLOBALS['user']->name;
+  }
+
+  /*
    * There is an issue where users being redirected back to our site after making
    * a PayPal payment are sent an error message because their session has changed.
-   * Redirect them to get a thankyou message. The page to which they will be
+   * Redirect them to get a thank you message. The page to which they will be
    * redirected has no personal information.
    */
   if (stripos($vars['message'], 'Could not find a valid session key') !== false
-      && stripos($_SERVER['QUERY_STRING'], '_qf_ThankYou_display') !== false
-      && stripos($_SERVER['HTTP_REFERER'], 'paypal.com') !== false) {
-    CRM_Utils_System::redirect('/paypal-thankyou');
-  }
-
-  if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-    $vars['ip']  = $_SERVER['HTTP_X_FORWARDED_FOR'];
-    $vars['url'] = $_SERVER['HTTP_X_FORWARDED_PROTO'] . '://' . $_SERVER['HTTP_X_HOST'] . $_SERVER['REQUEST_URI'];
-  }
-  else {
-    $vars['ip']  = $_SERVER['REMOTE_ADDR'];
-    $vars['url'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
-  }
-  $vars['agent']  = $_SERVER['HTTP_USER_AGENT'] ?? 'not available';
-  if (user_is_logged_in()) {
-    $vars['username'] = $GLOBALS['user']->name;
+    && stripos($_SERVER['QUERY_STRING'], '_qf_ThankYou_display') !== false
+    && stripos($_SERVER['HTTP_REFERER'], 'paypal.com') !== false) {
+      CRM_Core_Error::debug_var('PayPal error', $vars, true, true, '', PEAR_LOG_ERR);
+      CRM_Core_Error::debug_var('Cookies', $_COOKIE, true, true, '', PEAR_LOG_ERR);
+      CRM_Core_Error::backtrace('backTrace', true);
+      _cbf_civicrm_redirect_to_session_for_qfKey();
+      CRM_Utils_System::redirect('/paypal-thankyou');
   }
 
   /*
@@ -1810,4 +1889,135 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $course, $
         return $result;
     }
   }
+}
+
+/*
+ * Redirect the visitor to a session that matches the qfKey they specify.
+ *
+ * If not “we have been here before”, then
+ *   If can find the original session, then
+ *     Load data from original session into this session
+ *     Redirect to try again, marking “we have been here before” to avoid a loop
+ *
+ * If the redirect doesn't happen for any reason, this function will return false.
+ * The calling logic should assume that if this function returns that's a failure.
+ */
+function _cbf_civicrm_redirect_to_session_for_qfKey() {
+  $progress = [];
+  $qfKey = CRM_Utils_Request::retrieve('qfKey', 'String') ?? false;
+  $progress[] = 'qfKey = ' . $qfKey;
+  $beenHere = CRM_Utils_Request::retrieve('cbf', 'Boolean') ?? false;
+  $progress[] = 'beenHere = ' . $beenHere;
+
+  if ($qfKey && !$beenHere) { // We have a qfKey and we've not been here before
+    /*
+     * Reproduce the logic for finding a session from _drupal_session_read
+     * But: assume HTTPS;
+     *      search by hostname rather than ssid;
+     *      allow for zero to many results.
+     */
+    $hostname = ip_address();
+    $progress[] = 'hostname = ' . ip_address();
+    $progress[] = 'HTTP_HOST = ' . $_SERVER['HTTP_HOST'];
+    $result =
+      db_query(
+        "SELECT u.*, s.* FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid WHERE s.hostname = :hostname",
+        [':hostname' => $hostname]
+      )->fetchAll();
+    $sessions = [];
+    foreach ($result as $session) {
+      $sessions[] = [
+        'ssid' => $session->ssid,
+        'uid' => $session->uid ?? 0,
+        'session' => $session->session
+      ];
+      $progress[] = 'Found session with ssid = ' . $session->ssid;
+    }
+
+    /*
+     * Reproduce the logic for validating a qfKey from CRM_Core_Key
+     * But: lookup the name of the CiviCRM controller
+     *      Ensure a Drupal session has started as we intend to encode an decode sessions
+     *      preserve the original $_SESSION and restore it even if there is an
+     *      load each session into $_SESSION
+     *      exception
+     *      track the sessions which match the qfKey
+     */
+    $controller = '';
+    $path = drupal_parse_url($_SERVER['REQUEST_URI'])['path'];
+    $progress[] = 'path = ' . $path;
+    switch ($path) {
+      case '/civicrm/contribute/transact':
+        $controller = 'CRM_Contribute_Controller_Contribution';
+        break;
+      case '/civicrm/event/register':
+        $controller = 'CRM_Event_Controller_Registration';
+        break;
+    }
+    $progress[] = 'controller = ' . $controller;
+
+    $matches = [];
+    drupal_session_start();
+    $thisSession = session_encode();
+    $progress[] = 'Current session = ' . $thisSession;
+    try {
+      foreach ($sessions as $session) {
+        $_SESSION = [];
+        $progress[] = 'Trying session with ssid = ' . $session['ssid'];
+        if (session_decode($session['session'])) {
+          list($k, $t) = explode('_', $qfKey);
+          $hashKey = hash_hmac(
+            CRM_Core_Key::HASH_ALGO,
+            $_SESSION['CiviCRM']['qfSessionID'] . chr(0) . $controller,
+            $_SESSION['CiviCRM']['qfPrivateKey']
+          );
+          $progress[] = 'qfSessionID = ' . $_SESSION['CiviCRM']['qfSessionID'];
+          $progress[] = 'qfPrivateKey = ' . $_SESSION['CiviCRM']['qfPrivateKey'];
+          $progress[] = 'hashed key = ' . $hashKey;
+          if ($t >= 1 && $t < 10000) {
+            if (hash_equals($k, $hashKey)) {
+              $matches[] = $session;
+              $progress[] = 'Matched session with ssid = ' . $session['ssid'];
+            }
+          }
+        }
+        else {
+          $progress[] = 'Failed to decode session with ssid = ' . $session['ssid'];
+        }
+      }
+    } catch (Exception $e) {
+      ;
+    }
+
+    if (count($matches) == 1) { // We have found the original session
+      /*
+       * Load data from the original session into this session, borrowing logic
+       * from hybridauth_session_start()
+       */
+      $_SESSION = [];
+      session_decode($matches[0]['session']);
+      $progress[] = 'Loaded session = ' . $matches[0]['session'];
+      db_delete('sessions')->condition('ssid', $matches[0]['ssid'])->execute();
+      $progress[] = 'Deleted row from sessions table with ssid = ' . $matches[0]['ssid'];
+
+      /*
+       * Redirect to try again, marking “we have been here before” to avoid a loop
+       * But: this implements CRM_Utils_System::redirect with response code 307
+       *      this doesn't work if the current URL was redirected internally
+       *      this may not work if the current method is not POST
+       */
+      $uri = $_SERVER['REQUEST_URI'] . '&cbf=1';
+      $progress[] = 'Redirect to URI = ' . $uri;
+      CRM_Core_Error::debug_var('_cbf_civicrm_redirect_to_session_for_qfKey', $progress);
+      http_response_code(307);
+      CRM_Utils_System::redirect($uri);
+    }
+
+    $_SESSION = [];
+    session_decode($thisSession);
+    $progress[] = 'Reloaded the starting session = ' . $thisSession;
+  }
+
+  CRM_Core_Error::debug_var('_cbf_civicrm_redirect_to_session_for_qfKey', $progress);
+  return false;
 }

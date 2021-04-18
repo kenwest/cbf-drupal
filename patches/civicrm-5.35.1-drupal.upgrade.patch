@@ -1,0 +1,232 @@
+diff --git a/CRM/Utils/System/Joomla.php b/CRM/Utils/System/Joomla.php
+index 7883e48..6f446cb 100644
+--- a/CRM/Utils/System/Joomla.php
++++ b/CRM/Utils/System/Joomla.php
+@@ -105,9 +105,8 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
+   public function checkUserNameEmailExists(&$params, &$errors, $emailName = 'email') {
+     $config = CRM_Core_Config::singleton();
+ 
+-    $dao = new CRM_Core_DAO();
+-    $name = $dao->escape(CRM_Utils_Array::value('name', $params));
+-    $email = $dao->escape(CRM_Utils_Array::value('mail', $params));
++    $name = CRM_Utils_Array::value('name', $params);
++    $email = CRM_Utils_Array::value('mail', $params);
+     //don't allow the special characters and min. username length is two
+     //regex \\ to match a single backslash would become '/\\\\/'
+     $isNotValid = (bool) preg_match('/[\<|\>|\"|\'|\%|\;|\(|\)|\&|\\\\|\/]/im', $name);
+@@ -123,7 +122,7 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
+     $query->from($JUserTable->getTableName());
+ 
+     // LOWER in query below roughly translates to 'hurt my database without deriving any benefit' See CRM-19811.
+-    $query->where('(LOWER(username) = LOWER(\'' . $name . '\')) OR (LOWER(email) = LOWER(\'' . $email . '\'))');
++    $query->where('(LOWER(username) = LOWER(' . $db->quote($name) . ')) OR (LOWER(email) = LOWER(' . $db->quote($email) . '))');
+     $db->setQuery($query, 0, 10);
+     $users = $db->loadAssocList();
+ 
+@@ -343,7 +342,7 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
+     $query = $db->getQuery(TRUE);
+     $query->select('id, name, username, email, password');
+     $query->from($JUserTable->getTableName());
+-    $query->where('(LOWER(username) = LOWER(\'' . $name . '\')) AND (block = 0)');
++    $query->where('(LOWER(username) = LOWER(' . $db->quote($name) . ')) AND (block = 0)');
+     $db->setQuery($query, 0, 0);
+     $users = $db->loadObjectList();
+ 
+diff --git a/CRM/Utils/System.php b/CRM/Utils/System.php
+index 5c27f99..4be0a95 100644
+--- a/CRM/Utils/System.php
++++ b/CRM/Utils/System.php
+@@ -629,7 +629,7 @@ class CRM_Utils_System {
+       );
+     }
+ 
+-    if ($key !== $siteKey) {
++    if (!hash_equals($siteKey, $key)) {
+       return self::authenticateAbort(
+         "ERROR: Invalid key value sent. " . $docAdd . "\n",
+         $abort
+diff --git a/ang/api4Explorer/Explorer.js b/ang/api4Explorer/Explorer.js
+index 82bce19..654c43f 100644
+--- a/ang/api4Explorer/Explorer.js
++++ b/ang/api4Explorer/Explorer.js
+@@ -702,7 +702,7 @@
+       }
+       _.each($scope.code, function(vals) {
+         _.each(vals, function(style) {
+-          style.code = code[style.name] ? prettyPrintOne(code[style.name]) : '';
++          style.code = code[style.name] ? prettyPrintOne(_.escape(code[style.name])) : '';
+         });
+       });
+     }
+diff --git a/templates/CRM/Activity/Import/Form/MapTable.tpl b/templates/CRM/Activity/Import/Form/MapTable.tpl
+index 626a379..6ecd9c1 100644
+--- a/templates/CRM/Activity/Import/Form/MapTable.tpl
++++ b/templates/CRM/Activity/Import/Form/MapTable.tpl
+@@ -39,7 +39,7 @@
+ 
+                 {section name=rows loop=$rowDisplayCount}
+                     {assign var="j" value=$smarty.section.rows.index}
+-                    <td class="{if $skipColumnHeader AND $smarty.section.rows.iteration == 1}even-row labels{else}odd-row{/if}">{$dataValues[$j][$i]}</td>
++                    <td class="{if $skipColumnHeader AND $smarty.section.rows.iteration == 1}even-row labels{else}odd-row{/if}">{$dataValues[$j][$i]|escape}</td>
+                 {/section}
+ 
+                 {* Display mapper <select> field for 'Map Fields', and mapper value for 'Preview' *}
+diff --git a/templates/CRM/Admin/Page/ExtensionDetails.tpl b/templates/CRM/Admin/Page/ExtensionDetails.tpl
+index a753530..9c7eeac 100644
+--- a/templates/CRM/Admin/Page/ExtensionDetails.tpl
++++ b/templates/CRM/Admin/Page/ExtensionDetails.tpl
+@@ -1,35 +1,35 @@
+ <table class="crm-info-panel">
+     {if $extension.name}
+     <tr>
+-        <td class="label">{ts}Name (key){/ts}</td><td>{$extension.name} ({$extension.key})</td>
++        <td class="label">{ts}Name (key){/ts}</td><td>{$extension.name|escape} ({$extension.key|escape})</td>
+     </tr>
+     {/if}
+     <tr>
+-        <td class="label">{ts}Description{/ts}</td><td>{$extension.description}</td>
++        <td class="label">{ts}Description{/ts}</td><td>{$extension.description|escape}</td>
+     </tr>
+     <tr>
+-        <td class="label">{ts}Download location{/ts}</td><td>{$extension.downloadUrl}</td>
++        <td class="label">{ts}Download location{/ts}</td><td>{$extension.downloadUrl|escape}</td>
+     </tr>
+     <tr>
+-        <td class="label">{ts}Local path{/ts}</td><td>{$extension.path}</td>
++        <td class="label">{ts}Local path{/ts}</td><td>{$extension.path|escape}</td>
+     </tr>
+         {foreach from=$extension.urls key=label item=url}
+-            <tr><td class="label">{$label}</td><td><a href="{$url}">{$url}</a></td></tr>
++            <tr><td class="label">{$label|escape}</td><td><a href="{$url|escape}">{$url|escape}</a></td></tr>
+         {/foreach}
+     <tr>
+-        <td class="label">{ts}Author{/ts}</td><td>{$extension.maintainer.author} (<a href="mailto:{$extension.maintainer.email}">{$extension.maintainer.email}</a>)</td>
++        <td class="label">{ts}Author{/ts}</td><td>{$extension.maintainer.author} (<a href="mailto:{$extension.maintainer.email|escape}">{$extension.maintainer.email|escape}</a>)</td>
+     </tr>
+     <tr>
+-        <td class="label">{ts}Version{/ts}</td><td>{$extension.version}</td>
++        <td class="label">{ts}Version{/ts}</td><td>{$extension.version|escape}</td>
+     </tr>
+     <tr>
+-        <td class="label">{ts}Released on{/ts}</td><td>{$extension.releaseDate}</td>
++        <td class="label">{ts}Released on{/ts}</td><td>{$extension.releaseDate|escape}</td>
+     </tr>
+     <tr>
+-        <td class="label">{ts}License{/ts}</td><td>{$extension.license}</td>
++        <td class="label">{ts}License{/ts}</td><td>{$extension.license|escape}</td>
+     </tr>
+     <tr>
+-        <td class="label">{ts}Development stage{/ts}</td><td>{$extension.develStage}</td>
++        <td class="label">{ts}Development stage{/ts}</td><td>{$extension.develStage|escape}</td>
+     </tr>
+     <tr>
+         <td class="label">{ts}Requires{/ts}</td>
+@@ -50,11 +50,11 @@
+         <td class="label">{ts}Compatible with{/ts}</td>
+         <td>
+             {foreach from=$extension.compatibility.ver item=ver}
+-                {$ver} &nbsp;
++                {$ver|escape} &nbsp;
+             {/foreach}
+         </td>
+     </tr>
+     <tr>
+-        <td class="label">{ts}Comments{/ts}</td><td>{$extension.comments}</td>
++        <td class="label">{ts}Comments{/ts}</td><td>{$extension.comments|escape}</td>
+     </tr>
+ </table>
+diff --git a/templates/CRM/Admin/Page/Extensions/Main.tpl b/templates/CRM/Admin/Page/Extensions/Main.tpl
+index 881d1a4..e7598ba 100644
+--- a/templates/CRM/Admin/Page/Extensions/Main.tpl
++++ b/templates/CRM/Admin/Page/Extensions/Main.tpl
+@@ -19,20 +19,20 @@ Depends: CRM/common/enableDisableApi.tpl and CRM/common/jsortable.tpl
+       </thead>
+       <tbody>
+         {foreach from=$localExtensionRows key=extKey item=row}
+-        <tr id="extension-{$row.file}" class="crm-entity crm-extension-{$row.file}{if $row.status eq 'disabled'} disabled{/if}{if $row.status eq 'installed-missing' or $row.status eq 'disabled-missing'} extension-missing{/if}{if $row.upgradable} extension-upgradable{elseif $row.status eq 'installed'} extension-installed{/if}">
++        <tr id="extension-{$row.file|escape}" class="crm-entity crm-extension-{$row.file}{if $row.status eq 'disabled'} disabled{/if}{if $row.status eq 'installed-missing' or $row.status eq 'disabled-missing'} extension-missing{/if}{if $row.upgradable} extension-upgradable{elseif $row.status eq 'installed'} extension-installed{/if}">
+           <td class="crm-extensions-label">
+-              <a class="collapsed" href="#"></a>&nbsp;<strong>{$row.label}</strong><br/>({$row.key})
++              <a class="collapsed" href="#"></a>&nbsp;<strong>{$row.label|escape}</strong><br/>({$row.key|escape})
+               {if $extAddNewEnabled && $remoteExtensionRows[$extKey] && $remoteExtensionRows[$extKey].is_upgradeable}
+                 {capture assign='upgradeURL'}{crmURL p='civicrm/admin/extensions' q="action=update&id=$extKey&key=$extKey"}{/capture}
+                 <div class="crm-extensions-upgrade">{ts 1=$upgradeURL}Version {$remoteExtensionRows[$extKey].version} is available. <a href="%1">Upgrade</a>{/ts}</div>
+               {/if}
+           </td>
+           <td class="crm-extensions-label">{$row.statusLabel} {if $row.upgradable}<br/>({ts}Outdated{/ts}){/if}</td>
+-          <td class="crm-extensions-label">{$row.version} {if $row.upgradable}<br/>({$row.upgradeVersion}){/if}</td>
+-          <td class="crm-extensions-description">{$row.type|capitalize}</td>
++          <td class="crm-extensions-label">{$row.version|escape} {if $row.upgradable}<br/>({$row.upgradeVersion|escape}){/if}</td>
++          <td class="crm-extensions-description">{$row.type|escape|capitalize}</td>
+           <td>{$row.action|replace:'xx':$row.id}</td>
+         </tr>
+-        <tr class="hiddenElement" id="crm-extensions-details-{$row.file}">
++        <tr class="hiddenElement" id="crm-extensions-details-{$row.file|escape}">
+             <td>
+                 {include file="CRM/Admin/Page/ExtensionDetails.tpl" extension=$row localExtensionRows=$localExtensionRows remoteExtensionRows=$remoteExtensionRows}
+             </td>
+diff --git a/templates/CRM/Contact/Import/Form/MapTable.tpl b/templates/CRM/Contact/Import/Form/MapTable.tpl
+index 21966b6..6eb7c65 100644
+--- a/templates/CRM/Contact/Import/Form/MapTable.tpl
++++ b/templates/CRM/Contact/Import/Form/MapTable.tpl
+@@ -46,7 +46,7 @@
+ 
+                 {section name=rows loop=$rowDisplayCount}
+                     {assign var="j" value=$smarty.section.rows.index}
+-                    <td class="odd-row">{$dataValues[$j][$i]}</td>
++                    <td class="odd-row">{$dataValues[$j][$i]|escape}</td>
+                 {/section}
+ 
+                 {* Display mapper <select> field for 'Map Fields', and mapper value for 'Preview' *}
+diff --git a/templates/CRM/Contribute/Import/Form/MapTable.tpl b/templates/CRM/Contribute/Import/Form/MapTable.tpl
+index ad14bd8..4c6909d 100644
+--- a/templates/CRM/Contribute/Import/Form/MapTable.tpl
++++ b/templates/CRM/Contribute/Import/Form/MapTable.tpl
+@@ -38,7 +38,7 @@
+ 
+                 {section name=rows loop=$rowDisplayCount}
+                     {assign var="j" value=$smarty.section.rows.index}
+-                    <td class="{if $skipColumnHeader AND $smarty.section.rows.iteration == 1}even-row labels{else}odd-row{/if}">{$dataValues[$j][$i]}</td>
++                    <td class="{if $skipColumnHeader AND $smarty.section.rows.iteration == 1}even-row labels{else}odd-row{/if}">{$dataValues[$j][$i]|escape}</td>
+                 {/section}
+ 
+                 {* Display mapper <select> field for 'Map Fields', and mapper value for 'Preview' *}
+diff --git a/templates/CRM/Event/Import/Form/MapTable.tpl b/templates/CRM/Event/Import/Form/MapTable.tpl
+index 2f602b3..00d7072 100644
+--- a/templates/CRM/Event/Import/Form/MapTable.tpl
++++ b/templates/CRM/Event/Import/Form/MapTable.tpl
+@@ -38,7 +38,7 @@
+ 
+                 {section name=rows loop=$rowDisplayCount}
+                     {assign var="j" value=$smarty.section.rows.index}
+-                    <td class="{if $skipColumnHeader AND $smarty.section.rows.iteration == 1}even-row labels{else}odd-row{/if}">{$dataValues[$j][$i]}</td>
++                    <td class="{if $skipColumnHeader AND $smarty.section.rows.iteration == 1}even-row labels{else}odd-row{/if}">{$dataValues[$j][$i]|escape}</td>
+                 {/section}
+ 
+                 {* Display mapper <select> field for 'Map Fields', and mapper value for 'Preview' *}
+diff --git a/templates/CRM/Member/Import/Form/MapTable.tpl b/templates/CRM/Member/Import/Form/MapTable.tpl
+index 927ba7c..0a3dfec 100644
+--- a/templates/CRM/Member/Import/Form/MapTable.tpl
++++ b/templates/CRM/Member/Import/Form/MapTable.tpl
+@@ -38,7 +38,7 @@
+ 
+                 {section name=rows loop=$rowDisplayCount}
+                     {assign var="j" value=$smarty.section.rows.index}
+-                    <td class="{if $skipColumnHeader AND $smarty.section.rows.iteration == 1}even-row labels{else}odd-row{/if}">{$dataValues[$j][$i]}</td>
++                    <td class="{if $skipColumnHeader AND $smarty.section.rows.iteration == 1}even-row labels{else}odd-row{/if}">{$dataValues[$j][$i]|escape}</td>
+                 {/section}
+ 
+                 {* Display mapper <select> field for 'Map Fields', and mapper value for 'Preview' *}
+diff --git a/templates/CRM/PCP/Page/PCPInfo.tpl b/templates/CRM/PCP/Page/PCPInfo.tpl
+index 866402f..2885729 100644
+--- a/templates/CRM/PCP/Page/PCPInfo.tpl
++++ b/templates/CRM/PCP/Page/PCPInfo.tpl
+@@ -38,7 +38,7 @@
+ <div class="campaign">
+ {crmRegion name="pcp-page-pcpinfo"}
+     <div class="pcp-intro-text">
+-      {$pcp.intro_text}
++      {$pcp.intro_text|purify}
+   </div>
+     {if $image}
+     <div class="pcp-image">
