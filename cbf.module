@@ -3566,3 +3566,15 @@ function cbf_entity_query_alter(EntityFieldQuery $query) {
     }
   }
 }
+
+/*
+ * Used in views displays where the contextual filters rely on the path alias.
+ * Proofs the filter against reworking the alias.
+ *
+ * Example: if /city/page/sam-chan is renamed to /speakers/sam-chan
+ */
+function cbf_get_last_item_in_path() {
+  $path = drupal_get_path_alias();
+  $pathElements = explode('/', $path);
+  return end($pathElements);
+}
