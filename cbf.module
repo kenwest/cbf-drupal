@@ -1291,11 +1291,13 @@ function cbf_field_event_date_validate($form, &$form_state) {
  *         NNNN is the node Id for the Activity that corresponds to this domain.
  *         This rule matches if the node's nid or its Activity is NNNN.
  *
+ *     machine_name = christian
  *     alias = christian.audience.rule |
  *             all.audience.rule
  *
  *         Always matches.
  *
+ *     machine_name = general
  *     alias = general.audience.rule
  *
  *         Matches content for a General audience.
@@ -1425,6 +1427,14 @@ function cbf_entity_presave($entity, $type) {
         $match = true;
       }
       else {
+        $ruleAudience = $domain['machine_name'];
+        if (
+          $ruleAudience == 'christian' ||
+          strcasecmp($ruleAudience, $entityAudience) == 0
+        ) {
+          $match = true;
+        }
+
         foreach ($domain['aliases'] as $alias) {
           $ruleDomain = stristr($alias['pattern'], '.domain.rule', true);
           if ($ruleDomain == 'thirdspace') {
