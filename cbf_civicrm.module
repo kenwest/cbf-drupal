@@ -17,41 +17,114 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     return;
   }
 
-  try {
-    switch ($context) {
-      case 'civimail':
-        $keyAudience = 'mailing_id.campaign_id.custom_98';
-        $audience = civicrm_api3('MailingJob', 'get', [
-          'sequential' => 1,
-          'return' => [$keyAudience],
-          'id' => $params['job_id'],
-        ]);
-        $audience = $audience['values'][0][$keyAudience] ?? 'general';
-        break;
+  /*
+   * Determine the $audience for the email.
+   *  1 - Inspect the Campaign associated with the email for an Audience
+   *       a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
+   *       b - For a Send Email action use Activity > Campaign > Audience
+   *  2 -
+   *  3 -
+   *  4 - If these rules fail, set the $audience to 'general'
+   */
+  $audience = '';
+  $audienceRule = [];
 
-      case 'singleEmail':
-        switch ($params['groupName']) {
-          case 'Activity Email Sender':
-            $keyAudience = 'campaign_id.custom_98';
-            $audience = civicrm_api3('Activity', 'get', [
-              'sequential' => 1,
-              'return' => [$keyAudience],
-              'id' => $params['activityId'],
-            ]);
-            $audience = $audience['values'][0][$keyAudience] ?? 'general';
-            break;
+  switch ($context) {
+    case 'civimail':
+      $audienceRule['1.a'] = true;
+      $audienceRule['2'] = true;
+      break;
 
-          default:
-            $audience = 'general';
-            break;
-        }
-        break;
+    case 'singleEmail':
+      switch ($params['groupName']) {
+        case 'Activity Email Sender':
+          $audienceRule['1.b'] = true;
+          $audienceRule['2'] = true;
+          $audienceRule['3'] = true;
+          break;
+      }
 
-      default:
-        $audience = 'general';
-        break;
+      switch ($params['valueName']) {
+        // Non-batch actions
+        case 'case_activity':
+        case 'contribution_dupalert':
+        case 'contribution_online_receipt':
+        case 'contribution_recurring_edit':
+        case 'event_online_receipt':
+        case 'event_registration_receipt':
+        case 'friend':
+        case 'membership_online_receipt':
+        case 'petition_confirmation_needed':
+        case 'petition_sign':
+        case 'pcp_notify':
+        case 'pcp_owner_notify':
+        case 'pcp_status_change':
+        case 'pcp_supporter_notify':
+        case 'pledge_acknowledge':
+        case 'uf_notify':
+          $audienceRule['3'] = true;
+          break;
+
+          // Batch actions where 'christian' can be assumed
+        case 'contribution_recurring_billing':
+        case 'contribution_recurring_cancelled':
+        case 'contribution_recurring_notify':
+        case 'membership_autorenew_billing':
+        case 'membership_autorenew_cancelled':
+        case 'pledge_reminder':
+          $audienceRule['3'] = true;
+          break;
+
+          // Offline actions where 'christian' is not offensive if chosen
+        case 'contribution_invoice_receipt':
+        case 'contribution_offline_receipt':
+        case 'event_offline_receipt':
+        case 'membership_offline_receipt':
+        case 'payment_or_refund_notification':
+          $audienceRule['3'] = true;
+          break;
+      }
+      break;
+  }
+
+  if (empty($audience) && isset($audienceRule['1.a'])) {
+    try {
+      $keyAudience = 'mailing_id.campaign_id.custom_98';
+      $audience = civicrm_api3('MailingJob', 'get', [
+        'sequential' => 1,
+        'return' => [$keyAudience],
+        'id' => $params['job_id'],
+      ]);
+      $audience = $audience['values'][0][$keyAudience] ?? '';
+    } catch (CiviCRM_API3_Exception $e) {
+      ;
     }
-  } catch (CiviCRM_API3_Exception $e) {
+  }
+
+  if (empty($audience) && isset($audienceRule['1.b'])) {
+    try {
+      $keyAudience = 'campaign_id.custom_98';
+      $audience = civicrm_api3('Activity', 'get', [
+        'sequential' => 1,
+        'return' => [$keyAudience],
+        'id' => $params['activityId'],
+      ]);
+      $audience = $audience['values'][0][$keyAudience] ?? '';
+    } catch (CiviCRM_API3_Exception $e) {
+      ;
+    }
+  }
+
+  if (empty($audience) && isset($audienceRule['2'])) {
+    
+  }
+
+  if (empty($audience) && isset($audienceRule['3'])) {
+    
+  }
+
+  if (empty($audience)) {
+    // Rule 4
     $audience = 'general';
   }
 
@@ -2071,4 +2144,15 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
 
   CRM_Core_Error::debug_var('_cbf_civicrm_redirect_to_session_for_qfKey', $progress);
   return false;
+}
+
+/*
+ * Implements hook_civicrm_dupeQuery
+ *
+ * This hook is called during the dedupe lookup process, and can be used to
+ * alter the parameters and queries used to determine if two contacts are
+ * duplicates.
+ */
+function cbf_civicrm_civicrm_dupeQuery($obj, $type, &$query) {
+  return;
 }
