@@ -17,9 +17,46 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     return;
   }
 
+  try {
+    switch ($context) {
+      case 'civimail':
+        $keyAudience = 'mailing_id.campaign_id.custom_98';
+        $audience = civicrm_api3('MailingJob', 'get', [
+          'sequential' => 1,
+          'return' => [$keyAudience],
+          'id' => $params['job_id'],
+        ]);
+        $audience = $audience['values'][0][$keyAudience] ?? 'general';
+        break;
+
+      case 'singleEmail':
+        switch ($params['groupName']) {
+          case 'Activity Email Sender':
+            $keyAudience = 'campaign_id.custom_98';
+            $audience = civicrm_api3('Activity', 'get', [
+              'sequential' => 1,
+              'return' => [$keyAudience],
+              'id' => $params['activityId'],
+            ]);
+            $audience = $audience['values'][0][$keyAudience] ?? 'general';
+            break;
+
+          default:
+            $audience = 'general';
+            break;
+        }
+        break;
+
+      default:
+        $audience = 'general';
+        break;
+    }
+  } catch (CiviCRM_API3_Exception $e) {
+    $audience = 'general';
+  }
+
   $htmlMessage = CRM_Utils_Array::value( 'html', $params );
   if ( $htmlMessage ) {
-
     /*
      *  Change relative URLs to absolute.
      *  Links:  Relative URLs start with a '/' and occur in the HREF attribute of an A element
