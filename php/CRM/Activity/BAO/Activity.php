@@ -1533,6 +1533,7 @@ class CRM_Activity_BAO_Activity extends CRM_Activity_DAO_Activity {
       'text' => $text_message,
       'html' => $html_message,
       'attachments' => $attachments,
+      'activityId' => $activityID,
     ];
 
     if (!CRM_Utils_Mail::send($mailParams)) {
