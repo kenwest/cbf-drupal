@@ -22,12 +22,13 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
    *  1 - Inspect the Campaign associated with the email for an Audience
    *       a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
    *       b - For a Send Email action use Activity > Campaign > Audience
-   *  2 -
-   *  3 -
+   *  2 - Inspect the email for HREF links that select an Audience
+   *  3 - Inspect the current domain to see if that selects an Audience
    *  4 - If these rules fail, set the $audience to 'general'
    */
   $audience = '';
   $audienceRule = [];
+  $audienceData = &drupal_static(__FUNCTION__);
 
   switch ($context) {
     case 'civimail':
@@ -87,6 +88,37 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
       break;
   }
 
+  $audienceRule['4'] = true;
+
+  if (empty($audienceData)) {
+    $domains = domain_list_by_machine_name();
+
+    $audienceData = [
+      'general' => [],
+      'christian' => [],
+    ];
+    foreach ($domains as $domain) {
+      $domainAudience = $domain['machine_name'];
+      if (isset($audienceData[$domainAudience])) {
+        $audienceData[$domainAudience]['hosts'] = [];
+        $audienceData[$domainAudience]['hosts'][] = $domain['subdomain'];
+        foreach ($domain['aliases'] as $alias) {
+          $audienceData[$domainAudience]['hosts'][] = $alias['pattern'];
+        }
+
+        $audienceData[$domainAudience]['patterns'] = [];
+        $audienceData[$domainAudience]['patterns']['2'] =
+          '#' . ' href="http(s)?://' .
+          '(' . implode('|', $audienceData[$domainAudience]['hosts']) . ')' .
+          '("|/)' . '#i';
+        $audienceData[$domainAudience]['patterns']['3'] =
+          '#' . '^' .
+          '(' . implode('|', $audienceData[$domainAudience]['hosts']) . ')' .
+          '$' . '#i';
+      }
+    }
+  }
+
   if (empty($audience) && isset($audienceRule['1.a'])) {
     try {
       $keyAudience = 'mailing_id.campaign_id.custom_98';
@@ -116,15 +148,48 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   }
 
   if (empty($audience) && isset($audienceRule['2'])) {
-    
+    $audienceMatches = [];
+    foreach ($audienceData as $a => $data) {
+      $audienceMatches[$a] = preg_match(
+        $data['patterns']['2'],
+        CRM_Utils_Array::value('html', $params));
+    }
+
+    foreach ($audienceMatches as $a => $match) {
+      if ($match == 1) {
+        if (empty($audience)) {
+          $audience = $a;
+        }
+        else {
+          $audience = '';
+          break; // Multiple audiences means this test is inconclusive
+        }
+      }
+    }
   }
 
   if (empty($audience) && isset($audienceRule['3'])) {
+    $audienceMatches = [];
+    foreach ($audienceData as $a => $data) {
+      $audienceMatches[$a] = preg_match(
+        $data['patterns']['3'],
+        $_SERVER['HTTP_HOST']);
+    }
     
+    foreach ($audienceMatches as $a => $match) {
+      if ($match == 1) {
+        if (empty($audience)) {
+          $audience = $a;
+        }
+        else {
+          $audience = '';
+          break; // Multiple audiences means this test is inconclusive
+        }
+      }
+    }
   }
 
-  if (empty($audience)) {
-    // Rule 4
+  if (empty($audience) && isset($audienceRule['4'])) {
     $audience = 'general';
   }
 
