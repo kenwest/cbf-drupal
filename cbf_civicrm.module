@@ -2224,34 +2224,51 @@ function cbf_civicrm_civicrm_dupeQuery($obj, $type, &$query) {
         /*
          * Nickname matching
          */
-        $nicknamables = ['civicrm_contact' => ['first_name', 'last_name']];
-        foreach ($nicknamables as $table => $columns) {
+        $schema = ['civicrm_contact' => ['first_name', 'last_name']];
+        foreach ($schema as $table => $columns) {
           foreach ($columns as $column) {
             foreach ($query as $i => $sql) {
               if (preg_match("#^$table\.$column\.[0-9]+$#i", $i)) {
-                $name = $obj->params[$table][$column] ?? '';
-                if (empty($name)) {
-                  $sql .= " UNION
-                    SELECT t1.id id1, t2.id id2, 2 weight
-                      FROM $table t1
-	                    INNER JOIN $table t2 ON (
-                        t1.$column IS NOT NULL
-                        AND t2.nick_name IS NOT NULL
-                        AND t1.$column <> ''
-                        AND t2.nick_name <> ''
-                        AND (locate(concat(' ', t1.$column, ','), concat(' ', t2.nick_name, ',')) > 0))
-                    WHERE
-                      t1.contact_type = 'Individual'
-                      AND t2.contact_type = 'Individual'
-                      AND t1.id <> t2.id";
+                CRM_Core_Error::debug_var('old sql', $sql);
+
+                $value = $obj->params[$table][$column] ?? '';
+                if (empty($value)) {
+                  /*
+                   * Use similar logic to end of CRM_Dedupe_BAO_Rule::sql
+                   */
+                  $nicksql = str_ireplace(
+                    "t2.$column",
+                    "t2.nick_name",
+                    $sql);
+                  $nicksql = str_ireplace(
+                    "t1.$column = t2.nick_name",
+                    "locate(concat(' ', t1.$column, ','), concat(' ', t2.nick_name, ',')) > 0",
+                    $nicksql);
+                  $nicksql = str_ireplace(
+                    "t1.id < t2.id",
+                    "t1.id <> t2.id",
+                    $nicksql);
+                  $nicksql = str_ireplace(
+                    ") subunion",
+                    ") subunion1",
+                    $nicksql);
+                  $sql = "SELECT id1, id2, weight FROM ($sql UNION $nicksql) subunion2";
                 }
                 else {
                   $sql = str_ireplace(
-                    "t1.$column = '$name'",
-                    "(t1.$column = '$name' OR (t1.nick_name IS NOT NULL AND locate(' $name,', concat(' ', t1.nick_name, ',')) > 0))",
+                    "t1.$column = '$value'",
+                    "(t1.$column = '$value' OR (t1.nick_name IS NOT NULL AND locate(' $value,', concat(' ', t1.nick_name, ',')) > 0))",
                     $sql);
                 }
                 $query[$i] = $sql;
+
+                CRM_Core_Error::debug_var('new sql', $sql);
+                break;
+              }
+            }
+          }
+        }
+
                 break;
               }
             }
