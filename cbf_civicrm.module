@@ -2269,6 +2269,32 @@ function cbf_civicrm_civicrm_dupeQuery($obj, $type, &$query) {
           }
         }
 
+        /*
+         * Phone matching
+         */
+        $schema = ['civicrm_phone' => ['phone_numeric']];
+        foreach ($schema as $table => $columns) {
+          foreach ($columns as $column) {
+            foreach ($query as $i => $sql) {
+              if (preg_match("#^$table\.$column\.[0-9]+$#i", $i)) {
+                CRM_Core_Error::debug_var('old sql', $sql);
+
+                $value = $obj->params[$table][$column] ?? '';
+                if (empty($value)) {
+                  $sql = str_ireplace(
+                    "t1.$column = t2.$column",
+                    "((t1.$column - t2.$column) mod 1000000000) = 0",
+                    $sql);
+                }
+                else {
+                  $sql = str_ireplace(
+                    "t1.$column = '$value'",
+                    "((t1.$column - '$value') mod 1000000000) = 0",
+                    $sql);
+                }
+                $query[$i] = $sql;
+
+                CRM_Core_Error::debug_var('new sql', $sql);
                 break;
               }
             }
