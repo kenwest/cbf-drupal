@@ -2223,23 +2223,46 @@ function cbf_civicrm_civicrm_dupeQuery($obj, $type, &$query) {
       if ($obj->id == $testRuleId) {
         /*
          * Nickname matching
+         *
+         * Modify the queries for matching Contact first and last names to
+         * also match on nickname.
          */
         $schema = ['civicrm_contact' => ['first_name', 'last_name']];
         foreach ($schema as $table => $columns) {
           foreach ($columns as $column) {
             foreach ($query as $i => $sql) {
               if (preg_match("#^$table\.$column\.[0-9]+$#i", $i)) {
-                CRM_Core_Error::debug_var('old sql', $sql);
-
                 $value = $obj->params[$table][$column] ?? '';
                 if (empty($value)) {
                   /*
-                   * Use similar logic to end of CRM_Dedupe_BAO_Rule::sql
+                   * An empty $value means the name query will JOIN the
+                   * contact table to itself.
+                   *
+                   * Here are the steps for extending the name query to also
+                   * use the nickname
+                   *
+                   *  1. Duplicate the SQL so we have 'name' SQL and 'nickname'
+                   *     SQL
+                   *  2. Replace the name column on the 2nd table with nickname
+                   *  3. Replace the 'name equality' test with 2 tests: firstly
+                   *     that the names don't match as that is handled by the
+                   *     'name' SQL; secondly that 1st table's name is found in
+                   *     the 2nd table's nickname (see comment below re how the
+                   *     nickname test works)
+                   *  4. Since the nickname test is not reflexive we need to
+                   *     replace the 'less than' ID test with 'not equal' test
+                   *  5. Since the 'name' SQL delivers results with id1 < id2
+                   *     we need to do that for the 'nickname' SQL
+                   *  6. We UNION the results of the 'name' SQL with that of
+                   *     the 'nickname' SQL, using similar logic to that at the
+                   *     end of CRM_Dedupe_BAO_Rule::sql(), while ensuring any
+                   *     derived tables have different names ('subunion' etc)
                    */
+                  $nicksql = $sql;
                   $nicksql = str_ireplace(
                     "t2.$column",
                     "t2.nick_name",
-                    $sql);
+                    $nicksql);
                   $nicksql = str_ireplace(
                     "t1.$column = t2.nick_name",
                     "t1.$column <> t2.$column AND locate(concat(' ', t1.$column, ','), concat(' ', t2.nick_name, ',')) > 0",
@@ -2259,14 +2282,30 @@ function cbf_civicrm_civicrm_dupeQuery($obj, $type, &$query) {
                   $sql = "SELECT id1, id2, weight FROM ($sql UNION $nicksql) subunion2";
                 }
                 else {
+                  /*
+                   * A non-empty $value means the name SQL is looking to match
+                   * the name with that $value.
+                   *
+                   * Replace the 'name equality' test with an A OR B test: A is
+                   * the original name test, and B is a test that the $value is
+                   * found in the nickname.
+                   *
+                   * The $value and nickname are book-ended with a space and a
+                   * comma, so that ...
+                   *
+                   * Value   Nickname    Match?
+                   * -----   --------    ------
+                   * Ken     Ken         Yes
+                   * Ken     Ken, Jim    Yes
+                   * Ken     Kenneth     No
+                   * Frazer  nee Frazer  Yes
+                   */
                   $sql = str_ireplace(
                     "t1.$column = '$value'",
                     "(t1.$column = '$value' OR (t1.nick_name IS NOT NULL AND locate(' $value,', concat(' ', t1.nick_name, ',')) > 0))",
                     $sql);
                 }
                 $query[$i] = $sql;
-
-                CRM_Core_Error::debug_var('new sql', $sql);
                 break;
               }
             }
@@ -2275,30 +2314,37 @@ function cbf_civicrm_civicrm_dupeQuery($obj, $type, &$query) {
 
         /*
          * Phone matching
+         *
+         * Modify the queries for matching Phone numbers to only look at the
+         * last 9 digits.
          */
         $schema = ['civicrm_phone' => ['phone_numeric']];
         foreach ($schema as $table => $columns) {
           foreach ($columns as $column) {
             foreach ($query as $i => $sql) {
               if (preg_match("#^$table\.$column\.[0-9]+$#i", $i)) {
-                CRM_Core_Error::debug_var('old sql', $sql);
-
                 $value = $obj->params[$table][$column] ?? '';
                 if (empty($value)) {
+                  /*
+                   * An empty $value means the phone query will JOIN the
+                   * phone table to itself.
+                   */
                   $sql = str_ireplace(
                     "t1.$column = t2.$column",
                     "((t1.$column - t2.$column) mod 1000000000) = 0",
                     $sql);
                 }
                 else {
+                  /*
+                   * A non-empty $value means the name SQL is looking to match
+                   * the name with that $value.
+                   */
                   $sql = str_ireplace(
                     "t1.$column = '$value'",
                     "((t1.$column - '$value') mod 1000000000) = 0",
                     $sql);
                 }
                 $query[$i] = $sql;
-
-                CRM_Core_Error::debug_var('new sql', $sql);
                 break;
               }
             }
