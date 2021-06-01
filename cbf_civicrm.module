@@ -2249,6 +2249,10 @@ function cbf_civicrm_civicrm_dupeQuery($obj, $type, &$query) {
                     "t1.id <> t2.id",
                     $nicksql);
                   $nicksql = str_ireplace(
+                    "SELECT t1.id id1, t2.id id2",
+                    "SELECT IF(t1.id < t2.id, t1.id, t2.id) id1, IF(t1.id < t2.id, t2.id, t1.id) id2",
+                    $nicksql);
+                  $nicksql = str_ireplace(
                     ") subunion",
                     ") subunion1",
                     $nicksql);
