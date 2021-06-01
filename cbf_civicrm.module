@@ -2242,7 +2242,7 @@ function cbf_civicrm_civicrm_dupeQuery($obj, $type, &$query) {
                     $sql);
                   $nicksql = str_ireplace(
                     "t1.$column = t2.nick_name",
-                    "locate(concat(' ', t1.$column, ','), concat(' ', t2.nick_name, ',')) > 0",
+                    "t1.$column <> t2.$column AND locate(concat(' ', t1.$column, ','), concat(' ', t2.nick_name, ',')) > 0",
                     $nicksql);
                   $nicksql = str_ireplace(
                     "t1.id < t2.id",
