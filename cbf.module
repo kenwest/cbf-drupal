@@ -39,7 +39,10 @@ function cbf_init() {
   if (
     user_is_anonymous() &&
     !path_is_admin(current_path()) &&
-    stristr(domain_get_domain()['subdomain'], 'general') !== false &&
+    (
+      domain_get_domain()['machine_name'] == 'general' ||
+      domain_get_domain()['machine_name'] == 'christian'
+    ) &&
     arg(0) != 'civicrm'
   ) {
     $script = 'https://my.hellobar.com/51a112094c6b96376334f43862007262da5c967e.js';
@@ -2398,7 +2401,7 @@ function cbf_views_post_execute(&$view) {
    * public email address.
    */
   if ($view->name == 'cbf2019_local_office') {
-    if (stristr(domain_get_domain()['subdomain'], 'thirdspace') !== false) {
+    if (domain_get_domain()['machine_name'] == 'thirdspace') {
       foreach ($view->result as $i => $_) {
         $view->result[$i]->civicrm_contact_field_data_field_organisation_contact__civic_11
           = 'info@thirdspace.org.au';
