@@ -1968,9 +1968,8 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
  *
  * This hook is invoked prior to the meta tags for a given page are cached.
  *
- * For SEO purposes, content that appears on both the citybibleforum.org and the
- * plus.citybibleforum.org site should have a canonical URL pointing to
- * citybibleforum.org.
+ * For SEO purposes, content that appears on both the 'general' and the
+ * 'christian' site should have a canonical URL pointing to the 'general' site.
  *
  * So, if this is a Node or a CiviCRM Event, whose Audience is not Christian,
  * remove the 'plus.' from the canonical URL.
@@ -1988,10 +1987,14 @@ function cbf_metatag_metatags_view_alter(&$output, $instance, $options) {
   if (stripos($instance, 'node:') === 0 || stripos($instance, 'civicrm_event:') === 0) {
     $audienceTerm = field_get_items($options['entity_type'], $options['entity'], 'taxonomy_vocabulary_3');
     if ($audienceTerm !== false && !empty($audienceTerm[0]['tid']) && $audienceTerm[0]['tid'] != '47') {
+      // There is an audience and it is not 'christian'
       if (isset($output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'])) {
         $canonical = $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'];
-        $canonical = str_ireplace('//plus.', '//', $canonical);
-        $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'] = $canonical;
+        $host = domain_list_by_machine_name()['general']['subdomain'] ?? '';
+        if (!empty($host)) {
+          $canonical = preg_replace('#//[a-z0-9]+(\.[a-z]+)+#i', '//' . $host, $canonical);
+          $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'] = $canonical;
+        }
       }
     }
   }
