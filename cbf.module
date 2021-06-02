@@ -39,7 +39,7 @@ function cbf_init() {
   if (
     user_is_anonymous() &&
     !path_is_admin(current_path()) &&
-    stristr(domain_get_domain()['subdomain'], 'citybibleforum') !== false &&
+    stristr(domain_get_domain()['subdomain'], 'general') !== false &&
     arg(0) != 'civicrm'
   ) {
     $script = 'https://my.hellobar.com/51a112094c6b96376334f43862007262da5c967e.js';
