@@ -1456,18 +1456,6 @@ function cbf_entity_presave($entity, $type) {
               break;
             }
           }
-
-          $ruleAudience = stristr($alias['pattern'], '.audience.rule', true);
-          if ($ruleAudience !== false) {
-            if (
-              $ruleAudience == 'all' ||
-              $ruleAudience == 'christian' ||
-              strcasecmp($ruleAudience, $entityAudience) == 0
-            ) {
-              $match = true;
-              break;
-            }
-          }
         }
       }
 
