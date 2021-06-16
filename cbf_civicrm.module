@@ -686,7 +686,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       if ($formName == 'CRM_Contribute_Form_Contribution_ThankYou') {
         $thinkificCourses = [
           10 => null, // Contribution page was used in testing
-          15 => [
+          15 => [     // Sharing Jesus at Work
             'free' => [
               'course' => 1150926,
               'expiry' => '1 month',
@@ -696,7 +696,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
               'expiry' => '6 months',
             ],
           ],
-          18 => [
+          18 => [     // Sharing Jesus at Work - group license
             'course' => 871216,
             'expiry' => '6 months',
           ],
