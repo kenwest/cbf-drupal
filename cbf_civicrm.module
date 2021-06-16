@@ -696,10 +696,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
               'expiry' => '6 months',
             ],
           ],
-          16 => [
-            'course' => 1150926,
-            'expiry' => '1 month',
-          ],
           18 => [
             'course' => 871216,
             'expiry' => '6 months',
