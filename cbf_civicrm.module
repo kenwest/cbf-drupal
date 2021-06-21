@@ -2364,3 +2364,91 @@ function cbf_civicrm_civicrm_dupeQuery($obj, $type, &$query) {
       break;
   }
 }
+
+/*
+ * This hook is called when contacts are added/updated via profiles, event
+ * registration pages, contribution pages etc. When a form is submitted CiviCRM
+ * checks if a contact already exists using one of the built-in deduplication
+ * rules and returns a contact ID if a match is found.
+ *
+ * This hook allows you to override the contact matching rules to implement
+ * more complex rules.
+ */
+function cbf_civicrm_civicrm_findDuplicates($dedupeParams, &$dedupeResults, $contextParams) {
+  $externalId = $dedupeParams['civicrm_contact']['external_identifier'] ?? '';
+  if (!empty($externalId)) {
+    try {
+      $found = [];
+
+      // Find a contact that matches using Contact Id
+      $result = civicrm_api3('Contact', 'get', [
+        'sequential' => 1,
+        'return' => ['id'],
+        'id' => $externalId,
+        'contact_type' => $dedupeParams['contact_type'],
+        'is_deleted' => 0,
+      ]);
+      if ($result['id'] == $externalId) { // $result can't be multiple items
+        $found[] = $externalId;
+      }
+
+      // Find a contact that matches using External Id
+      $result = civicrm_api3('Contact', 'get', [
+        'sequential' => 1,
+        'return' => ['id'],
+        'external_identifier' => ['LIKE' => "%$externalId%"],
+        'contact_type' => $dedupeParams['contact_type'],
+        'is_deleted' => 0,
+      ]);
+      foreach ($result['values'] as $match) {
+        $externalIds = $match['external_identifier'];
+        if (stristr(" $externalIds,", " $externalId,")) {
+          $found[] = $match['id'];
+        }
+      }
+
+      // Find a not-deleted contact that the searched-for contact was merged into
+      if (empty($found)) {
+        $result = civicrm_api3('Activity', 'get', [
+          'sequential' => 1,
+          'return' => ['target_contact_id', 'subject'],
+          'activity_type_id' => 'Contact Merged',
+          'subject' => ['LIKE' => "% $externalId %"],
+        ]);
+        foreach ($result['values'] as $match) {
+          foreach ($match['target_contact_id'] as $i) {
+            $result1 = civicrm_api3('Contact', 'get', [
+              'sequential' => 1,
+              'return' => ['id', 'external_identifier'],
+              'id' => $i,
+              'contact_type' => $dedupeParams['contact_type'],
+              'is_deleted' => 0,
+            ]);
+            if ($result1['id'] == $i) { // $result1 can't be multiple items
+              $found[] = $i;
+
+              // Remember the External Identifier for next time
+              $eid = $result1['values'][0]['external_identifier'];
+              if (empty($eid)) {
+                $eid = $externalId;
+              }
+              else {
+                $eid .= ", $externalId";
+              }
+              $result2 = civicrm_api3('Contact', 'create', [
+                'contact_type' => $dedupeParams['contact_type'],
+                'id' => $i,
+                'external_identifier' => $eid,
+              ]);
+            }
+          }
+        }
+      }
+
+      // Return any found results
+      $dedupeResults['ids'] = $found;
+      $dedupeResults['handled'] = true;
+    } catch (CiviCRM_API3_Exception $e) {
+    }
+  }
+}
