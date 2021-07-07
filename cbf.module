@@ -1396,8 +1396,10 @@ function cbf_entity_presave($entity, $type) {
           $entityAudience = 'christian';
           break;
         case '48':
-        case '1957': // Unlisted content is treated like General content
           $entityAudience = 'general';
+          break;
+        case '1957':
+          $entityAudience = 'unlisted';
           break;
         default:
           $entityAudience = '';
@@ -1433,7 +1435,10 @@ function cbf_entity_presave($entity, $type) {
         $ruleAudience = $domain['machine_name'];
         if (
           $ruleAudience == 'christian' ||
-          strcasecmp($ruleAudience, $entityAudience) == 0
+          $ruleAudience == 'general' && (
+            $entityAudience == 'general' ||
+            $entityAudience == 'unlisted'
+          )
         ) {
           $match = true;
         }
