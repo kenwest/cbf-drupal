@@ -1448,7 +1448,7 @@ function cbf_entity_presave($entity, $type) {
           if ($ruleDomain == 'thirdspace') {
             if ($entityHasThirdSpaceCategory == true && $entityAudience == 'general') {
               if ($entityIsThirdSpaceExclusive) {
-                $matches = [ [ 'domain_id' => $domain['domain_id'] ] ];
+                $matches = [ $domain['machine_name'] => [ 'domain_id' => $domain['domain_id'] ] ];
                 break 2;
               }
               $match = true;
@@ -1468,7 +1468,7 @@ function cbf_entity_presave($entity, $type) {
       }
 
       if ($match) {
-        $matches[] = [ 'domain_id' => $domain['domain_id'] ];
+        $matches[$domain['machine_name']] = [ 'domain_id' => $domain['domain_id'] ];
       }
     }
 
@@ -1482,17 +1482,53 @@ function cbf_entity_presave($entity, $type) {
         if (count($entity->domains) == 1) {
           $entity->domain_source = reset($entity->domains);
         }
-        else {
+        else if ($entityAudience == 'unlisted') {
           $entity->domain_source = DOMAIN_SOURCE_USE_ACTIVE;
+        }
+        else {
+          $sources = [ ];
+          foreach ($matches as $name => $domainId) {
+            switch ($name) {
+              case 'general':
+              case 'christian':
+                $sources[$name] = $domainId['domain_id'];
+                break;
+              case 'thirdspace':
+                // Ignore Classic Thirdspace as a domain source
+                break;
+              default:
+                $sources['other'] = DOMAIN_SOURCE_USE_ACTIVE;
+                break;
+            }
+          }
+          /*
+           * The domain source is DOMAIN_SOURCE_USE_ACTIVE for Bigger
+           * Questions etc, the 'general' domain for content visible on
+           * the general and christian domains, the 'christian' domain
+           * for content visible on the Christian domain, and
+           * DOMAIN_SOURCE_USE_ACTIVE as a final fallback.
+           */
+          $entity->domain_source = $sources['other']
+            ?? $sources['general']
+            ?? $sources['christian']
+            ?? DOMAIN_SOURCE_USE_ACTIVE;
         }
         break;
 
       case 'civicrm_event':
-        $entity->field_domain[field_language($type, $entity, 'field_domain')] = $matches;
+        $lang = field_language($type, $entity, 'field_domain');
+        $entity->field_domain[$lang] = [ ];
+        foreach ($matches as $value) {
+          $entity->field_domain[$lang][] = $value;
+        }
         break;
 
       case 'entityform':
-        $entity->domain_entityform[field_language($type, $entity, 'domain_entityform')] = $matches;
+        $lang = field_language($type, $entity, 'domain_entityform');
+        $entity->domain_entityform[$lang] = [ ];
+        foreach ($matches as $value) {
+          $entity->domain_entityform[$lang][] = $value;
+        }
         break;
     }
   }
