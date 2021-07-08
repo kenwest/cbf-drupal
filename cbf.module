@@ -2408,10 +2408,20 @@ function cbf_views_post_execute(&$view) {
    * public email address.
    */
   if ($view->name == 'cbf2019_local_office') {
-    if (domain_get_domain()['machine_name'] == 'thirdspace') {
+    switch (domain_get_domain()['machine_name']) {
+      case 'thirdspace':
+        $contactEmailPattern = '/^.*$/';
+        $contactEmailReplacement = 'info@thirdspace.org.au';
+        break;
+      default:
+        $contactEmailPattern = false;
+        break;
+    }
+    if ($contactEmailPattern) {
       foreach ($view->result as $i => $_) {
-        $view->result[$i]->civicrm_contact_field_data_field_organisation_contact__civic_11
-          = 'info@thirdspace.org.au';
+        $e = $view->result[$i]->civicrm_contact_field_data_field_organisation_contact__civic_11;
+        $f = preg_replace($contactEmailPattern, $contactEmailReplacement, $e) ?? $e;
+        $view->result[$i]->civicrm_contact_field_data_field_organisation_contact__civic_11 = $f;
       }
     }
   }
