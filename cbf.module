@@ -2445,11 +2445,16 @@ function cbf_views_post_execute(&$view) {
 
   /*
    * If the view is 'cbf2019_local_office' and the current Domain is
-   * Third Space, then overwrite the email address with the Third Space
-   * public email address.
+   * Classic Third Space, then overwrite the email address with the Third
+   * Space public email address. If the site is the General content site
+   * then use the corresponding Third Space address.
    */
   if ($view->name == 'cbf2019_local_office') {
     switch (domain_get_domain()['machine_name']) {
+      case 'general':
+        $contactEmailPattern = '/@.*$/';
+        $contactEmailReplacement = '@thirdspace.org.au';
+        break;
       case 'thirdspace':
         $contactEmailPattern = '/^.*$/';
         $contactEmailReplacement = 'info@thirdspace.org.au';
