@@ -86,6 +86,11 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
           break;
       }
       break;
+
+    case 'messageTemplate':
+      $audienceRule['2'] = true;
+      $audienceRule['3'] = true;
+      break;
   }
 
   $audienceRule['4'] = true;
