@@ -36,12 +36,15 @@ function cbf_init() {
    * the CBF or CBF+ sites. Specifically exclude CiviCRM pages where we might prefer
    * people sign up or donate!
    */
+  $currentDomainId = domain_get_domain()['domain_id'];
+  $generalDomainId = domain_load_domain_id('general');
+  $christianDomainId = domain_load_domain_id('christian');
   if (
     user_is_anonymous() &&
     !path_is_admin(current_path()) &&
     (
-      domain_get_domain()['machine_name'] == 'general' ||
-      domain_get_domain()['machine_name'] == 'christian'
+      $currentDomainId == $generalDomainId ||
+      $currentDomainId == $christianDomainId
     ) &&
     arg(0) != 'civicrm'
   ) {
@@ -1989,7 +1992,9 @@ function cbf_metatag_metatags_view_alter(&$output, $instance, $options) {
     $audienceTerm = field_get_items($options['entity_type'], $options['entity'], 'taxonomy_vocabulary_3');
     if ($audienceTerm !== false && !empty($audienceTerm[0]['tid']) && $audienceTerm[0]['tid'] != '47') {
       // There is an audience and it is not 'christian'
-      if (domain_get_domain()['machine_name'] == 'christian') {
+      $currentDomainId = domain_get_domain()['domain_id'];
+      $christianDomainId = domain_load_domain_id('christian');
+      if ($currentDomainId == $christianDomainId) {
         // We are on the 'christian' site
         if (isset($output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'])) {
           $canonical = $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'];
@@ -2408,8 +2413,10 @@ function cbf_views_post_execute(&$view) {
    * public email address.
    */
   if ($view->name == 'cbf2019_local_office') {
-    switch (domain_get_domain()['machine_name']) {
-      case 'thirdspace':
+    $currentDomainId = domain_get_domain()['domain_id'];
+    $classicThirdSpaceDomainId = domain_load_domain_id('thirdspace');
+    switch ($currentDomainId) {
+      case $classicThirdSpaceDomainId:
         $contactEmailPattern = '/^.*$/';
         $contactEmailReplacement = 'info@thirdspace.org.au';
         break;
