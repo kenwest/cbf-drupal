@@ -113,6 +113,11 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         $audienceData[$domainAudience]['host'] = 'https://' . $domain['subdomain'];
         $audienceData[$domainAudience]['from'] = '@' . $domain['subdomain'] . '>';
 
+        /*
+         * @TODO Remove this testing code
+         */
+        $audienceData[$domainAudience]['from'] = str_ireplace('august.', '', $audienceData[$domainAudience]['from']);
+
         $audienceData[$domainAudience]['hostnames'] = [];
         $audienceData[$domainAudience]['hostnames'][] = $domain['subdomain'];
         foreach ($domain['aliases'] as $alias) {
