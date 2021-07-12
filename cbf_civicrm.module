@@ -32,7 +32,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   $audienceData = &drupal_static(__FUNCTION__);
 
   /*
-   * The $context guides which $audience rules are applicable
+   * The $context and $params guide which $audience rules are applicable
    */
   switch ($context) {
     case 'civimail':
