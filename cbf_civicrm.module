@@ -110,21 +110,27 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     foreach ($domains as $domain) {
       $domainAudience = $domain['machine_name'];
       if (isset($audienceData[$domainAudience])) {
-        $audienceData[$domainAudience]['hosts'] = [];
-        $audienceData[$domainAudience]['hosts'][] = $domain['subdomain'];
+        $audienceData[$domainAudience]['from'] = '@' . $domain['subdomain'] . '>';
+
+        $audienceData[$domainAudience]['hostnames'] = [];
+        $audienceData[$domainAudience]['hostnames'][] = $domain['subdomain'];
         foreach ($domain['aliases'] as $alias) {
-          $audienceData[$domainAudience]['hosts'][] = $alias['pattern'];
+          $audienceData[$domainAudience]['hostnames'][] = $alias['pattern'];
         }
 
         $audienceData[$domainAudience]['patterns'] = [];
         $audienceData[$domainAudience]['patterns']['2'] =
-          '#' . ' href="http(s)?://' .
-          '(' . implode('|', $audienceData[$domainAudience]['hosts']) . ')' .
-          '("|/)' . '#i';
+          '!' . ' href="(http(s)?:)?//' .
+          '(' . implode('|', $audienceData[$domainAudience]['hostnames']) . ')' .
+          '("|/)' . '!i';
         $audienceData[$domainAudience]['patterns']['3'] =
-          '#' . '^' .
-          '(' . implode('|', $audienceData[$domainAudience]['hosts']) . ')' .
-          '$' . '#i';
+          '!' . '^' .
+          '(' . implode('|', $audienceData[$domainAudience]['hostnames']) . ')' .
+          '$' . '!i';
+        $audienceData[$domainAudience]['patterns']['from'] =
+        '!' . '@' .
+        '(' . implode('|', $audienceData[$domainAudience]['hostnames']) . ')' .
+        '>' . '!i';
       }
     }
   }
@@ -224,6 +230,20 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   if (empty($audience)) {
     $audience = 'general';
   }
+
+  /*
+   * Update the From address
+   */
+  $from = CRM_Utils_Array::value('from', $params);
+  foreach ($audienceData as $a => $data) {
+    if ($a != $audience) {
+      $from = preg_replace(
+        $data['patterns']['from'],
+        $audienceData[$audience]['from'],
+        $from) ?? $from;
+    }
+  }
+  $params['from'] = $from;
 
   $htmlMessage = CRM_Utils_Array::value( 'html', $params );
   if ( $htmlMessage ) {
