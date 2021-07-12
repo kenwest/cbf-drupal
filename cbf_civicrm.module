@@ -18,18 +18,22 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   }
 
   /*
-   * Determine the $audience for the email.
+   * We can determine the $audience for the email using one of the following
+   * rules ...
    *  1 - Inspect the Campaign associated with the email for an Audience
    *       a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
    *       b - For a Send Email action use Activity > Campaign > Audience
    *  2 - Inspect the email for HREF links that select an Audience
    *  3 - Inspect the current domain to see if that selects an Audience
-   *  4 - If these rules fail, set the $audience to 'general'
+   *  4 - If the previous rules fail to set an $audience, set it to 'general'
    */
   $audience = '';
   $audienceRule = [];
   $audienceData = &drupal_static(__FUNCTION__);
 
+  /*
+   * The $context guides which $audience rules are applicable
+   */
   switch ($context) {
     case 'civimail':
       $audienceRule['1.a'] = true;
@@ -95,6 +99,9 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
 
   $audienceRule['4'] = true;
 
+  /*
+   * Cache the rules' $audienceData so it's not recalculated each time
+   */
   if (empty($audienceData)) {
     $domains = domain_list_by_machine_name();
 
@@ -124,6 +131,11 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     }
   }
 
+  /*
+   * If applicable, try $audience rule 1.a:
+   * Inspect the Campaign associated with the email for an Audience
+   * For a CiviMail use MailingJob > Mailing > Campaign > Audience
+   */
   if (empty($audience) && isset($audienceRule['1.a'])) {
     try {
       $keyAudience = 'mailing_id.campaign_id.custom_98';
@@ -138,6 +150,11 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     }
   }
 
+  /*
+   * If applicable, try $audience rule 1.b:
+   * Inspect the Campaign associated with the email for an Audience
+   * For a Send Email action use Activity > Campaign > Audience
+   */
   if (empty($audience) && isset($audienceRule['1.b'])) {
     try {
       $keyAudience = 'campaign_id.custom_98';
@@ -152,6 +169,10 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     }
   }
 
+  /*
+   * If applicable, try $audience rule 2:
+   * Inspect the email for HREF links that select an Audience
+   */
   if (empty($audience) && isset($audienceRule['2'])) {
     $audienceMatches = [];
     foreach ($audienceData as $a => $data) {
@@ -173,6 +194,10 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     }
   }
 
+  /*
+   * If applicable, try $audience rule 3:
+   * Inspect the current domain to see if that selects an Audience
+   */
   if (empty($audience) && isset($audienceRule['3'])) {
     $audienceMatches = [];
     foreach ($audienceData as $a => $data) {
@@ -194,6 +219,10 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     }
   }
 
+  /*
+   * If applicable, try $audience rule 4:
+   * If the previous rules fail to set an $audience, set it to 'general'
+   */
   if (empty($audience) && isset($audienceRule['4'])) {
     $audience = 'general';
   }
