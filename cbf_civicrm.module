@@ -97,8 +97,6 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
       break;
   }
 
-  $audienceRule['4'] = true;
-
   /*
    * Cache the rules' $audienceData so it's not recalculated each time
    */
@@ -220,10 +218,10 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   }
 
   /*
-   * If applicable, try $audience rule 4:
+   * Apply $audience rule 4:
    * If the previous rules fail to set an $audience, set it to 'general'
    */
-  if (empty($audience) && isset($audienceRule['4'])) {
+  if (empty($audience)) {
     $audience = 'general';
   }
 
