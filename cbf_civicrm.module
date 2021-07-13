@@ -128,7 +128,11 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
           $audienceData[$domainAudience]['hostnames'][] = $alias['pattern'];
         }
 
-        $audienceData[$domainAudience]['patterns'] = [];
+        $audienceData[$domainAudience]['patterns'] = [
+          'colour' =>
+            '!' . 'color: ' . $audienceData[$domainAudience]['colour'] . ';' .
+            '!i'
+        ];
         $audienceData[$domainAudience]['patterns']['2'] =
           '!' . ' href="(http(s)?:)?//' .
           '(' . implode('|', $audienceData[$domainAudience]['hostnames']) . ')' .
@@ -301,7 +305,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
       if ($a != $audience) {
         $replacements[] = [
           'comment' => "Convert $a colours to $audience colours",
-          'from' => 'color: ' . $data['colour'] . ';',
+          'from' => $data['patterns']['colour'],
           'to' => "color: $colour;",
         ];
       }
