@@ -263,6 +263,8 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   if ( $htmlMessage ) {
     /*
      * Convert relative URLs to absolute
+     * Convert old-style email PNG to $audience
+     * Convert old-style white email PNG to $audience
      * Convert other audience's links to $audience links
      * Ensure $audience links are well-formed
      * Convert other audience's colours to $audience colours
@@ -274,6 +276,16 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         'comment' => 'Convert relative URLs to absolute',
         'from' => '! (href|src)="(/[^/])!i',
         'to' => ' $1="' . $host . '$2',
+      ],
+      [
+        'comment' => "Convert old-style email PNG to $audience",
+        'from' => '!/themes/cbf2019/logo-email.png!i',
+        'to' => "/themes/cbf2019/images/$audience/brand/logo-email.png",
+      ],
+      [
+        'comment' => "Convert old-style white email PNG to $audience",
+        'from' => '!/themes/cbf2019/logo-white-email.png!i',
+        'to' => "/themes/cbf2019/images/$audience/brand/logo-white.png",
       ],
     ];
     foreach ($audienceData as $a => $data) {
