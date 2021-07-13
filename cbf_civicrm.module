@@ -285,7 +285,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
       [
         'comment' => "Convert old-style white email PNG to $audience",
         'from' => '!/themes/cbf2019/logo-white-email.png!i',
-        'to' => "/themes/cbf2019/images/$audience/brand/logo-white.png",
+        'to' => "/themes/cbf2019/images/$audience/brand/logo-white-email.png",
       ],
     ];
     foreach ($audienceData as $a => $data) {
