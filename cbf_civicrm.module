@@ -129,6 +129,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         }
 
         $h = '(' . implode('|', $audienceData[$domainAudience]['hostnames']) . ')';
+        $h = str_replace('.', '\.', $h);
         $audienceData[$domainAudience]['patterns'] = [
           'colour' => '!' . 'color: ' . $audienceData[$domainAudience]['colour'] . ';' . '!i',
           '2' =>      '!' . ' href="(http(s)?:)?//' . $h . '("|/)' . '!i',
