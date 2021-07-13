@@ -104,8 +104,12 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     $domains = domain_list_by_machine_name();
 
     $audienceData = [
-      'general' => [],
-      'christian' => [],
+      'general' => [
+        'colour' => '#cf2e4f',
+      ],
+      'christian' => [
+        'colour' => '#1c9cd6',
+      ],
     ];
     foreach ($domains as $domain) {
       $domainAudience = $domain['machine_name'];
@@ -260,6 +264,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     /*
      * Convert relative URLs to absolute
      * Convert other audience's links to $audience links
+     * Convert other audience's colours to $audience colours
      */
     $host = $audienceData[$audience]['host'];
     $replacements = [
@@ -272,6 +277,9 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     foreach ($audienceData as $a => $data) {
       if ($a != $audience) {
         $replacements[] = [
+          'comment' => "Convert $a colours to $audience colours",
+          'from' => 'color: ' . $data['colour'] . ';',
+          'to' => "color: $colour;",
           'comment' => "Convert $a links to $audience links",
           'from' => $data['patterns']['html'],
           'to' => ' $1="' . $host . '$5',
