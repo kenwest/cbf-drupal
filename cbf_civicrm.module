@@ -264,6 +264,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     /*
      * Convert relative URLs to absolute
      * Convert other audience's links to $audience links
+     * Ensure $audience links are well-formed
      * Convert other audience's colours to $audience colours
      */
     $host = $audienceData[$audience]['host'];
@@ -275,14 +276,20 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
       ],
     ];
     foreach ($audienceData as $a => $data) {
+      /*
+       * Note that when $a == $audience what we're doing is ensuring the $audience
+       * links are well-formed (explicitly HTTPS)
+       */
+      $replacements[] = [
+        'comment' => "Convert $a links to $audience links",
+        'from' => $data['patterns']['html'],
+        'to' => ' $1="' . $host . '$5',
+      ];
       if ($a != $audience) {
         $replacements[] = [
           'comment' => "Convert $a colours to $audience colours",
           'from' => 'color: ' . $data['colour'] . ';',
           'to' => "color: $colour;",
-          'comment' => "Convert $a links to $audience links",
-          'from' => $data['patterns']['html'],
-          'to' => ' $1="' . $host . '$5',
         ];
       }
     }
