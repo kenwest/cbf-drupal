@@ -143,37 +143,54 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
 
   /*
    * If applicable, try $audience rule 1.a:
-   * Inspect the Campaign associated with the email for an Audience
    * For a CiviMail use MailingJob > Mailing > Campaign > Audience
    */
   if (empty($audience) && isset($audienceRule['1.a'])) {
-    try {
-      $keyAudience = 'mailing_id.campaign_id.custom_98';
-      $audience = civicrm_api3('MailingJob', 'get', [
-        'sequential' => 1,
-        'return' => [$keyAudience],
-        'id' => $params['job_id'],
-      ]);
-      $audience = $audience['values'][0][$keyAudience] ?? '';
-    } catch (CiviCRM_API3_Exception $e) {
-      ;
-    }
+    $audienceRule['1'] = [
+      'key' => 'mailing_id.campaign_id.campaign_type_id.name',
+      'entity' => 'MailingJob',
+      'id' => $params['job_id'],
+    ];
   }
 
   /*
    * If applicable, try $audience rule 1.b:
-   * Inspect the Campaign associated with the email for an Audience
    * For a Send Email action use Activity > Campaign > Audience
    */
   if (empty($audience) && isset($audienceRule['1.b'])) {
+    $audienceRule['1'] = [
+      'key' => 'campaign_id.campaign_type_id.name',
+      'entity' => 'Activity',
+      'id' => $params['activityId'],
+    ];
+  }
+
+  /*
+   * If applicable, try $audience rule 1:
+   * Inspect the Campaign associated with the email for an Audience
+   * (including the 'id' in the isset() test also checks an Id has been
+   * passed in)
+   */
+  if (empty($audience) && isset($audienceRule['1']['id'])) {
     try {
-      $keyAudience = 'campaign_id.custom_98';
-      $audience = civicrm_api3('Activity', 'get', [
+      $result = civicrm_api3($audienceRule['1']['entity'], 'get', [
         'sequential' => 1,
-        'return' => [$keyAudience],
-        'id' => $params['activityId'],
+        'return' => [ $audienceRule['1']['key'] ],
+        'id' => $audienceRule['1']['id'],
       ]);
-      $audience = $audience['values'][0][$keyAudience] ?? '';
+      $campaignType = $result['values'][0][$audienceRule['1']['key']] ?? '';
+      switch ($campaignType) {
+        case 'Mobilising':
+        case 'Equipping':
+        case 'Fundraising':
+          $audience = 'christian';
+          break;
+        case 'Engaging':
+        case 'Forum or fellowship':
+        case 'Relationship building':
+          $audience = 'general';
+          break;
+      }
     } catch (CiviCRM_API3_Exception $e) {
       ;
     }
