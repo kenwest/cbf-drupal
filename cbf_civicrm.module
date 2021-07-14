@@ -240,7 +240,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   /*
    * Update the From address
    */
-  $from = CRM_Utils_Array::value('from', $params);
+  $from = $params['from'];
   foreach ($audienceData as $a => $data) {
     if ($a != $audience) {
       $from = preg_replace(
@@ -251,7 +251,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   }
   $params['from'] = $from;
 
-  $htmlMessage = CRM_Utils_Array::value('html', $params);
+  $htmlMessage = $params['html'];
   if ( $htmlMessage ) {
     /*
      * Convert relative URLs to absolute
