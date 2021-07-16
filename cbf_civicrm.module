@@ -1,108 +1,12 @@
 <?php
 
 /*
- *  This hook is called when an email is about to be sent by CiviCRM.
- *  It ensures the email contains no relative links.
- *  It adds the closing tags for the BODY and HTML elements, as these are
- *  left off so CiviMail can add a tracking token to the email.
+ * This function determines the audience for an email and sets up data for
+ * other functions to use
  */
-function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
-  // Don't send event confirmations when a Pending attendee is marked as Attended after the event
-  $now = date('Y-m-d G:i:s');
-  if (isset($params['valueName']) && $params['valueName'] == 'event_online_receipt'
-    && isset($params['tplParams']['participant_status']) && $params['tplParams']['participant_status'] == 'Attended'
-    && isset($params['tplParams']['event']['is_pay_later']) && $params['tplParams']['event']['is_pay_later'] == 1
-    && isset($params['tplParams']['event']['end_date']) && $params['tplParams']['event']['end_date'] < $now) {
-    $params['abortMailSend'] = 1;
-    return;
-  }
-
-  /*
-   * We can determine the $audience for the email using one of the following
-   * rules ...
-   *  1 - Inspect the Campaign associated with the email for an Audience
-   *       a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
-   *       b - For a Send Email action use Activity > Campaign > Audience
-   *  2 - Inspect the email for HREF links that select an Audience
-   *  3 - Inspect the current domain to see if that selects an Audience
-   *  4 - If the previous rules fail to set an $audience, set it to 'general'
-   */
-  $audience = '';
-  $audienceRule = [];
+function _cbf_civicrm_email_audience($params, $context) {
   $audienceData = &drupal_static(__FUNCTION__);
-
-  /*
-   * The $context and $params guide which $audience rules are applicable
-   */
-  switch ($context) {
-    case 'civimail':
-      $audienceRule['1.a'] = true;
-      $audienceRule['2'] = true;
-      break;
-
-    case 'singleEmail':
-      switch ($params['groupName']) {
-        case 'Activity Email Sender':
-          $audienceRule['1.b'] = true;
-          $audienceRule['2'] = true;
-          $audienceRule['3'] = true;
-          break;
-      }
-
-      switch ($params['valueName']) {
-        // Non-batch actions
-        case 'case_activity':
-        case 'contribution_dupalert':
-        case 'contribution_online_receipt':
-        case 'contribution_recurring_edit':
-        case 'event_online_receipt':
-        case 'event_registration_receipt':
-        case 'friend':
-        case 'membership_online_receipt':
-        case 'petition_confirmation_needed':
-        case 'petition_sign':
-        case 'pcp_notify':
-        case 'pcp_owner_notify':
-        case 'pcp_status_change':
-        case 'pcp_supporter_notify':
-        case 'pledge_acknowledge':
-        case 'uf_notify':
-          $audienceRule['3'] = true;
-          break;
-
-          // Batch actions where 'christian' can be assumed
-        case 'contribution_recurring_billing':
-        case 'contribution_recurring_cancelled':
-        case 'contribution_recurring_notify':
-        case 'membership_autorenew_billing':
-        case 'membership_autorenew_cancelled':
-        case 'pledge_reminder':
-          $audienceRule['3'] = true;
-          break;
-
-          // Offline actions where 'christian' is not offensive if chosen
-        case 'contribution_invoice_receipt':
-        case 'contribution_offline_receipt':
-        case 'event_offline_receipt':
-        case 'membership_offline_receipt':
-        case 'payment_or_refund_notification':
-          $audienceRule['3'] = true;
-          break;
-      }
-      break;
-
-    case 'messageTemplate':
-      $audienceRule['2'] = true;
-      $audienceRule['3'] = true;
-      break;
-  }
-
-  /*
-   * Cache the rules' $audienceData so it's not recalculated each time
-   */
   if (empty($audienceData)) {
-    $domains = domain_list_by_machine_name();
-
     $audienceData = [
       'general' => [
         'colour' => '#cf2e4f',
@@ -111,7 +15,8 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         'colour' => '#1c9cd6',
       ],
     ];
-    foreach ($domains as $domain) {
+
+    foreach (domain_list_by_machine_name() as $domain) {
       $domainAudience = $domain['machine_name'];
       if (isset($audienceData[$domainAudience])) {
         $audienceData[$domainAudience]['host'] = 'https://' . $domain['subdomain'];
@@ -139,120 +44,248 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         ];
       }
     }
-  }
 
-  /*
-   * If applicable, try $audience rule 1.a:
-   * For a CiviMail use MailingJob > Mailing > Campaign > Audience
-   */
-  if (empty($audience) && isset($audienceRule['1.a'])) {
-    $audienceRule['1'] = [
-      'key' => 'mailing_id.campaign_id.campaign_type_id.name',
-      'entity' => 'MailingJob',
-      'id' => $params['job_id'],
-    ];
-  }
+    /*
+     * We can determine the $audience for the email using one of the following
+     * rules ...
+     *  1 - Inspect the Campaign associated with the email for an Audience
+     *       a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
+     *       b - For a Send Email action use Activity > Campaign > Audience
+     *  2 - Inspect the email for HREF links that select an Audience
+     *  3 - Inspect the current domain to see if that selects an Audience
+     *  4 - If the previous rules fail to set an $audience, set it to 'general'
+     */
 
-  /*
-   * If applicable, try $audience rule 1.b:
-   * For a Send Email action use Activity > Campaign > Audience
-   */
-  if (empty($audience) && isset($audienceRule['1.b'])) {
-    $audienceRule['1'] = [
-      'key' => 'campaign_id.campaign_type_id.name',
-      'entity' => 'Activity',
-      'id' => $params['activityId'],
-    ];
-  }
+    /*
+     * The $context and $params guide which $audience rules are applicable
+     */
+    $audienceRule = [];
+    switch ($context) {
+      case 'civimail':
+        $audienceRule['1.a'] = true;
+        $audienceRule['2'] = true;
+        break;
 
-  /*
-   * If applicable, try $audience rule 1:
-   * Inspect the Campaign associated with the email for an Audience
-   * (including the 'id' in the isset() test also checks an Id has been
-   * passed in)
-   */
-  if (empty($audience) && isset($audienceRule['1']['id'])) {
-    try {
-      $result = civicrm_api3($audienceRule['1']['entity'], 'get', [
-        'sequential' => 1,
-        'return' => [ $audienceRule['1']['key'] ],
-        'id' => $audienceRule['1']['id'],
-      ]);
-      $campaignType = $result['values'][0][$audienceRule['1']['key']] ?? '';
-      switch ($campaignType) {
-        case 'Mobilising':
-        case 'Equipping':
-        case 'Fundraising':
-          $audience = 'christian';
-          break;
-        case 'Engaging':
-        case 'Forum or fellowship':
-        case 'Relationship building':
-          $audience = 'general';
-          break;
+      case 'singleEmail':
+        switch ($params['groupName']) {
+          case 'Activity Email Sender':
+            $audienceRule['1.b'] = true;
+            $audienceRule['2'] = true;
+            $audienceRule['3'] = true;
+            break;
+        }
+
+        switch ($params['valueName']) {
+          // Non-batch actions
+          case 'case_activity':
+          case 'contribution_dupalert':
+          case 'contribution_online_receipt':
+          case 'contribution_recurring_edit':
+          case 'event_online_receipt':
+          case 'event_registration_receipt':
+          case 'friend':
+          case 'membership_online_receipt':
+          case 'petition_confirmation_needed':
+          case 'petition_sign':
+          case 'pcp_notify':
+          case 'pcp_owner_notify':
+          case 'pcp_status_change':
+          case 'pcp_supporter_notify':
+          case 'pledge_acknowledge':
+          case 'uf_notify':
+            $audienceRule['3'] = true;
+            break;
+
+          // Batch actions where 'christian' can be assumed
+          case 'contribution_recurring_billing':
+          case 'contribution_recurring_cancelled':
+          case 'contribution_recurring_notify':
+          case 'membership_autorenew_billing':
+          case 'membership_autorenew_cancelled':
+          case 'pledge_reminder':
+            $audienceRule['3'] = true;
+            break;
+
+          // Offline actions where 'christian' is not offensive if chosen
+          case 'contribution_invoice_receipt':
+          case 'contribution_offline_receipt':
+          case 'event_offline_receipt':
+          case 'membership_offline_receipt':
+          case 'payment_or_refund_notification':
+            $audienceRule['3'] = true;
+            break;
+        }
+        break;
+
+      case 'messageTemplate':
+        $audienceRule['2'] = true;
+        $audienceRule['3'] = true;
+        break;
+    }
+
+    $audience = '';
+
+    /*
+     * If applicable, try $audience rule 1.a:
+     * For a CiviMail use MailingJob > Mailing > Campaign > Audience
+     */
+    if (empty($audience) && isset($audienceRule['1.a'])) {
+      $audienceRule['1'] = [
+        'key' => 'mailing_id.campaign_id.campaign_type_id.name',
+        'entity' => 'MailingJob',
+        'id' => $params['job_id'],
+      ];
+    }
+
+    /*
+     * If applicable, try $audience rule 1.b:
+     * For a Send Email action use Activity > Campaign > Audience
+     */
+    if (empty($audience) && isset($audienceRule['1.b'])) {
+      $audienceRule['1'] = [
+        'key' => 'campaign_id.campaign_type_id.name',
+        'entity' => 'Activity',
+        'id' => $params['activityId'],
+      ];
+    }
+
+    /*
+     * If applicable, try $audience rule 1:
+     * Inspect the Campaign associated with the email for an Audience
+     * (including the 'id' in the isset() test also checks an Id has been
+     * passed in)
+     */
+    if (empty($audience) && isset($audienceRule['1']['id'])) {
+      try {
+        $result = civicrm_api3($audienceRule['1']['entity'], 'get', [
+          'sequential' => 1,
+          'return' => [ $audienceRule['1']['key'] ],
+          'id' => $audienceRule['1']['id'],
+        ]);
+        $campaignType = $result['values'][0][$audienceRule['1']['key']] ?? '';
+        switch ($campaignType) {
+          case 'Mobilising':
+          case 'Equipping':
+          case 'Fundraising':
+            $audience = 'christian';
+            break;
+          case 'Engaging':
+          case 'Forum or fellowship':
+          case 'Relationship building':
+            $audience = 'general';
+            break;
+        }
+      } catch (CiviCRM_API3_Exception $e) {
+        ;
       }
-    } catch (CiviCRM_API3_Exception $e) {
-      ;
-    }
-  }
-
-  /*
-   * If applicable, try $audience rule 2:
-   * Inspect the email for HREF links that select an Audience
-   */
-  if (empty($audience) && isset($audienceRule['2'])) {
-    $audienceMatches = [];
-    foreach ($audienceData as $a => $data) {
-      $audienceMatches[$a] = preg_match(
-        $data['patterns']['2'],
-        CRM_Utils_Array::value('html', $params));
     }
 
-    foreach ($audienceMatches as $a => $match) {
-      if ($match == 1) {
-        if (empty($audience)) {
-          $audience = $a;
-        }
-        else {
-          $audience = '';
-          break; // Multiple audiences means this test is inconclusive
+    /*
+     * If applicable, try $audience rule 2:
+     * Inspect the email for HREF links that select an Audience
+     */
+    if (empty($audience) && isset($audienceRule['2'])) {
+      $audienceMatches = [];
+      foreach ($audienceData as $a => $data) {
+        $audienceMatches[$a] = preg_match(
+          $data['patterns']['2'],
+          CRM_Utils_Array::value('html', $params));
+      }
+
+      foreach ($audienceMatches as $a => $match) {
+        if ($match == 1) {
+          if (empty($audience)) {
+            $audience = $a;
+          }
+          else {
+            $audience = '';
+            break; // Multiple audiences means this test is inconclusive
+          }
         }
       }
     }
-  }
 
-  /*
-   * If applicable, try $audience rule 3:
-   * Inspect the current domain to see if that selects an Audience
-   */
-  if (empty($audience) && isset($audienceRule['3'])) {
-    $audienceMatches = [];
-    foreach ($audienceData as $a => $data) {
-      $audienceMatches[$a] = preg_match(
-        $data['patterns']['3'],
-        $_SERVER['HTTP_HOST']);
-    }
-    
-    foreach ($audienceMatches as $a => $match) {
-      if ($match == 1) {
-        if (empty($audience)) {
-          $audience = $a;
-        }
-        else {
-          $audience = '';
-          break; // Multiple audiences means this test is inconclusive
+    /*
+     * If applicable, try $audience rule 3:
+     * Inspect the current domain to see if that selects an Audience
+     */
+    if (empty($audience) && isset($audienceRule['3'])) {
+      $audienceMatches = [];
+      foreach ($audienceData as $a => $data) {
+        $audienceMatches[$a] = preg_match(
+          $data['patterns']['3'],
+          $_SERVER['HTTP_HOST']);
+      }
+
+      foreach ($audienceMatches as $a => $match) {
+        if ($match == 1) {
+          if (empty($audience)) {
+            $audience = $a;
+          }
+          else {
+            $audience = '';
+            break; // Multiple audiences means this test is inconclusive
+          }
         }
       }
     }
+
+    /*
+     * If applicable, try $audience rule 4:
+     * If $audience is not set, set it to 'general'
+     */
+    if (empty($audience)) {
+      $audience = 'general';
+    }
+
+    $audienceData['audience'] = $audience;
   }
 
-  /*
-   * Apply $audience rule 4:
-   * If the previous rules fail to set an $audience, set it to 'general'
-   */
-  if (empty($audience)) {
-    $audience = 'general';
+  return $audienceData;
+}
+
+/*
+ * This hook is called after getting the content of the mail and before tokenizing it.
+ *
+ * It is called once before sending an email, but can be called multiple times. So we need 
+ */
+function cbf_civicrm_civicrm_alterMailContent(&$content) {
+  // CiviMail:
+  // $content['html']
+  // $content['text']
+  // $content['subject']
+  // $content['mailingId']
+  // $content['campaign_id']
+  // $content['template_type'] == 'traditional'
+  //
+  // Event confirmation:
+  // also...
+  // [format]	0
+  // [groupName]	"msg_tpl_workflow_event"
+  // [valueName]	"event_offline_receipt"
+  // [messageTemplateID]
+  return;
+}
+
+/*
+ *  This hook is called when an email is about to be sent by CiviCRM.
+ *  It ensures the email contains no relative links.
+ *  It adds the closing tags for the BODY and HTML elements, as these are
+ *  left off so CiviMail can add a tracking token to the email.
+ */
+function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
+  // Don't send event confirmations when a Pending attendee is marked as Attended after the event
+  $now = date('Y-m-d G:i:s');
+  if (isset($params['valueName']) && $params['valueName'] == 'event_online_receipt'
+    && isset($params['tplParams']['participant_status']) && $params['tplParams']['participant_status'] == 'Attended'
+    && isset($params['tplParams']['event']['is_pay_later']) && $params['tplParams']['event']['is_pay_later'] == 1
+    && isset($params['tplParams']['event']['end_date']) && $params['tplParams']['event']['end_date'] < $now) {
+    $params['abortMailSend'] = 1;
+    return;
   }
+
+  $audienceData = _cbf_civicrm_email_audience($params, $context);
+  $audience = $audienceData['audience'];
 
   /*
    * Update the From address
