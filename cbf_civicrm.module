@@ -4,7 +4,7 @@
  * This function determines the audience for an email and sets up data for
  * other functions to use
  */
-function _cbf_civicrm_email_audience($params, $context) {
+function _cbf_civicrm_email_audience($params, $context = null) {
   $audienceData = &drupal_static(__FUNCTION__);
   if (empty($audienceData)) {
     $audienceData = [
@@ -63,6 +63,17 @@ function _cbf_civicrm_email_audience($params, $context) {
      * The $context and $params guide which $audience rules are applicable
      */
     $audienceRule = [];
+    if (empty($context)) {
+      if (!empty($params['mailingID'])) {
+        $context = 'civimail';
+      }
+      else if (!empty($params['messageTemplateID'])) {
+        $context = 'messageTemplate';
+      }
+      else {
+        $context = 'singleEmail';
+      }
+    }
     switch ($context) {
       case 'civimail':
         $audienceRule['1.a'] = true;
@@ -133,11 +144,27 @@ function _cbf_civicrm_email_audience($params, $context) {
      * For a CiviMail use MailingJob > Mailing > Campaign > Audience
      */
     if (empty($audience) && isset($audienceRule['1.a'])) {
-      $audienceRule['1'] = [
-        'key' => 'mailing_id.campaign_id.campaign_type_id.name',
-        'entity' => 'MailingJob',
-        'id' => $params['job_id'],
-      ];
+      if (!empty($params['campaign_id'])) {
+        $audienceRule['1'] = [
+          'key' => 'campaign_type_id.name',
+          'entity' => 'Campaign',
+          'id' => $params['campaign_id'],
+        ];
+      }
+      else if (!empty($params['mailingID'])) {
+        $audienceRule['1'] = [
+          'key' => 'campaign_id.campaign_type_id.name',
+          'entity' => 'Mailing',
+          'id' => $params['mailingID'],
+        ];
+      }
+      else if (!empty($params['job_id'])) {
+        $audienceRule['1'] = [
+          'key' => 'mailing_id.campaign_id.campaign_type_id.name',
+          'entity' => 'MailingJob',
+          'id' => $params['job_id'],
+        ];
+      }
     }
 
     /*
@@ -145,20 +172,27 @@ function _cbf_civicrm_email_audience($params, $context) {
      * For a Send Email action use Activity > Campaign > Audience
      */
     if (empty($audience) && isset($audienceRule['1.b'])) {
-      $audienceRule['1'] = [
-        'key' => 'campaign_id.campaign_type_id.name',
-        'entity' => 'Activity',
-        'id' => $params['activityId'],
-      ];
+      if (!empty($params['campaign_id'])) {
+        $audienceRule['1'] = [
+          'key' => 'campaign_type_id.name',
+          'entity' => 'Campaign',
+          'id' => $params['campaign_id'],
+        ];
+      }
+      else if (!empty($params['activityId'])) {
+        $audienceRule['1'] = [
+          'key' => 'campaign_id.campaign_type_id.name',
+          'entity' => 'Activity',
+          'id' => $params['activityId'],
+        ];
+      }
     }
 
     /*
      * If applicable, try $audience rule 1:
      * Inspect the Campaign associated with the email for an Audience
-     * (including the 'id' in the isset() test also checks an Id has been
-     * passed in)
      */
-    if (empty($audience) && isset($audienceRule['1']['id'])) {
+    if (empty($audience) && isset($audienceRule['1'])) {
       try {
         $result = civicrm_api3($audienceRule['1']['entity'], 'get', [
           'sequential' => 1,
@@ -249,20 +283,7 @@ function _cbf_civicrm_email_audience($params, $context) {
  * It is called once before sending an email, but can be called multiple times. So we need 
  */
 function cbf_civicrm_civicrm_alterMailContent(&$content) {
-  // CiviMail:
-  // $content['html']
-  // $content['text']
-  // $content['subject']
-  // $content['mailingId']
-  // $content['campaign_id']
-  // $content['template_type'] == 'traditional'
-  //
-  // Event confirmation:
-  // also...
-  // [format]	0
-  // [groupName]	"msg_tpl_workflow_event"
-  // [valueName]	"event_offline_receipt"
-  // [messageTemplateID]
+  $audienceData = _cbf_civicrm_email_audience($content);
   return;
 }
 
