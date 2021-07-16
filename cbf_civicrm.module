@@ -4,7 +4,7 @@
  * This function determines the audience for an email and sets up data for
  * other functions to use
  */
-function _cbf_civicrm_email_audience($params, $context = null) {
+function _cbf_civicrm_email_audience($params, $context, $creator) {
   $audienceData = &drupal_static(__FUNCTION__);
   if (empty($audienceData)) {
     $audienceData = [
@@ -17,6 +17,7 @@ function _cbf_civicrm_email_audience($params, $context = null) {
           'colour' => '#1c9cd6',
         ],
       ],
+      'creator' => $creator,
     ];
 
     foreach (domain_list_by_machine_name() as $domain) {
@@ -283,7 +284,7 @@ function _cbf_civicrm_email_audience($params, $context = null) {
  * It is called once before sending an email, but can be called multiple times. So we need 
  */
 function cbf_civicrm_civicrm_alterMailContent(&$content) {
-  $audienceData = _cbf_civicrm_email_audience($content);
+  $audienceData = _cbf_civicrm_email_audience($content, null, __FUNCTION__);
   return;
 }
 
@@ -304,7 +305,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     return;
   }
 
-  $audienceData = _cbf_civicrm_email_audience($params, $context);
+  $audienceData = _cbf_civicrm_email_audience($params, $context, __FUNCTION__);
   $audience = $audienceData['audience'];
 
   /*
