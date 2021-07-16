@@ -284,13 +284,107 @@ function _cbf_civicrm_email_audience($params, $context, $creator) {
 }
 
 /*
+ * This function amends an email's text to suit the $audience
+ */
+function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
+  /*
+   * Convert relative URLs to absolute
+   * Convert old-style email PNG to $audience
+   * Convert old-style white email PNG to $audience
+   * Convert other audience's links to $audience links
+   * Ensure $audience links are well-formed
+   * Convert other audience's colours to $audience colours
+   * Remove empty paragraphs inserted by CKeditor
+   * Remove non-breaking spaces inserted by CKeditor
+   * Convert IMG class attribute-width-NNN to a width attribute
+   *
+   * attribute-width-NNN:
+   * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes
+   * an issue for responsive email templates when the email is viewed in Outlook.
+   * This is resolved by adding a class 'attribute-width-NNN' to the IMG element in
+   * the message template. The NNN is converted into a width="NNN" attribute that
+   * is added to the IMG. The 'attribute-width-NNN' class is otherwise ignored.
+   * There is a risk that the IMG ends up with 2 width attributes, but these should
+   * have the same value.
+   */
+  $audience = $audienceData['audience'];
+  $host = $audienceData['audiences'][$audience]['host'];
+  $colour = $audienceData['audiences'][$audience]['colour'];
+  $replacements = [
+    [
+      'comment' => 'Convert relative URLs to absolute',
+      'from' => '! (href|src)="(/[^/])!i',
+      'to' => ' $1="' . $host . '$2',
+    ],
+    [
+      'comment' => "Convert old-style email PNG to $audience",
+      'from' => '!/themes/cbf2019/logo-email.png!i',
+      'to' => "/themes/cbf2019/images/$audience/brand/logo-email.png",
+    ],
+    [
+      'comment' => "Convert old-style white email PNG to $audience",
+      'from' => '!/themes/cbf2019/logo-white-email.png!i',
+      'to' => "/themes/cbf2019/images/$audience/brand/logo-white-email.png",
+    ],
+    [
+      'comment' => "Convert old-style Facebook links to $audience",
+      'from' => '!https://www\.facebook\.com/CityBibleForum!i',
+      'to' => "$host/domain/$audience/facebook",
+    ],
+    [
+      'comment' => "Convert old-style Youtube links to $audience",
+      'from' => '!https://www\.youtube\.com/channel/UCt1YTYKDW8f5s5q9McoHJ_Q!i',
+      'to' => "$host/domain/$audience/youtube",
+    ],
+    [
+      'comment' => 'Remove empty paragraphs inserted by CKeditor',
+      'from' => '!<p>(\r\n\t)*&nbsp;</p>!i',
+      'to' => '',
+    ],
+    [
+      'comment' => 'Remove non-breaking spaces inserted by CKeditor',
+      'from' => '!&nbsp;!i',
+      'to' => '',
+    ],
+    [
+      'comment' => 'Convert IMG class attribute-width-NNN to a width attribute',
+      'from' => '!<img ([^>]+attribute-width-([0-9]+)[^>]+)/>!i',
+      'to' => '<img width="$2" $1/>',
+    ],
+  ];
+  foreach ($audienceData['audiences'] as $a => $data) {
+    /*
+     * Note that when $a == $audience what we're doing is ensuring the $audience
+     * links are well-formed (explicitly HTTPS)
+     */
+    $replacements[] = [
+      'comment' => "Convert $a links to $audience links",
+      'from' => $data['patterns']['html'],
+      'to' => ' $1="' . $host . '$5',
+    ];
+    if ($a != $audience) {
+      $replacements[] = [
+        'comment' => "Convert $a colours to $audience colours",
+        'from' => $data['patterns']['colour'],
+        'to' => "color: $colour;",
+      ];
+    }
+  }
+  foreach ($replacements as $r) {
+    $html = preg_replace($r['from'], $r['to'], $html) ?? $html;
+  }
+}
+
+/*
  * This hook is called after getting the content of the mail and before tokenizing it.
  *
  * It is called once before sending an email, but can be called multiple times. So we need 
  */
 function cbf_civicrm_civicrm_alterMailContent(&$content) {
   $audienceData = _cbf_civicrm_email_audience($content, null, __FUNCTION__);
-  return;
+  if ($audienceData['creator'] == __FUNCTION__) {
+    _cbf_civicrm_amend_email($content['html'], $content['text'], $audienceData);
+  }
 }
 
 /*
@@ -332,88 +426,17 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     $params['From'] = $from;
   }
 
+  if ($audienceData['creator'] == __FUNCTION__) {
+    _cbf_civicrm_amend_email($params['html'], $params['text'], $audienceData);
+  }
+
   $htmlMessage = $params['html'];
   if ( $htmlMessage ) {
     /*
-     * Convert relative URLs to absolute
-     * Convert old-style email PNG to $audience
-     * Convert old-style white email PNG to $audience
-     * Convert other audience's links to $audience links
-     * Ensure $audience links are well-formed
-     * Convert other audience's colours to $audience colours
-     */
-    $host = $audienceData['audiences'][$audience]['host'];
-    $colour = $audienceData['audiences'][$audience]['colour'];
-    $replacements = [
-      [
-        'comment' => 'Convert relative URLs to absolute',
-        'from' => '! (href|src)="(/[^/])!i',
-        'to' => ' $1="' . $host . '$2',
-      ],
-      [
-        'comment' => "Convert old-style email PNG to $audience",
-        'from' => '!/themes/cbf2019/logo-email.png!i',
-        'to' => "/themes/cbf2019/images/$audience/brand/logo-email.png",
-      ],
-      [
-        'comment' => "Convert old-style white email PNG to $audience",
-        'from' => '!/themes/cbf2019/logo-white-email.png!i',
-        'to' => "/themes/cbf2019/images/$audience/brand/logo-white-email.png",
-      ],
-      [
-        'comment' => "Convert old-style Facebook links to $audience",
-        'from' => '!https://www\.facebook\.com/CityBibleForum!i',
-        'to' => "$host/domain/$audience/facebook",
-      ],
-      [
-        'comment' => "Convert old-style Youtube links to $audience",
-        'from' => '!https://www\.youtube\.com/channel/UCt1YTYKDW8f5s5q9McoHJ_Q!i',
-        'to' => "$host/domain/$audience/youtube",
-      ],
-    ];
-    foreach ($audienceData['audiences'] as $a => $data) {
-      /*
-       * Note that when $a == $audience what we're doing is ensuring the $audience
-       * links are well-formed (explicitly HTTPS)
-       */
-      $replacements[] = [
-        'comment' => "Convert $a links to $audience links",
-        'from' => $data['patterns']['html'],
-        'to' => ' $1="' . $host . '$5',
-      ];
-      if ($a != $audience) {
-        $replacements[] = [
-          'comment' => "Convert $a colours to $audience colours",
-          'from' => $data['patterns']['colour'],
-          'to' => "color: $colour;",
-        ];
-      }
-    }
-    foreach ($replacements as $r) {
-      $htmlMessage = preg_replace($r['from'], $r['to'], $htmlMessage) ?? $htmlMessage;
-    }
-
-    /*
-     *  Remove empty paragraphs and non-breaking spaces inserted by CKeditor
-     */
-    $htmlMessage = preg_replace('!<p>(\r\n\t)*&nbsp;</p>!i', '', $htmlMessage);
-    $htmlMessage = preg_replace('!&nbsp;!i', ' ', $htmlMessage);
-
-    /*
-     * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes
-     * an issue for responsive email templates when the email is viewed in Outlook.
-     *
-     * This is resolved by adding a class 'attribute-width-NNN' to the IMG element in
-     * the message template. The NNN is converted into a width="NNN" attribute that
-     * is added to the IMG. The 'attribute-width-NNN' class is otherwise ignored.
-     *
-     * There is a risk that the IMG ends up with 2 width attributes, but these should
-     * have the same value.
-     */
-    $htmlMessage = preg_replace('!<img ([^>]+attribute-width-([0-9]+)[^>]+)/>!i', '<img width="$2" $1/>', $htmlMessage);
-
-    /*
      * Look for the closing tag for the BODY element, and add it if needed
+     * Can't do this in _cbf_civicrm_amend_email() because the tracking
+     * image is not added until after cbf_civicrm_civicrm_alterMailContent()
+     * is called.
      */
     if (stripos($htmlMessage, '</body>') === false) {
       $htmlMessage .= '</body></html>';
