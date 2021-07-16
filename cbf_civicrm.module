@@ -65,6 +65,11 @@ function _cbf_civicrm_email_audience($params, $context, $creator) {
      */
     $audienceRule = [];
     if (empty($context)) {
+      /*
+       * This function can be called from cbf_civicrm_civicrm_alterMailContent
+       * and cbf_civicrm_civicrm_alterMailParams which have differences between
+       * their parameters. So we just need to reconcile them.
+       */
       if (!empty($params['mailingID'])) {
         $context = 'civimail';
       }
