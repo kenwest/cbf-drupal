@@ -8,35 +8,38 @@ function _cbf_civicrm_email_audience($params, $context) {
   $audienceData = &drupal_static(__FUNCTION__);
   if (empty($audienceData)) {
     $audienceData = [
-      'general' => [
-        'colour' => '#cf2e4f',
-      ],
-      'christian' => [
-        'colour' => '#1c9cd6',
+      'audience' => '',
+      'audiences' => [
+        'general' => [
+          'colour' => '#cf2e4f',
+        ],
+        'christian' => [
+          'colour' => '#1c9cd6',
+        ],
       ],
     ];
 
     foreach (domain_list_by_machine_name() as $domain) {
       $domainAudience = $domain['machine_name'];
-      if (isset($audienceData[$domainAudience])) {
-        $audienceData[$domainAudience]['host'] = 'https://' . $domain['subdomain'];
-        $audienceData[$domainAudience]['from'] = '@' . $domain['subdomain'] . '>';
+      if (isset($audienceData['audiences'][$domainAudience])) {
+        $audienceData['audiences'][$domainAudience]['host'] = 'https://' . $domain['subdomain'];
+        $audienceData['audiences'][$domainAudience]['from'] = '@' . $domain['subdomain'] . '>';
 
         /*
          * @TODO Remove this testing code
          */
-        $audienceData[$domainAudience]['from'] = str_ireplace('august.', '', $audienceData[$domainAudience]['from']);
+        $audienceData['audiences'][$domainAudience]['from'] = str_ireplace('august.', '', $audienceData['audiences'][$domainAudience]['from']);
 
-        $audienceData[$domainAudience]['hostnames'] = [];
-        $audienceData[$domainAudience]['hostnames'][] = $domain['subdomain'];
+        $audienceData['audiences'][$domainAudience]['hostnames'] = [];
+        $audienceData['audiences'][$domainAudience]['hostnames'][] = $domain['subdomain'];
         foreach ($domain['aliases'] as $alias) {
-          $audienceData[$domainAudience]['hostnames'][] = $alias['pattern'];
+          $audienceData['audiences'][$domainAudience]['hostnames'][] = $alias['pattern'];
         }
 
-        $h = '(' . implode('|', $audienceData[$domainAudience]['hostnames']) . ')';
+        $h = '(' . implode('|', $audienceData['audiences'][$domainAudience]['hostnames']) . ')';
         $h = str_replace('.', '\.', $h);
-        $audienceData[$domainAudience]['patterns'] = [
-          'colour' => '!' . 'color: ' . $audienceData[$domainAudience]['colour'] . ';' . '!i',
+        $audienceData['audiences'][$domainAudience]['patterns'] = [
+          'colour' => '!' . 'color: ' . $audienceData['audiences'][$domainAudience]['colour'] . ';' . '!i',
           '2' =>      '!' . ' href="(http(s)?:)?//' . $h . '("|/)' . '!i',
           '3' =>      '!' . '^' . $h . '$' . '!i',
           'from' =>   '!' . '@' . $h . '>' . '!i',
@@ -186,10 +189,8 @@ function _cbf_civicrm_email_audience($params, $context) {
      */
     if (empty($audience) && isset($audienceRule['2'])) {
       $audienceMatches = [];
-      foreach ($audienceData as $a => $data) {
-        $audienceMatches[$a] = preg_match(
-          $data['patterns']['2'],
-          CRM_Utils_Array::value('html', $params));
+      foreach ($audienceData['audiences'] as $a => $data) {
+        $audienceMatches[$a] = preg_match($data['patterns']['2'], $params['html']);
       }
 
       foreach ($audienceMatches as $a => $match) {
@@ -211,10 +212,8 @@ function _cbf_civicrm_email_audience($params, $context) {
      */
     if (empty($audience) && isset($audienceRule['3'])) {
       $audienceMatches = [];
-      foreach ($audienceData as $a => $data) {
-        $audienceMatches[$a] = preg_match(
-          $data['patterns']['3'],
-          $_SERVER['HTTP_HOST']);
+      foreach ($audienceData['audiences'] as $a => $data) {
+        $audienceMatches[$a] = preg_match($data['patterns']['3'], $params['html']);
       }
 
       foreach ($audienceMatches as $a => $match) {
@@ -291,11 +290,11 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
    * Update the From address
    */
   $from = $params['from'] ?? $params['From'];
-  foreach ($audienceData as $a => $data) {
+  foreach ($audienceData['audiences'] as $a => $data) {
     if ($a != $audience) {
       $from = preg_replace(
         $data['patterns']['from'],
-        $audienceData[$audience]['from'],
+        $audienceData['audiences'][$audience]['from'],
         $from) ?? $from;
     }
   }
@@ -316,8 +315,8 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
      * Ensure $audience links are well-formed
      * Convert other audience's colours to $audience colours
      */
-    $host = $audienceData[$audience]['host'];
-    $colour = $audienceData[$audience]['colour'];
+    $host = $audienceData['audiences'][$audience]['host'];
+    $colour = $audienceData['audiences'][$audience]['colour'];
     $replacements = [
       [
         'comment' => 'Convert relative URLs to absolute',
@@ -345,7 +344,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         'to' => "$host/domain/$audience/youtube",
       ],
     ];
-    foreach ($audienceData as $a => $data) {
+    foreach ($audienceData['audiences'] as $a => $data) {
       /*
        * Note that when $a == $audience what we're doing is ensuring the $audience
        * links are well-formed (explicitly HTTPS)
