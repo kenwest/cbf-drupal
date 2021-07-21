@@ -348,13 +348,9 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
       'to' => '',
     ],
     [
-      /*
-       * The [^w] in the 'from' pattern protects against this replacement being
-       * reapplied if this function is called again on the same email
-       */
       'comment' => 'Convert IMG class attribute-width-NNN to a width attribute',
-      'from' => '!<img [^w]([^>]+attribute-width-([0-9]+)[^>]+)/>!i',
-      'to' => '<img width="$2" $1/>',
+      'from' => '!<img ([^>]+)attribute-width-([0-9]+)([^>]+)/>!i',
+      'to' => '<img width="$2" $1attribute-width-processed$3/>',
     ],
   ];
   foreach ($audienceData['audiences'] as $a => $data) {
