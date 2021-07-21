@@ -138,7 +138,9 @@ function _cbf_civicrm_email_audience($params, $context, $creator) {
         break;
 
       case 'messageTemplate':
-        $audienceRule['2'] = true;
+        /*
+         * No staff involvement so just use Rule 3
+         */
         $audienceRule['3'] = true;
         break;
     }
