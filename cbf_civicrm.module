@@ -292,6 +292,7 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
    * Convert relative URLs to absolute
    * Convert old-style email PNG to $audience
    * Convert old-style white email PNG to $audience
+   * Convert old-style social links to $audience (also apply to $text)
    * Convert other audience's links to $audience links
    * Ensure $audience links are well-formed
    * Convert other audience's colours to $audience colours
@@ -316,41 +317,57 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
       'comment' => 'Convert relative URLs to absolute',
       'from' => '! (href|src)="(/[^/])!i',
       'to' => ' $1="' . $host . '$2',
+      'html' => true,
+      'text' => false,
     ],
     [
       'comment' => "Convert old-style email PNG to $audience",
       'from' => '!/themes/cbf2019/logo-email.png!i',
       'to' => "/themes/cbf2019/images/$audience/brand/logo-email.png",
+      'html' => true,
+      'text' => false,
     ],
     [
       'comment' => "Convert old-style white email PNG to $audience",
       'from' => '!/themes/cbf2019/logo-white-email.png!i',
       'to' => "/themes/cbf2019/images/$audience/brand/logo-white-email.png",
+      'html' => true,
+      'text' => false,
     ],
     [
       'comment' => "Convert old-style Facebook links to $audience",
       'from' => '!https://www\.facebook\.com/CityBibleForum!i',
       'to' => "$host/domain/$audience/facebook",
+      'html' => true,
+      'text' => true,
     ],
     [
       'comment' => "Convert old-style Youtube links to $audience",
       'from' => '!https://www\.youtube\.com/channel/UCt1YTYKDW8f5s5q9McoHJ_Q!i',
       'to' => "$host/domain/$audience/youtube",
+      'html' => true,
+      'text' => true,
     ],
     [
       'comment' => 'Remove empty paragraphs inserted by CKeditor',
       'from' => '!<p>(\r\n\t)*&nbsp;</p>!i',
       'to' => '',
+      'html' => true,
+      'text' => false,
     ],
     [
       'comment' => 'Remove non-breaking spaces inserted by CKeditor',
       'from' => '!&nbsp;!i',
       'to' => '',
+      'html' => true,
+      'text' => false,
     ],
     [
       'comment' => 'Convert IMG class attribute-width-NNN to a width attribute',
       'from' => '!<img ([^>]+)attribute-width-([0-9]+)([^>]+)/>!i',
       'to' => '<img width="$2" $1attribute-width-processed$3/>',
+      'html' => true,
+      'text' => false,
     ],
   ];
   foreach ($audienceData['audiences'] as $a => $data) {
@@ -362,17 +379,26 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
       'comment' => "Convert $a links to $audience links",
       'from' => $data['patterns']['html'],
       'to' => ' $1="' . $host . '$5',
+      'html' => true,
+      'text' => false,
     ];
     if ($a != $audience) {
       $replacements[] = [
         'comment' => "Convert $a colours to $audience colours",
         'from' => $data['patterns']['colour'],
         'to' => '$1' . $colour . '$2',
+        'html' => true,
+        'text' => false,
       ];
     }
   }
   foreach ($replacements as $r) {
-    $html = preg_replace($r['from'], $r['to'], $html) ?? $html;
+    if ($r['html']) {
+      $html = preg_replace($r['from'], $r['to'], $html) ?? $html;
+    }
+    if ($r['text']) {
+      $text = preg_replace($r['from'], $r['to'], $text) ?? $text;
+    }
   }
 }
 
