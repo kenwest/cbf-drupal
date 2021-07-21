@@ -383,7 +383,7 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
 /*
  * This hook is called after getting the content of the mail and before tokenizing it.
  *
- * It is called once before sending an email, but can be called multiple times. So we need 
+ * It is called once before sending an email, but can be called multiple times.
  */
 function cbf_civicrm_civicrm_alterMailContent(&$content) {
   $audienceData = _cbf_civicrm_email_audience($content, null);
