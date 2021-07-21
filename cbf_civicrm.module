@@ -44,6 +44,7 @@ function _cbf_civicrm_email_audience($params, $context) {
           '3' =>      '!' . '^' . $h . '$' . '!i',
           'from' =>   '!' . '@' . $h . '>' . '!i',
           'html' =>   '!' . ' (href|src)="(http(s)?:)?//' . $h . '("|/)' . '!i',
+          'text' =>   '!' . '(^| )(http(s)?:)?//' . $h . '( |/)?' . '!i',
         ];
       }
     }
@@ -293,8 +294,8 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
    * Convert old-style email PNG to $audience
    * Convert old-style white email PNG to $audience
    * Convert old-style social links to $audience (also apply to $text)
-   * Convert other audience's links to $audience links
-   * Ensure $audience links are well-formed
+   * Convert other audience's links to $audience links (html and text)
+   * Ensure $audience links are well-formed (html and text)
    * Convert other audience's colours to $audience colours
    * Remove empty paragraphs inserted by CKeditor
    * Remove non-breaking spaces inserted by CKeditor
@@ -376,11 +377,18 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
      * links are well-formed (explicitly HTTPS)
      */
     $replacements[] = [
-      'comment' => "Convert $a links to $audience links",
+      'comment' => "Convert HTML $a links to $audience links",
       'from' => $data['patterns']['html'],
       'to' => ' $1="' . $host . '$5',
       'html' => true,
       'text' => false,
+    ];
+    $replacements[] = [
+      'comment' => "Convert text $a links to $audience links",
+      'from' => $data['patterns']['text'],
+      'to' => '$1' . $host . '$5',
+      'html' => false,
+      'text' => true,
     ];
     if ($a != $audience) {
       $replacements[] = [
