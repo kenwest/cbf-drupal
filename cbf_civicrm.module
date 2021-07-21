@@ -40,7 +40,7 @@ function _cbf_civicrm_email_audience($params, $context, $creator) {
         $h = '(' . implode('|', $audienceData['audiences'][$domainAudience]['hostnames']) . ')';
         $h = str_replace('.', '\.', $h);
         $audienceData['audiences'][$domainAudience]['patterns'] = [
-          'colour' => '!' . 'color: ' . $audienceData['audiences'][$domainAudience]['colour'] . ';' . '!i',
+          'colour' => '!' . '(color: |")' . $audienceData['audiences'][$domainAudience]['colour'] . '(;|")' . '!i',
           '2' =>      '!' . ' href="(http(s)?:)?//' . $h . '("|/)' . '!i',
           '3' =>      '!' . '^' . $h . '$' . '!i',
           'from' =>   '!' . '@' . $h . '>' . '!i',
@@ -366,7 +366,7 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
       $replacements[] = [
         'comment' => "Convert $a colours to $audience colours",
         'from' => $data['patterns']['colour'],
-        'to' => "color: $colour;",
+        'to' => '$1' . $colour . '$2',
       ];
     }
   }
