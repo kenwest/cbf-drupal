@@ -253,7 +253,7 @@ function _cbf_civicrm_email_audience($params, $context, $creator) {
     if (empty($audience) && isset($audienceRule['3'])) {
       $audienceMatches = [];
       foreach ($audienceData['audiences'] as $a => $data) {
-        $audienceMatches[$a] = preg_match($data['patterns']['3'], $params['html']);
+        $audienceMatches[$a] = preg_match($data['patterns']['3'], $_SERVER['HTTP_HOST']);
       }
 
       foreach ($audienceMatches as $a => $match) {
