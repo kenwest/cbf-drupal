@@ -2224,6 +2224,21 @@ function cbf_views_pre_render(&$view) {
     $view->set_title($title);
     $view->display_handler->display->handler->handlers['header']['area']->options['content'] = $title;
   }
+
+  if (
+    $view->name == 'cbf2019_recent_library'
+    && $view->current_display == 'page_1'
+  ) {
+    $tid = $view->exposed_input['term_node_tid_depth'] ?? 'All';
+    if (is_numeric($tid)) {
+      $topic = taxonomy_term_load($tid);
+      $description = strip_tags($topic->description);
+      $view->attachment_before
+        = '<div class="attachment-inner">' .
+            $description .
+          '</div>';
+    }
+  }
 }
 
 /*
