@@ -1349,13 +1349,13 @@ function cbf_entity_presave($entity, $type) {
         'ministry_team' => true,
         'staff' => true,
         'regular_venue' => true,
-        'title_header' => true,
         'home_page_slider' => true,
       ];
       $skipDomainBundles = [
         'dateable' => true,
         'highlightable' => true,
         'mappable' => true,
+        'title_header' => true,
       ];
       $allDomainIds = [ ];
       $entityId = $entity->entityform_id;
