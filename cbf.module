@@ -2233,10 +2233,12 @@ function cbf_views_pre_render(&$view) {
     if (is_numeric($tid)) {
       $topic = taxonomy_term_load($tid);
       $description = strip_tags($topic->description);
-      $view->attachment_before
-        = '<div class="attachment-inner">' .
-            $description .
-          '</div>';
+      if ($description) {
+        $view->attachment_before
+          = '<div class="attachment-inner">' .
+              $description .
+            '</div>';
+      }
     }
   }
 }
