@@ -469,7 +469,10 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
      * image is not added until after cbf_civicrm_civicrm_alterMailContent()
      * is called.
      */
-    if (stripos($htmlMessage, '</body>') === false) {
+    if (
+      stripos($htmlMessage, '<body>') !== false &&
+      stripos($htmlMessage, '</body>') === false
+    ) {
       $htmlMessage .= '</body></html>';
     }
 
