@@ -444,6 +444,18 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     return;
   }
 
+  /*
+   * "Note that this hook is called twice when sending a message template,
+   *  once early in the message generation (before tokens are applied, with
+   *  the context 'messageTemplate') and then later from CRM_Utils_Mail::send()
+   *  with the context 'singleEmail'"
+   *
+   *    - https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_alterMailParams/
+   */
+  if ($context == 'messageTemplate') {
+    return; // Wait until next invocation
+  }
+
   $audienceData = _cbf_civicrm_email_audience($params, $context);
   $audience = $audienceData['audience'];
 
