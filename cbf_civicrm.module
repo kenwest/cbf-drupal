@@ -343,6 +343,13 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
       'text' => true,
     ],
     [
+      'comment' => "Convert old-style LinkedIn links to $audience",
+      'from' => '!https://www\.linkedin\.com/company/city-bible-forum!i',
+      'to' => "$host/domain/$audience/linkedin",
+      'html' => true,
+      'text' => true,
+    ],
+    [
       'comment' => "Convert old-style Youtube links to $audience",
       'from' => '!https://www\.youtube\.com/channel/UCt1YTYKDW8f5s5q9McoHJ_Q!i',
       'to' => "$host/domain/$audience/youtube",
