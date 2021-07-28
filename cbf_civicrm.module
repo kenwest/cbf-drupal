@@ -22,13 +22,14 @@ function _cbf_civicrm_email_audience($params, $context) {
     foreach (domain_list_by_machine_name() as $domain) {
       $domainAudience = $domain['machine_name'];
       if (isset($audienceData['audiences'][$domainAudience])) {
+        $audienceData['audiences'][$domainAudience]['name'] = $domain['sitename'];
         $audienceData['audiences'][$domainAudience]['host'] = 'https://' . $domain['subdomain'];
-        $audienceData['audiences'][$domainAudience]['from'] = '@' . $domain['subdomain'] . '>';
+        $audienceData['audiences'][$domainAudience]['email domain'] = '@' . $domain['subdomain'] . '>';
 
         /*
          * @TODO Remove this testing code
          */
-        $audienceData['audiences'][$domainAudience]['from'] = str_ireplace('august.', '', $audienceData['audiences'][$domainAudience]['from']);
+        $audienceData['audiences'][$domainAudience]['email domain'] = str_ireplace('august.', '', $audienceData['audiences'][$domainAudience]['email domain']);
 
         $audienceData['audiences'][$domainAudience]['hostnames'] = [];
         $audienceData['audiences'][$domainAudience]['hostnames'][] = $domain['subdomain'];
@@ -39,12 +40,13 @@ function _cbf_civicrm_email_audience($params, $context) {
         $h = '(' . implode('|', $audienceData['audiences'][$domainAudience]['hostnames']) . ')';
         $h = str_replace('.', '\.', $h);
         $audienceData['audiences'][$domainAudience]['patterns'] = [
-          'colour' => '!' . '(color: |")' . $audienceData['audiences'][$domainAudience]['colour'] . '(;|")' . '!i',
-          '2' =>      '!' . ' href="(http(s)?:)?//' . $h . '("|/)' . '!i',
-          '3' =>      '!' . '^' . $h . '$' . '!i',
-          'from' =>   '!' . '@' . $h . '>' . '!i',
-          'html' =>   '!' . ' (href|src)="(http(s)?:)?//' . $h . '("|/)' . '!i',
-          'text' =>   '!' . '(^| )(http(s)?:)?//' . $h . '( |/)?' . '!i',
+          'colour' =>        '!' . '(color: |")' . $audienceData['audiences'][$domainAudience]['colour'] . '(;|")' . '!i',
+          '2' =>             '!' . ' href="(http(s)?:)?//' . $h . '("|/)' . '!i',
+          '3' =>             '!' . '^' . $h . '$' . '!i',
+          'email domain' =>  '!' . '@' . $h . '>' . '!i',
+          'email name' =>    '!' . '(".*)' . $audienceData['audiences'][$domainAudience]['name'] . '(.*")' . '!i',
+          'html' =>          '!' . ' (href|src)="(http(s)?:)?//' . $h . '("|/)' . '!i',
+          'text' =>          '!' . '(^| )(http(s)?:)?//' . $h . '( |/)?' . '!i',
         ];
       }
     }
@@ -466,8 +468,12 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   foreach ($audienceData['audiences'] as $a => $data) {
     if ($a != $audience) {
       $from = preg_replace(
-        $data['patterns']['from'],
-        $audienceData['audiences'][$audience]['from'],
+        $data['patterns']['email name'],
+        '$1' . $audienceData['audiences'][$audience]['name'] . '$2',
+        $from) ?? $from;
+      $from = preg_replace(
+        $data['patterns']['email domain'],
+        $audienceData['audiences'][$audience]['email domain'],
         $from) ?? $from;
     }
   }
