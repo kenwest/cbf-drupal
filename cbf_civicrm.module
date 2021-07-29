@@ -24,7 +24,7 @@ function _cbf_civicrm_email_audience($params, $context) {
       if (isset($audienceData['audiences'][$domainAudience])) {
         $audienceData['audiences'][$domainAudience]['name'] = $domain['sitename'];
         $audienceData['audiences'][$domainAudience]['host'] = 'https://' . $domain['subdomain'];
-        $audienceData['audiences'][$domainAudience]['email domain'] = '@' . $domain['subdomain'] . '>';
+        $audienceData['audiences'][$domainAudience]['email domain'] = '@' . $domain['subdomain'];
 
         /*
          * @TODO Remove this testing code
@@ -43,7 +43,7 @@ function _cbf_civicrm_email_audience($params, $context) {
           'colour' =>        '!' . '(color: |")' . $audienceData['audiences'][$domainAudience]['colour'] . '(;|")' . '!i',
           '2' =>             '!' . ' href="(http(s)?:)?//' . $h . '("|/)' . '!i',
           '3' =>             '!' . '^' . $h . '$' . '!i',
-          'email domain' =>  '!' . '@' . $h . '>' . '!i',
+          'email domain' =>  '!' . '@' . $h . '!i',
           'email name' =>    '!' . '(".*)' . $audienceData['audiences'][$domainAudience]['name'] . '(.*")' . '!i',
           'html' =>          '!' . ' (href|src)="(http(s)?:)?//' . $h . '("|/)' . '!i',
           'text' =>          '!' . '(^| )(http(s)?:)?//' . $h . '( |/)?' . '!i',
