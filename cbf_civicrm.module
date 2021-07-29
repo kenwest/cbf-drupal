@@ -24,7 +24,7 @@ function _cbf_civicrm_email_audience($params, $context) {
       if (isset($audienceData['audiences'][$domainAudience])) {
         $audienceData['audiences'][$domainAudience]['name'] = $domain['sitename'];
         $audienceData['audiences'][$domainAudience]['host'] = 'https://' . $domain['subdomain'];
-        $audienceData['audiences'][$domainAudience]['email domain'] = '@' . $domain['subdomain'];
+        $audienceData['audiences'][$domainAudience]['email domain'] = $domain['subdomain'];
 
         /*
          * @TODO Remove this testing code
@@ -43,8 +43,8 @@ function _cbf_civicrm_email_audience($params, $context) {
           'colour' =>        '!' . '(color: |")' . $audienceData['audiences'][$domainAudience]['colour'] . '(;|")' . '!i',
           '2' =>             '!' . ' href="(http(s)?:)?//' . $h . '("|/)' . '!i',
           '3' =>             '!' . '^' . $h . '$' . '!i',
-          'email domain' =>  '!' . '@' . $h . '!i',
-          'email name' =>    '!' . '(".*)' . $audienceData['audiences'][$domainAudience]['name'] . '(.*")' . '!i',
+          'email domain' =>  '!' . '(@)' . $h . '(>|$)' . '!i',
+          'email name' =>    '!' . '(".*)(' . $audienceData['audiences'][$domainAudience]['name'] . ')(.*")' . '!i',
           'html' =>          '!' . ' (href|src)="(http(s)?:)?//' . $h . '("|/)' . '!i',
           'text' =>          '!' . '(^| )(http(s)?:)?//' . $h . '( |/)?' . '!i',
         ];
@@ -464,6 +464,8 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   /*
    * Update the From, Return-Path and Reply-To headers
    * Do the From header before the others so we have a default value
+   * The From and Reply-To headers have a name and an address part.
+   * The Return-Path header only has the address part.
    * Skip protected address patterns
    *  - message@citybibleforum.org
    *     - can't use message@thirdspace.org.au as we have a conflict
@@ -478,17 +480,28 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
           'civimail' => 'From',
           'singleEmail' => 'from',
         ],
+        'parts' => [
+          'email name' => 'name',
+          'email domain' => 'email domain',
+        ],
       ],
       'Return-Path' => [
         'parameter' => [
           'civimail' => 'Return-Path',
           'singleEmail' => 'returnPath',
         ],
+        'parts' => [
+          'email domain' => 'email domain',
+        ],
       ],
       'Reply-To' => [
         'parameter' => [
           'civimail' => 'Reply-To',
           'singleEmail' => 'replyTo',
+        ],
+        'parts' => [
+          'email name' => 'name',
+          'email domain' => 'email domain',
         ],
       ],
     ],
@@ -509,16 +522,14 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
             continue 2; // This $address is protected: skip to the next $header
           }
         }
-        foreach ($audienceData['audiences'] as $a => $data) {
-          if ($a != $audience) {
-            $address = preg_replace(
-              $data['patterns']['email name'],
-              '$1' . $audienceData['audiences'][$audience]['name'] . '$2',
-              $address) ?? $address;
-            $address = preg_replace(
-              $data['patterns']['email domain'],
-              $audienceData['audiences'][$audience]['email domain'],
-              $address) ?? $address;
+        foreach ($header['parts'] as $pattern => $replacement) {
+          foreach ($audienceData['audiences'] as $a => $data) {
+            if ($a != $audience) {
+              $address = preg_replace(
+                $data['patterns'][$pattern],
+                '$1' . $audienceData['audiences'][$audience][$replacement] . '$3',
+                $address) ?? $address;
+            }
           }
         }
         $params[$name] = $address;
