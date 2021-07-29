@@ -484,6 +484,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
           'email name' => 'name',
           'email domain' => 'email domain',
         ],
+        'default' => '',
       ],
       'Return-Path' => [
         'parameter' => [
@@ -493,6 +494,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         'parts' => [
           'email domain' => 'email domain',
         ],
+        'default' => '!^.*<(.*)>$!i',
       ],
       'Reply-To' => [
         'parameter' => [
@@ -503,6 +505,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
           'email name' => 'name',
           'email domain' => 'email domain',
         ],
+        'default' => '!^(.*)$!i',
       ],
     ],
     'protected' => [
@@ -534,8 +537,11 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         }
         $params[$name] = $address;
       }
-      else { // The other headers default to From if not supplied
-        $params[$name] = $params[$headerData['headers']['From']['parameter'][$context]];
+      else if ($header['default']) { // Default to From if not supplied
+        $params[$name] = preg_replace(
+          $header['default'],
+          '$1',
+          $params[$headerData['headers']['From']['parameter'][$context]]);
       }
     }
   }
