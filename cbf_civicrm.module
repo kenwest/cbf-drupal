@@ -463,25 +463,64 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
 
   /*
    * Update the From address
+   * Do the From header before the others so we have a default value
+   * Skip protected address patterns
+   *  - message@citybibleforum.org
+   *     - can't use message@thirdspace.org.au as we have a conflict
+   *        - if m@ts is alias of m@cbf how do we "send as" m@ts?
+   *        - if m@ts is a seperate a/c how do we handle bounces as CiviCRM only
+   *          expects a single IMAP folder (ie Mail Account)
    */
-  $from = $params['from'] ?? $params['From'];
-  foreach ($audienceData['audiences'] as $a => $data) {
-    if ($a != $audience) {
-      $from = preg_replace(
-        $data['patterns']['email name'],
-        '$1' . $audienceData['audiences'][$audience]['name'] . '$2',
-        $from) ?? $from;
-      $from = preg_replace(
-        $data['patterns']['email domain'],
-        $audienceData['audiences'][$audience]['email domain'],
-        $from) ?? $from;
+  $headerData = [
+    'headers' => [
+      'From' => [
+        'parameter' => [
+          'civimail' => 'From',
+          'singleEmail' => 'from',
+        ],
+      ],
+      'Reply-To' => [
+        'parameter' => [
+          'civimail' => 'Reply-To',
+          'singleEmail' => 'replyTo',
+        ],
+      ],
+    ],
+    'protected' => [
+      'patterns' => [
+        'CiviMail sending account' => '!message(\+[.a-z0-9]+)@citybibleforum\.org!i',
+      ],
+    ],
+  ];
+
+  foreach ($headerData['headers'] as $_ => $header) {
+    $name = $header['parameter'][$context] ?? '';
+    if ($name) {
+      $address = $params[$name] ?? '';
+      if ($address) {
+        foreach ($headerData['protected']['patterns'] as $pattern) {
+          if (preg_match($pattern, $address)) {
+            continue 2; // This $address is protected: skip to the next $header
+          }
+        }
+        foreach ($audienceData['audiences'] as $a => $data) {
+          if ($a != $audience) {
+            $address = preg_replace(
+              $data['patterns']['email name'],
+              '$1' . $audienceData['audiences'][$audience]['name'] . '$2',
+              $address) ?? $address;
+            $address = preg_replace(
+              $data['patterns']['email domain'],
+              $audienceData['audiences'][$audience]['email domain'],
+              $address) ?? $address;
+          }
+        }
+        $params[$name] = $address;
+      }
+      else { // The other headers default to From if not supplied
+        $params[$name] = $params[$headerData['headers']['From']['parameter'][$context]];
+      }
     }
-  }
-  if (isset($params['from'])) {
-    $params['from'] = $from;
-  }
-  else {
-    $params['From'] = $from;
   }
 
   _cbf_civicrm_amend_email($params['html'], $params['text'], $audienceData);
