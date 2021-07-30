@@ -1,6 +1,435 @@
 <?php
 
 /*
+ * This function determines the audience for an email and sets up data for
+ * other functions to use
+ */
+function _cbf_civicrm_email_audience($params, $context) {
+  $audienceData = &drupal_static(__FUNCTION__);
+  if (empty($audienceData)) {
+    $audienceData = [
+      'audience' => '',
+      'audiences' => [
+        'general' => [
+          'colour' => '#cf2e4f',
+        ],
+        'christian' => [
+          'colour' => '#1c9cd6',
+        ],
+      ],
+    ];
+
+    foreach (domain_list_by_machine_name() as $domain) {
+      $domainAudience = $domain['machine_name'];
+      if (isset($audienceData['audiences'][$domainAudience])) {
+        $audienceData['audiences'][$domainAudience]['name'] = $domain['sitename'];
+        $audienceData['audiences'][$domainAudience]['host'] = 'https://' . $domain['subdomain'];
+        $audienceData['audiences'][$domainAudience]['email domain'] = $domain['subdomain'];
+
+        /*
+         * @TODO Remove this testing code
+         */
+        $audienceData['audiences'][$domainAudience]['email domain'] = str_ireplace('august.', '', $audienceData['audiences'][$domainAudience]['email domain']);
+
+        $audienceData['audiences'][$domainAudience]['hostnames'] = [];
+        $audienceData['audiences'][$domainAudience]['hostnames'][] = $domain['subdomain'];
+        foreach ($domain['aliases'] as $alias) {
+          $audienceData['audiences'][$domainAudience]['hostnames'][] = $alias['pattern'];
+        }
+
+        $h = '(' . implode('|', $audienceData['audiences'][$domainAudience]['hostnames']) . ')';
+        $h = str_replace('.', '\.', $h);
+        $audienceData['audiences'][$domainAudience]['patterns'] = [
+          'colour' =>        '!' . '(color: |")' . $audienceData['audiences'][$domainAudience]['colour'] . '(;|")' . '!i',
+          '2' =>             '!' . ' href="(http(s)?:)?//' . $h . '("|/)' . '!i',
+          '3' =>             '!' . '^' . $h . '$' . '!i',
+          'email domain' =>  '!' . '(@)' . $h . '(>|$)' . '!i',
+          'email name' =>    '!' . '(".*)(' . $audienceData['audiences'][$domainAudience]['name'] . ')(.*")' . '!i',
+          'html' =>          '!' . ' (href|src)="(http(s)?:)?//' . $h . '("|/)' . '!i',
+          'text' =>          '!' . '(^| )(http(s)?:)?//' . $h . '( |/)?' . '!i',
+        ];
+      }
+    }
+
+    /*
+     * We can determine the $audience for the email using one of the following
+     * rules ...
+     *  1 - Inspect the Campaign associated with the email for an Audience
+     *       a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
+     *       b - For a Send Email action use Activity > Campaign > Audience
+     *  2 - Inspect the email for HREF links that select an Audience
+     *  3 - Inspect the current domain to see if that selects an Audience
+     *  4 - If the previous rules fail to set an $audience, set it to 'general'
+     */
+
+    /*
+     * The $context and $params guide which $audience rules are applicable
+     */
+    $audienceRule = [];
+    if (empty($context)) {
+      /*
+       * This function can be called from cbf_civicrm_civicrm_alterMailContent
+       * and cbf_civicrm_civicrm_alterMailParams which have differences between
+       * their parameters. So we just need to reconcile them.
+       */
+      if (!empty($params['mailingID'])) {
+        $context = 'civimail';
+      }
+      else if (!empty($params['messageTemplateID'])) {
+        $context = 'messageTemplate';
+      }
+      else {
+        $context = 'singleEmail';
+      }
+    }
+    switch ($context) {
+      case 'civimail':
+        $audienceRule['1.a'] = true;
+        $audienceRule['2'] = true;
+        break;
+
+      case 'singleEmail':
+        switch ($params['groupName']) {
+          case 'Activity Email Sender':
+            $audienceRule['1.b'] = true;
+            $audienceRule['2'] = true;
+            $audienceRule['3'] = true;
+            break;
+        }
+
+        switch ($params['valueName']) {
+          // Non-batch actions
+          case 'case_activity':
+          case 'contribution_dupalert':
+          case 'contribution_online_receipt':
+          case 'contribution_recurring_edit':
+          case 'event_online_receipt':
+          case 'event_registration_receipt':
+          case 'friend':
+          case 'membership_online_receipt':
+          case 'petition_confirmation_needed':
+          case 'petition_sign':
+          case 'pcp_notify':
+          case 'pcp_owner_notify':
+          case 'pcp_status_change':
+          case 'pcp_supporter_notify':
+          case 'pledge_acknowledge':
+          case 'uf_notify':
+            $audienceRule['3'] = true;
+            break;
+
+          // Batch actions where 'christian' can be assumed
+          case 'contribution_recurring_billing':
+          case 'contribution_recurring_cancelled':
+          case 'contribution_recurring_notify':
+          case 'membership_autorenew_billing':
+          case 'membership_autorenew_cancelled':
+          case 'pledge_reminder':
+            $audienceRule['3'] = true;
+            break;
+
+          // Offline actions where 'christian' is not offensive if chosen
+          case 'contribution_invoice_receipt':
+          case 'contribution_offline_receipt':
+          case 'event_offline_receipt':
+          case 'membership_offline_receipt':
+          case 'payment_or_refund_notification':
+            $audienceRule['3'] = true;
+            break;
+        }
+        break;
+
+      case 'messageTemplate':
+        /*
+         * No staff involvement so just use Rule 3
+         */
+        $audienceRule['3'] = true;
+        break;
+    }
+
+    $audience = '';
+
+    /*
+     * If applicable, try $audience rule 1.a:
+     * For a CiviMail use MailingJob > Mailing > Campaign > Audience
+     */
+    if (empty($audience) && isset($audienceRule['1.a'])) {
+      if (!empty($params['campaign_id'])) {
+        $audienceRule['1'] = [
+          'key' => 'campaign_type_id.name',
+          'entity' => 'Campaign',
+          'id' => $params['campaign_id'],
+        ];
+      }
+      else if (!empty($params['mailingID'])) {
+        $audienceRule['1'] = [
+          'key' => 'campaign_id.campaign_type_id.name',
+          'entity' => 'Mailing',
+          'id' => $params['mailingID'],
+        ];
+      }
+      else if (!empty($params['job_id'])) {
+        $audienceRule['1'] = [
+          'key' => 'mailing_id.campaign_id.campaign_type_id.name',
+          'entity' => 'MailingJob',
+          'id' => $params['job_id'],
+        ];
+      }
+    }
+
+    /*
+     * If applicable, try $audience rule 1.b:
+     * For a Send Email action use Activity > Campaign > Audience
+     */
+    if (empty($audience) && isset($audienceRule['1.b'])) {
+      if (!empty($params['campaign_id'])) {
+        $audienceRule['1'] = [
+          'key' => 'campaign_type_id.name',
+          'entity' => 'Campaign',
+          'id' => $params['campaign_id'],
+        ];
+      }
+      else if (!empty($params['activityId'])) {
+        $audienceRule['1'] = [
+          'key' => 'campaign_id.campaign_type_id.name',
+          'entity' => 'Activity',
+          'id' => $params['activityId'],
+        ];
+      }
+    }
+
+    /*
+     * If applicable, try $audience rule 1:
+     * Inspect the Campaign associated with the email for an Audience
+     */
+    if (empty($audience) && isset($audienceRule['1'])) {
+      try {
+        $result = civicrm_api3($audienceRule['1']['entity'], 'get', [
+          'sequential' => 1,
+          'return' => [ $audienceRule['1']['key'] ],
+          'id' => $audienceRule['1']['id'],
+        ]);
+        $campaignType = $result['values'][0][$audienceRule['1']['key']] ?? '';
+        switch ($campaignType) {
+          case 'Mobilising':
+          case 'Equipping':
+          case 'Fundraising':
+            $audience = 'christian';
+            break;
+          case 'Engaging':
+          case 'Forum or fellowship':
+          case 'Relationship building':
+            $audience = 'general';
+            break;
+        }
+      } catch (CiviCRM_API3_Exception $e) {
+        ;
+      }
+    }
+
+    /*
+     * If applicable, try $audience rule 2:
+     * Inspect the email for HREF links that select an Audience
+     */
+    if (empty($audience) && isset($audienceRule['2'])) {
+      $audienceMatches = [];
+      foreach ($audienceData['audiences'] as $a => $data) {
+        $audienceMatches[$a] = preg_match($data['patterns']['2'], $params['html']);
+      }
+
+      foreach ($audienceMatches as $a => $match) {
+        if ($match == 1) {
+          if (empty($audience)) {
+            $audience = $a;
+          }
+          else {
+            $audience = '';
+            break; // Multiple audiences means this test is inconclusive
+          }
+        }
+      }
+    }
+
+    /*
+     * If applicable, try $audience rule 3:
+     * Inspect the current domain to see if that selects an Audience
+     */
+    if (empty($audience) && isset($audienceRule['3'])) {
+      $audienceMatches = [];
+      foreach ($audienceData['audiences'] as $a => $data) {
+        $audienceMatches[$a] = preg_match($data['patterns']['3'], $_SERVER['HTTP_HOST']);
+      }
+
+      foreach ($audienceMatches as $a => $match) {
+        if ($match == 1) {
+          if (empty($audience)) {
+            $audience = $a;
+          }
+          else {
+            $audience = '';
+            break; // Multiple audiences means this test is inconclusive
+          }
+        }
+      }
+    }
+
+    /*
+     * If applicable, try $audience rule 4:
+     * If $audience is not set, set it to 'general'
+     */
+    if (empty($audience)) {
+      $audience = 'general';
+    }
+
+    $audienceData['audience'] = $audience;
+  }
+
+  return $audienceData;
+}
+
+/*
+ * This function amends an email's text to suit the $audience
+ */
+function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
+  /*
+   * Convert relative URLs to absolute
+   * Convert old-style email PNG to $audience
+   * Convert old-style white email PNG to $audience
+   * Convert old-style social links to $audience (also apply to $text)
+   * Convert other audience's links to $audience links (html and text)
+   * Ensure $audience links are well-formed (html and text)
+   * Convert other audience's colours to $audience colours
+   * Remove empty paragraphs inserted by CKeditor
+   * Remove non-breaking spaces inserted by CKeditor
+   * Convert IMG class attribute-width-NNN to a width attribute
+   *
+   * attribute-width-NNN:
+   * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes
+   * an issue for responsive email templates when the email is viewed in Outlook.
+   * This is resolved by adding a class 'attribute-width-NNN' to the IMG element in
+   * the message template. The NNN is converted into a width="NNN" attribute that
+   * is added to the IMG. The 'attribute-width-NNN' class is otherwise ignored.
+   * There is a risk that the IMG ends up with 2 width attributes, but these should
+   * have the same value.
+   */
+  $audience = $audienceData['audience'];
+  $host = $audienceData['audiences'][$audience]['host'];
+  $colour = $audienceData['audiences'][$audience]['colour'];
+  $replacements = [
+    [
+      'comment' => 'Convert relative URLs to absolute',
+      'from' => '! (href|src)="(/[^/])!i',
+      'to' => ' $1="' . $host . '$2',
+      'html' => true,
+      'text' => false,
+    ],
+    [
+      'comment' => "Convert old-style email PNG to $audience",
+      'from' => '!/themes/cbf2019/logo-email.png!i',
+      'to' => "/themes/cbf2019/images/$audience/brand/logo-email.png",
+      'html' => true,
+      'text' => false,
+    ],
+    [
+      'comment' => "Convert old-style white email PNG to $audience",
+      'from' => '!/themes/cbf2019/logo-white-email.png!i',
+      'to' => "/themes/cbf2019/images/$audience/brand/logo-white-email.png",
+      'html' => true,
+      'text' => false,
+    ],
+    [
+      'comment' => "Convert old-style Facebook links to $audience",
+      'from' => '!https://www\.facebook\.com/CityBibleForum!i',
+      'to' => "$host/domain/$audience/facebook",
+      'html' => true,
+      'text' => true,
+    ],
+    [
+      'comment' => "Convert old-style LinkedIn links to $audience",
+      'from' => '!https://www\.linkedin\.com/company/city-bible-forum!i',
+      'to' => "$host/domain/$audience/linkedin",
+      'html' => true,
+      'text' => true,
+    ],
+    [
+      'comment' => "Convert old-style Youtube links to $audience",
+      'from' => '!https://www\.youtube\.com/channel/UCt1YTYKDW8f5s5q9McoHJ_Q!i',
+      'to' => "$host/domain/$audience/youtube",
+      'html' => true,
+      'text' => true,
+    ],
+    [
+      'comment' => 'Remove empty paragraphs inserted by CKeditor',
+      'from' => '!<p>(\r\n\t)*&nbsp;</p>!i',
+      'to' => '',
+      'html' => true,
+      'text' => false,
+    ],
+    [
+      'comment' => 'Remove non-breaking spaces inserted by CKeditor',
+      'from' => '!&nbsp;!i',
+      'to' => '',
+      'html' => true,
+      'text' => false,
+    ],
+    [
+      'comment' => 'Convert IMG class attribute-width-NNN to a width attribute',
+      'from' => '!<img ([^>]+)attribute-width-([0-9]+)([^>]+)/>!i',
+      'to' => '<img width="$2" $1attribute-width-processed$3/>',
+      'html' => true,
+      'text' => false,
+    ],
+  ];
+  foreach ($audienceData['audiences'] as $a => $data) {
+    /*
+     * Note that when $a == $audience what we're doing is ensuring the $audience
+     * links are well-formed (explicitly HTTPS)
+     */
+    $replacements[] = [
+      'comment' => "Convert HTML $a links to $audience links",
+      'from' => $data['patterns']['html'],
+      'to' => ' $1="' . $host . '$5',
+      'html' => true,
+      'text' => false,
+    ];
+    $replacements[] = [
+      'comment' => "Convert text $a links to $audience links",
+      'from' => $data['patterns']['text'],
+      'to' => '$1' . $host . '$5',
+      'html' => false,
+      'text' => true,
+    ];
+    if ($a != $audience) {
+      $replacements[] = [
+        'comment' => "Convert $a colours to $audience colours",
+        'from' => $data['patterns']['colour'],
+        'to' => '$1' . $colour . '$2',
+        'html' => true,
+        'text' => false,
+      ];
+    }
+  }
+  foreach ($replacements as $r) {
+    if ($r['html']) {
+      $html = preg_replace($r['from'], $r['to'], $html) ?? $html;
+    }
+    if ($r['text']) {
+      $text = preg_replace($r['from'], $r['to'], $text) ?? $text;
+    }
+  }
+}
+
+/*
+ * This hook is called after getting the content of the mail and before tokenizing it.
+ *
+ * It is called once before sending an email, but can be called multiple times.
+ */
+function cbf_civicrm_civicrm_alterMailContent(&$content) {
+  $audienceData = _cbf_civicrm_email_audience($content, null);
+  _cbf_civicrm_amend_email($content['html'], $content['text'], $audienceData);
+}
+
+/*
  *  This hook is called when an email is about to be sent by CiviCRM.
  *  It ensures the email contains no relative links.
  *  It adds the closing tags for the BODY and HTML elements, as these are
@@ -18,223 +447,119 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   }
 
   /*
-   * Determine the $audience for the email.
-   *  1 - Inspect the Campaign associated with the email for an Audience
-   *       a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
-   *       b - For a Send Email action use Activity > Campaign > Audience
-   *  2 - Inspect the email for HREF links that select an Audience
-   *  3 - Inspect the current domain to see if that selects an Audience
-   *  4 - If these rules fail, set the $audience to 'general'
+   * "Note that this hook is called twice when sending a message template,
+   *  once early in the message generation (before tokens are applied, with
+   *  the context 'messageTemplate') and then later from CRM_Utils_Mail::send()
+   *  with the context 'singleEmail'"
+   *
+   *    - https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_alterMailParams/
    */
-  $audience = '';
-  $audienceRule = [];
-  $audienceData = &drupal_static(__FUNCTION__);
-
-  switch ($context) {
-    case 'civimail':
-      $audienceRule['1.a'] = true;
-      $audienceRule['2'] = true;
-      break;
-
-    case 'singleEmail':
-      switch ($params['groupName']) {
-        case 'Activity Email Sender':
-          $audienceRule['1.b'] = true;
-          $audienceRule['2'] = true;
-          $audienceRule['3'] = true;
-          break;
-      }
-
-      switch ($params['valueName']) {
-        // Non-batch actions
-        case 'case_activity':
-        case 'contribution_dupalert':
-        case 'contribution_online_receipt':
-        case 'contribution_recurring_edit':
-        case 'event_online_receipt':
-        case 'event_registration_receipt':
-        case 'friend':
-        case 'membership_online_receipt':
-        case 'petition_confirmation_needed':
-        case 'petition_sign':
-        case 'pcp_notify':
-        case 'pcp_owner_notify':
-        case 'pcp_status_change':
-        case 'pcp_supporter_notify':
-        case 'pledge_acknowledge':
-        case 'uf_notify':
-          $audienceRule['3'] = true;
-          break;
-
-          // Batch actions where 'christian' can be assumed
-        case 'contribution_recurring_billing':
-        case 'contribution_recurring_cancelled':
-        case 'contribution_recurring_notify':
-        case 'membership_autorenew_billing':
-        case 'membership_autorenew_cancelled':
-        case 'pledge_reminder':
-          $audienceRule['3'] = true;
-          break;
-
-          // Offline actions where 'christian' is not offensive if chosen
-        case 'contribution_invoice_receipt':
-        case 'contribution_offline_receipt':
-        case 'event_offline_receipt':
-        case 'membership_offline_receipt':
-        case 'payment_or_refund_notification':
-          $audienceRule['3'] = true;
-          break;
-      }
-      break;
-
-    case 'messageTemplate':
-      $audienceRule['2'] = true;
-      $audienceRule['3'] = true;
-      break;
+  if ($context == 'messageTemplate') {
+    return; // Wait until next invocation
   }
 
-  $audienceRule['4'] = true;
+  $audienceData = _cbf_civicrm_email_audience($params, $context);
+  $audience = $audienceData['audience'];
 
-  if (empty($audienceData)) {
-    $domains = domain_list_by_machine_name();
+  /*
+   * Update the From, Return-Path and Reply-To headers
+   * Do the From header before the others so we have a default value
+   * The From and Reply-To headers have a name and an address part.
+   * The Return-Path header only has the address part.
+   * Skip protected address patterns
+   *  - message@citybibleforum.org
+   *     - can't use message@thirdspace.org.au as we have a conflict
+   *        - if m@ts is alias of m@cbf how do we "send as" m@ts?
+   *        - if m@ts is a seperate a/c how do we handle bounces as CiviCRM only
+   *          expects a single IMAP folder (ie Mail Account)
+   */
+  $headerData = [
+    'headers' => [
+      'From' => [
+        'parameter' => [
+          'civimail' => 'From',
+          'singleEmail' => 'from',
+        ],
+        'parts' => [
+          'email name' => 'name',
+          'email domain' => 'email domain',
+        ],
+        'default' => '',
+      ],
+      'Return-Path' => [
+        'parameter' => [
+          'civimail' => 'Return-Path',
+          'singleEmail' => 'returnPath',
+        ],
+        'parts' => [
+          'email domain' => 'email domain',
+        ],
+        'default' => '!^.*<(.*)>$!i',
+      ],
+      'Reply-To' => [
+        'parameter' => [
+          'civimail' => 'Reply-To',
+          'singleEmail' => 'replyTo',
+        ],
+        'parts' => [
+          'email name' => 'name',
+          'email domain' => 'email domain',
+        ],
+        'default' => '!^(.*)$!i',
+      ],
+    ],
+    'protected' => [
+      'patterns' => [
+        'CiviMail sending account' => '!message(\+[.a-z0-9]+)@citybibleforum\.org!i',
+      ],
+    ],
+  ];
 
-    $audienceData = [
-      'general' => [],
-      'christian' => [],
-    ];
-    foreach ($domains as $domain) {
-      $domainAudience = $domain['machine_name'];
-      if (isset($audienceData[$domainAudience])) {
-        $audienceData[$domainAudience]['hosts'] = [];
-        $audienceData[$domainAudience]['hosts'][] = $domain['subdomain'];
-        foreach ($domain['aliases'] as $alias) {
-          $audienceData[$domainAudience]['hosts'][] = $alias['pattern'];
+  foreach ($headerData['headers'] as $_ => $header) {
+    $name = $header['parameter'][$context] ?? '';
+    if ($name) {
+      $address = $params[$name] ?? '';
+      if ($address) {
+        foreach ($headerData['protected']['patterns'] as $pattern) {
+          if (preg_match($pattern, $address)) {
+            continue 2; // This $address is protected: skip to the next $header
+          }
         }
-
-        $audienceData[$domainAudience]['patterns'] = [];
-        $audienceData[$domainAudience]['patterns']['2'] =
-          '#' . ' href="http(s)?://' .
-          '(' . implode('|', $audienceData[$domainAudience]['hosts']) . ')' .
-          '("|/)' . '#i';
-        $audienceData[$domainAudience]['patterns']['3'] =
-          '#' . '^' .
-          '(' . implode('|', $audienceData[$domainAudience]['hosts']) . ')' .
-          '$' . '#i';
+        foreach ($header['parts'] as $pattern => $replacement) {
+          foreach ($audienceData['audiences'] as $a => $data) {
+            if ($a != $audience) {
+              $address = preg_replace(
+                $data['patterns'][$pattern],
+                '$1' . $audienceData['audiences'][$audience][$replacement] . '$3',
+                $address) ?? $address;
+            }
+          }
+        }
+        $params[$name] = $address;
+      }
+      else if ($header['default']) { // Default to From if not supplied
+        $params[$name] = preg_replace(
+          $header['default'],
+          '$1',
+          $params[$headerData['headers']['From']['parameter'][$context]]);
       }
     }
   }
 
-  if (empty($audience) && isset($audienceRule['1.a'])) {
-    try {
-      $keyAudience = 'mailing_id.campaign_id.custom_98';
-      $audience = civicrm_api3('MailingJob', 'get', [
-        'sequential' => 1,
-        'return' => [$keyAudience],
-        'id' => $params['job_id'],
-      ]);
-      $audience = $audience['values'][0][$keyAudience] ?? '';
-    } catch (CiviCRM_API3_Exception $e) {
-      ;
-    }
-  }
+  _cbf_civicrm_amend_email($params['html'], $params['text'], $audienceData);
 
-  if (empty($audience) && isset($audienceRule['1.b'])) {
-    try {
-      $keyAudience = 'campaign_id.custom_98';
-      $audience = civicrm_api3('Activity', 'get', [
-        'sequential' => 1,
-        'return' => [$keyAudience],
-        'id' => $params['activityId'],
-      ]);
-      $audience = $audience['values'][0][$keyAudience] ?? '';
-    } catch (CiviCRM_API3_Exception $e) {
-      ;
-    }
-  }
-
-  if (empty($audience) && isset($audienceRule['2'])) {
-    $audienceMatches = [];
-    foreach ($audienceData as $a => $data) {
-      $audienceMatches[$a] = preg_match(
-        $data['patterns']['2'],
-        CRM_Utils_Array::value('html', $params));
-    }
-
-    foreach ($audienceMatches as $a => $match) {
-      if ($match == 1) {
-        if (empty($audience)) {
-          $audience = $a;
-        }
-        else {
-          $audience = '';
-          break; // Multiple audiences means this test is inconclusive
-        }
-      }
-    }
-  }
-
-  if (empty($audience) && isset($audienceRule['3'])) {
-    $audienceMatches = [];
-    foreach ($audienceData as $a => $data) {
-      $audienceMatches[$a] = preg_match(
-        $data['patterns']['3'],
-        $_SERVER['HTTP_HOST']);
-    }
-    
-    foreach ($audienceMatches as $a => $match) {
-      if ($match == 1) {
-        if (empty($audience)) {
-          $audience = $a;
-        }
-        else {
-          $audience = '';
-          break; // Multiple audiences means this test is inconclusive
-        }
-      }
-    }
-  }
-
-  if (empty($audience) && isset($audienceRule['4'])) {
-    $audience = 'general';
-  }
-
-  $htmlMessage = CRM_Utils_Array::value( 'html', $params );
+  $htmlMessage = $params['html'];
   if ( $htmlMessage ) {
     /*
-     *  Change relative URLs to absolute.
-     *  Links:  Relative URLs start with a '/' and occur in the HREF attribute of an A element
-     *  Images: Relative URLs start with a '/' and occur in the SRC attribute of an IMG element
-     *  The '/' is replaced by the CiviCRM User Framework Base URL, which terminates with a '/'
-     */
-    $config = CRM_Core_Config::singleton( );
-    $htmlMessage = str_replace(' href="//', ' href="https://', $htmlMessage);
-    $htmlMessage = str_replace(' src="//',  ' src="https://',  $htmlMessage);
-    $htmlMessage = str_replace(' href="/',  ' href="'.$config->userFrameworkBaseURL, $htmlMessage);
-    $htmlMessage = str_replace(' src="/',   ' src="'.$config->userFrameworkBaseURL,  $htmlMessage);
-
-    /*
-     *  Remove empty paragraphs and non-breaking spaces inserted by CKeditor
-     */
-    $htmlMessage = preg_replace('!<p>(\r\n\t)*&nbsp;</p>!i', '', $htmlMessage);
-    $htmlMessage = preg_replace('!&nbsp;!i', ' ', $htmlMessage);
-
-    /*
-     * The CKeditor Image Dialog removes width attributes from HTML IMGs. This causes
-     * an issue for responsive email templates when the email is viewed in Outlook.
-     *
-     * This is resolved by adding a class 'attribute-width-NNN' to the IMG element in
-     * the message template. The NNN is converted into a width="NNN" attribute that
-     * is added to the IMG. The 'attribute-width-NNN' class is otherwise ignored.
-     *
-     * There is a risk that the IMG ends up with 2 width attributes, but these should
-     * have the same value.
-     */
-    $htmlMessage = preg_replace('!<img ([^>]+attribute-width-([0-9]+)[^>]+)/>!i', '<img width="$2" $1/>', $htmlMessage);
-
-    /*
      * Look for the closing tag for the BODY element, and add it if needed
+     * Can't do this in _cbf_civicrm_amend_email() because the tracking
+     * image is not added until after cbf_civicrm_civicrm_alterMailContent()
+     * is called.
      */
-    if (stripos($htmlMessage, '</body>') === false) {
+    if (
+      stripos($htmlMessage, '<body>') !== false &&
+      stripos($htmlMessage, '</body>') === false
+    ) {
       $htmlMessage .= '</body></html>';
     }
 

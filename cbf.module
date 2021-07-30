@@ -4,6 +4,43 @@
  * This hook is called at the beginning of a Drupal page request.
  */
 function cbf_init() {
+  /*
+   * CiviCRM Events don't currently support Domain Source. So URLs might be
+   * created for the wrong Domain. If we are on the wrong Domain, redirect
+   * the visitor to the right one.
+   */
+  $event = menu_get_object('civicrm_entity_loader');
+  if (!empty($event) && $event->entityType() == 'civicrm_event') {
+    $audienceTerm = field_get_items('civicrm_event', $event, 'taxonomy_vocabulary_3');
+    if ($audienceTerm === false || empty($audienceTerm[0]['tid'])) {
+      $eventAudience = '';
+    }
+    else {
+      switch ($audienceTerm[0]['tid']) {
+        case '47':
+          $eventAudience = 'christian';
+          break;
+        case '48':
+          $eventAudience = 'general';
+          break;
+        default:
+          $eventAudience = '';
+          break;
+      }
+    }
+    if (!empty($eventAudience)) {
+      $currentDomain = domain_get_domain();
+      $eventDomain = domain_list_by_machine_name()[$eventAudience];
+      if (
+        !empty($eventDomain)
+        && $eventDomain['domain_id'] != $currentDomain['domain_id']
+      ) {
+        $redirect = domain_get_uri($eventDomain);
+        drupal_goto($redirect, [], 301);
+      }
+    }
+  }
+
   if (arg(0) == 'node') {
     if (arg(1) == 'add') {
       /*
@@ -1349,13 +1386,13 @@ function cbf_entity_presave($entity, $type) {
         'ministry_team' => true,
         'staff' => true,
         'regular_venue' => true,
-        'title_header' => true,
         'home_page_slider' => true,
       ];
       $skipDomainBundles = [
         'dateable' => true,
         'highlightable' => true,
         'mappable' => true,
+        'title_header' => true,
       ];
       $allDomainIds = [ ];
       $entityId = $entity->entityform_id;
@@ -1399,8 +1436,10 @@ function cbf_entity_presave($entity, $type) {
           $entityAudience = 'christian';
           break;
         case '48':
-        case '1957': // Unlisted content is treated like General content
           $entityAudience = 'general';
+          break;
+        case '1957':
+          $entityAudience = 'unlisted';
           break;
         default:
           $entityAudience = '';
@@ -1436,7 +1475,10 @@ function cbf_entity_presave($entity, $type) {
         $ruleAudience = $domain['machine_name'];
         if (
           $ruleAudience == 'christian' ||
-          strcasecmp($ruleAudience, $entityAudience) == 0
+          $ruleAudience == 'general' && (
+            $entityAudience == 'general' ||
+            $entityAudience == 'unlisted'
+          )
         ) {
           $match = true;
         }
@@ -1446,7 +1488,7 @@ function cbf_entity_presave($entity, $type) {
           if ($ruleDomain == 'thirdspace') {
             if ($entityHasThirdSpaceCategory == true && $entityAudience == 'general') {
               if ($entityIsThirdSpaceExclusive) {
-                $matches = [ [ 'domain_id' => $domain['domain_id'] ] ];
+                $matches = [ $domain['machine_name'] => [ 'domain_id' => $domain['domain_id'] ] ];
                 break 2;
               }
               $match = true;
@@ -1466,7 +1508,7 @@ function cbf_entity_presave($entity, $type) {
       }
 
       if ($match) {
-        $matches[] = [ 'domain_id' => $domain['domain_id'] ];
+        $matches[$domain['machine_name']] = [ 'domain_id' => $domain['domain_id'] ];
       }
     }
 
@@ -1480,17 +1522,53 @@ function cbf_entity_presave($entity, $type) {
         if (count($entity->domains) == 1) {
           $entity->domain_source = reset($entity->domains);
         }
-        else {
+        else if ($entityAudience == 'unlisted') {
           $entity->domain_source = DOMAIN_SOURCE_USE_ACTIVE;
+        }
+        else {
+          $sources = [ ];
+          foreach ($matches as $name => $domainId) {
+            switch ($name) {
+              case 'general':
+              case 'christian':
+                $sources[$name] = $domainId['domain_id'];
+                break;
+              case 'thirdspace':
+                // Ignore Classic Thirdspace as a domain source
+                break;
+              default:
+                $sources['other'] = DOMAIN_SOURCE_USE_ACTIVE;
+                break;
+            }
+          }
+          /*
+           * The domain source is DOMAIN_SOURCE_USE_ACTIVE for Bigger
+           * Questions etc, the 'general' domain for content visible on
+           * the general and christian domains, the 'christian' domain
+           * for content visible on the Christian domain, and
+           * DOMAIN_SOURCE_USE_ACTIVE as a final fallback.
+           */
+          $entity->domain_source = $sources['other']
+            ?? $sources['general']
+            ?? $sources['christian']
+            ?? DOMAIN_SOURCE_USE_ACTIVE;
         }
         break;
 
       case 'civicrm_event':
-        $entity->field_domain[field_language($type, $entity, 'field_domain')] = $matches;
+        $lang = field_language($type, $entity, 'field_domain');
+        $entity->field_domain[$lang] = [ ];
+        foreach ($matches as $value) {
+          $entity->field_domain[$lang][] = $value;
+        }
         break;
 
       case 'entityform':
-        $entity->domain_entityform[field_language($type, $entity, 'domain_entityform')] = $matches;
+        $lang = field_language($type, $entity, 'domain_entityform');
+        $entity->domain_entityform[$lang] = [ ];
+        foreach ($matches as $value) {
+          $entity->domain_entityform[$lang][] = $value;
+        }
         break;
     }
   }
@@ -2183,6 +2261,23 @@ function cbf_views_pre_render(&$view) {
     $view->set_title($title);
     $view->display_handler->display->handler->handlers['header']['area']->options['content'] = $title;
   }
+
+  if (
+    $view->name == 'cbf2019_recent_library'
+    && $view->current_display == 'page_1'
+  ) {
+    $tid = $view->exposed_input['term_node_tid_depth'] ?? 'All';
+    if (is_numeric($tid)) {
+      $topic = taxonomy_term_load($tid);
+      $description = strip_tags($topic->description);
+      if ($description) {
+        $view->attachment_before
+          = '<div class="attachment-inner">' .
+              $description .
+            '</div>';
+      }
+    }
+  }
 }
 
 /*
@@ -2409,13 +2504,19 @@ function cbf_views_post_execute(&$view) {
 
   /*
    * If the view is 'cbf2019_local_office' and the current Domain is
-   * Third Space, then overwrite the email address with the Third Space
-   * public email address.
+   * Classic Third Space, then overwrite the email address with the Third
+   * Space public email address. If the site is the General content site
+   * then use the corresponding Third Space address.
    */
   if ($view->name == 'cbf2019_local_office') {
     $currentDomainId = domain_get_domain()['domain_id'];
+    $generalDomainId = domain_load_domain_id('general');
     $classicThirdSpaceDomainId = domain_load_domain_id('thirdspace');
     switch ($currentDomainId) {
+      case $generalDomainId:
+        $contactEmailPattern = '/@.*$/';
+        $contactEmailReplacement = '@thirdspace.org.au';
+        break;
       case $classicThirdSpaceDomainId:
         $contactEmailPattern = '/^.*$/';
         $contactEmailReplacement = 'info@thirdspace.org.au';
