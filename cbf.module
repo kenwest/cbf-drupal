@@ -2264,7 +2264,10 @@ function cbf_views_pre_render(&$view) {
 
   if (
     $view->name == 'cbf2019_recent_library'
-    && $view->current_display == 'page_1'
+    && (
+      $view->current_display == 'page_1'    // /library
+      || $view->current_display == 'page_2' // /library/topic
+    )
   ) {
     $tid = $view->exposed_input['term_node_tid_depth'] ?? 'All';
     if (is_numeric($tid)) {
