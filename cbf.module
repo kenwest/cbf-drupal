@@ -2056,6 +2056,8 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
  * and we are on the 'christian' site, modify the canonical URL to point to the
  * 'general' site.
  *
+ * For SEO, give /library/topic the same Canonical URL as /library
+ *
  * @param array $output
  *   All of the meta tags to be output for this page in their raw format. This
  *   is a heavily nested array.
@@ -2074,15 +2076,22 @@ function cbf_metatag_metatags_view_alter(&$output, $instance, $options) {
       $christianDomainId = domain_load_domain_id('christian');
       if ($currentDomainId == $christianDomainId) {
         // We are on the 'christian' site
-        if (isset($output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'])) {
-          $canonical = $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'];
+        $canonical = $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'] ?? '';
+        if ($canonical) {
           $host = domain_list_by_machine_name()['general']['subdomain'] ?? '';
-          if (!empty($host)) {
+          if ($host) {
             $canonical = preg_replace('#//[a-z0-9]+(\.[a-z]+)+#i', '//' . $host, $canonical);
             $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'] = $canonical;
           }
         }
       }
+    }
+  }
+  else if ($instance == 'view:cbf2019_recent_library:page_2') {
+    $canonical = $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'] ?? '';
+    if ($canonical) {
+      $canonical = preg_replace('!library/topic.*$!i', 'library', $canonical);
+      $output['canonical']['#attached']['drupal_add_html_head'][0][0]['#value'] = $canonical;
     }
   }
 }
