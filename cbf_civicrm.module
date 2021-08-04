@@ -26,11 +26,6 @@ function _cbf_civicrm_email_audience($params, $context) {
         $audienceData['audiences'][$domainAudience]['host'] = 'https://' . $domain['subdomain'];
         $audienceData['audiences'][$domainAudience]['email domain'] = $domain['subdomain'];
 
-        /*
-         * @TODO Remove this testing code
-         */
-        $audienceData['audiences'][$domainAudience]['email domain'] = str_ireplace('august.', '', $audienceData['audiences'][$domainAudience]['email domain']);
-
         $audienceData['audiences'][$domainAudience]['hostnames'] = [];
         $audienceData['audiences'][$domainAudience]['hostnames'][] = $domain['subdomain'];
         foreach ($domain['aliases'] as $alias) {
