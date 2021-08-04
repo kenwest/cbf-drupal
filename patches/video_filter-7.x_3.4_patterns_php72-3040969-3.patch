@@ -1,0 +1,22 @@
+diff --git a/video_filter.codecs.inc b/video_filter.codecs.inc
+index 8fcac9203..562880cfb 100644
+--- a/video_filter.codecs.inc
++++ b/video_filter.codecs.inc
+@@ -16,7 +16,7 @@ function video_filter_codec_info() {
+     'sample_url' => 'http://www.archive.org/details/DrupalconBoston2008-TheStateOfDrupal',
+     'callback' => 'video_filter_archive',
+     'html5_callback' => 'video_filter_archive',
+-    'regexp' => '/archive\.org\/details\/([\w-_\.]+)/i',
++    'regexp' => '/archive\.org\/details\/([\w\-_\.]+)/i',
+     'ratio' => 4 / 3,
+   );
+ 
+@@ -338,7 +338,7 @@ function video_filter_codec_info() {
+     'sample_url' => 'https://www.whatchado.com/de/some-title',
+     'callback' => 'video_filter_whatchado_whatchado',
+     'regexp' => array(
+-      '/whatchado\.com\/[a-z]{2}\/([\w-_]+)/i',
++      '/whatchado\.com\/[a-z]{2}\/([\w\-_]+)/i',
+     ),
+     'ratio' => 960 / 540,
+   );
