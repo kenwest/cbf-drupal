@@ -67,14 +67,17 @@ function _cbf_civicrm_email_audience($params, $context) {
        * and cbf_civicrm_civicrm_alterMailParams which have differences between
        * their parameters. So we just need to reconcile them.
        */
-      if (!empty($params['mailingID'])) {
+      if (isset($params['mailingID'])) {
         $context = 'civimail';
       }
       else if (!empty($params['messageTemplateID'])) {
         $context = 'messageTemplate';
       }
-      else {
+      else if (!empty($params['valueName'])) {
         $context = 'singleEmail';
+      }
+      else {
+        $context = 'civimail';
       }
     }
     switch ($context) {
