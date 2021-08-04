@@ -377,23 +377,28 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
   ];
   foreach ($audienceData['audiences'] as $a => $data) {
     /*
-     * Note that when $a == $audience what we're doing is ensuring the $audience
-     * links are well-formed (explicitly HTTPS)
+     * When $audience is 'christian' we want to preserve the 'general'
+     * references. In all other cases we want to change the references.
+     *
+     * Note that when $a == $audience what we're doing is ensuring the
+     * $audience links are well-formed (explicitly HTTPS).
      */
-    $replacements[] = [
-      'comment' => "Convert HTML $a links to $audience links",
-      'from' => $data['patterns']['html'],
-      'to' => ' $1="' . $host . '$5',
-      'html' => true,
-      'text' => false,
-    ];
-    $replacements[] = [
-      'comment' => "Convert text $a links to $audience links",
-      'from' => $data['patterns']['text'],
-      'to' => '$1' . $host . '$5',
-      'html' => false,
-      'text' => true,
-    ];
+    if ($audience != 'christian' || $a != 'general') {
+      $replacements[] = [
+        'comment' => "Convert HTML $a references to $audience links",
+        'from' => $data['patterns']['html'],
+        'to' => ' $1="' . $host . '$5',
+        'html' => true,
+        'text' => false,
+      ];
+      $replacements[] = [
+        'comment' => "Convert text $a references to $audience links",
+        'from' => $data['patterns']['text'],
+        'to' => '$1' . $host . '$5',
+        'html' => false,
+        'text' => true,
+      ];
+    }
     if ($a != $audience) {
       $replacements[] = [
         'comment' => "Convert $a colours to $audience colours",
