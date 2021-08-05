@@ -364,9 +364,9 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
       'text' => false,
     ],
     [
-      'comment' => 'Remove non-breaking spaces inserted by CKeditor',
+      'comment' => 'Replace non-breaking spaces inserted by CKeditor with spaces',
       'from' => '!&nbsp;!i',
-      'to' => '',
+      'to' => ' ',
       'html' => true,
       'text' => false,
     ],
