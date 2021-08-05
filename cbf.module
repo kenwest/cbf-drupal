@@ -99,6 +99,21 @@ function cbf_init() {
   return [];
 }
 
+function _cbf_multi_array_search ($needle, $haystack, $path = '') {
+  $result = [];
+  if (is_array($haystack)) {
+    foreach ($haystack as $key => $straw) {
+      $result = array_merge($result, _cbf_multi_array_search($needle, $straw, $path . "['" . $key . "']"));
+    }
+  }
+  else {
+    if (stristr($haystack, $needle)) {
+      $result[] = $path;
+    }
+  }
+  return $result;
+}
+
 /*
  * Implements Drupal hook_form_alter().
  *
