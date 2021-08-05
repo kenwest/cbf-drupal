@@ -3753,5 +3753,30 @@ function cbf_entity_view($entity, $type, $view_mode, $langcode) {
         drupal_goto('contact-us', ['query' => []]);
       }
     }
+    /*
+     * Modify staff emails on forms to be Third Space when appropriate. The
+     * Staff email address has a default, is read-only and is attached to
+     * Contact 1.
+     */
+    $email = $entity->content['webform']['#form']['submitted']
+      ['civicrm_1_contact_1_fieldset_fieldset']
+      ['civicrm_1_contact_1_email_email']
+      ['#value'] ?? '';
+    $readonly = $entity->content['webform']['#form']['submitted']
+      ['civicrm_1_contact_1_fieldset_fieldset']
+      ['civicrm_1_contact_1_email_email']
+      ['#attributes']['readonly'] ?? '';
+    if ($email && $readonly == 'readonly') {
+      $currentDomainId = domain_get_domain()['domain_id'];
+      $generalDomainId = domain_load_domain_id('general');
+      if ($currentDomainId == $generalDomainId) {
+        $email = preg_replace('!@.*("|$)!i', '@thirdspace.org.au$1', $email) ?? $email;
+        $entity->content['webform']['#form']['submitted']
+        ['civicrm_1_contact_1_fieldset_fieldset']
+        ['civicrm_1_contact_1_email_email']
+        ['#value']
+          = $email;
+      }
+    }
   }
 }
