@@ -201,7 +201,10 @@
     {/if}
 
     <div class="action-link section event_info_link-section">
-        <a href="{crmURL p='civicrm/event/info' q="reset=1&id=`$event.id`"}"><i class="crm-i fa-chevron-left" aria-hidden="true"></i> {ts 1=$event.event_title}Back to "%1" event information{/ts}</a>
+      <a href="/civicrm-event/{$event.id}">
+        <i class="crm-i fa-chevron-left" aria-hidden="true"></i>
+        {ts 1=$event.event_title}Back to "%1" event information{/ts}
+      </a>
     </div>
 
     {if $event.is_public }
@@ -210,7 +213,7 @@
       </div>
     {/if}
     {if $event.is_share}
-    {capture assign=eventUrl}{crmURL p='civicrm/event/info' q="id=`$event.id`&amp;reset=1" a=1 fe=1 h=1}{/capture}
+    {capture assign=eventUrl}{crmURL p="civicrm-event/`$event.id`" a=1 fe=1 h=1}{/capture}
     {include file="CRM/common/SocialNetwork.tpl" url=$eventUrl title=$event.title pageURL=$eventUrl}
     {/if}
 </div>
