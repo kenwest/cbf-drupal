@@ -3731,3 +3731,27 @@ function cbf_get_last_item_in_path() {
   $pathElements = explode('/', $path);
   return end($pathElements);
 }
+
+/*
+ * Implements hook_entity_view: "act on entities being assembled before
+ * rendering"
+ */
+function cbf_entity_view($entity, $type, $view_mode, $langcode) {
+  if ($type == 'node' && $view_mode == 'full' && $entity->type == 'webform') {
+    /*
+     * CiviCRM Entity will pick up a random staff member if none is
+     * specified or if the one specified is not a current staff member. If this
+     * occurs on the /staff-contact form, transfer the request to a generic
+     * contact form.
+     */
+    if ($entity->nid == '2972') { // Staff Contact form
+      $staff = $entity->content['webform']['#form']['submitted']
+        ['civicrm_1_contact_1_fieldset_fieldset']['civicrm_1_contact_1_contact_existing']
+        ['#value'] ?? '';
+      $requested = drupal_get_query_parameters()['cid1'] ?? '';
+      if ($staff && $staff != $requested) {
+        drupal_goto('contact-us', ['query' => []]);
+      }
+    }
+  }
+}
