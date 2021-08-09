@@ -1549,7 +1549,7 @@ function cbf_entity_presave($entity, $type) {
                 $sources[$name] = $domainId['domain_id'];
                 break;
               case 'thirdspace':
-                // Ignore Classic Thirdspace as a domain source
+                // Ignore legacy Thirdspace as a domain source
                 break;
               default:
                 $sources['other'] = DOMAIN_SOURCE_USE_ACTIVE;
@@ -2531,20 +2531,20 @@ function cbf_views_post_execute(&$view) {
 
   /*
    * If the view is 'cbf2019_local_office' and the current Domain is
-   * Classic Third Space, then overwrite the email address with the Third
+   * legacy Third Space, then overwrite the email address with the Third
    * Space public email address. If the site is the General content site
    * then use the corresponding Third Space address.
    */
   if ($view->name == 'cbf2019_local_office') {
     $currentDomainId = domain_get_domain()['domain_id'];
     $generalDomainId = domain_load_domain_id('general');
-    $classicThirdSpaceDomainId = domain_load_domain_id('thirdspace');
+    $legacyThirdSpaceDomainId = domain_load_domain_id('thirdspace');
     switch ($currentDomainId) {
       case $generalDomainId:
         $contactEmailPattern = '/@.*$/';
         $contactEmailReplacement = '@thirdspace.org.au';
         break;
-      case $classicThirdSpaceDomainId:
+      case $legacyThirdSpaceDomainId:
         $contactEmailPattern = '/^.*$/';
         $contactEmailReplacement = 'info@thirdspace.org.au';
         break;
