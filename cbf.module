@@ -3780,3 +3780,15 @@ function cbf_entity_view($entity, $type, $view_mode, $langcode) {
     }
   }
 }
+
+/*
+ * Implementation of hook_TYPE_alter() for hook_facebook_tracking_pixel_events()
+ *
+ * The Facebook CompleteRegistration event now requires a value. We arbitrarily
+ * set that to $10 as we don't seem to have a hook to modify the value on the fly.
+ */
+function cbf_facebook_tracking_pixel_events_alter(&$events) {
+  if (isset($events['registration']['code'])) {
+    $events['registration']['code'] = "fbq('track', 'CompleteRegistration', {value: '10.00', currency: 'AUD'});";
+  }
+}
