@@ -221,6 +221,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
 
     if ($isSMSmode) {
       $criteria = [
+        'is_deleted' => CRM_Utils_SQL_Select::fragment()->where("$contact.is_deleted = 0"),
         'is_opt_out' => CRM_Utils_SQL_Select::fragment()->where("$contact.is_opt_out = 0"),
         'is_deceased' => CRM_Utils_SQL_Select::fragment()->where("$contact.is_deceased <> 1"),
         'do_not_sms' => CRM_Utils_SQL_Select::fragment()->where("$contact.do_not_sms = 0"),
@@ -233,8 +234,9 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
       ];
     }
     else {
-      // Criterias to filter recipients that need to be included
+      // Criteria to filter recipients that need to be included
       $criteria = [
+        'is_deleted' => CRM_Utils_SQL_Select::fragment()->where("$contact.is_deleted = 0"),
         'do_not_email' => CRM_Utils_SQL_Select::fragment()->where("$contact.do_not_email = 0"),
         'is_opt_out' => CRM_Utils_SQL_Select::fragment()->where("$contact.is_opt_out = 0"),
         'is_deceased' => CRM_Utils_SQL_Select::fragment()->where("$contact.is_deceased <> 1"),
@@ -396,6 +398,9 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
    * @return array
    */
   public static function getLocationFilterAndOrderBy($email_selection_method, $location_type_id) {
+    if ($email_selection_method !== 'automatic' && !$location_type_id) {
+      throw new \CRM_Core_Exception(ts('You have selected an email Selection Method without specifying a Location Type. Please go back and change your recipient settings (using the wrench icon next to "Recipients").'));
+    }
     $email = CRM_Core_DAO_Email::getTableName();
     // Note: When determining the ORDER that results are returned, it's
     // the record that comes last that counts. That's because we are
@@ -1325,7 +1330,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
    *
    * @return bool|mixed|null|string
    */
-  private function getTokenData(&$token_a, $html = FALSE, &$contact, &$verp, &$urls, $event_queue_id) {
+  private function getTokenData(&$token_a, $html, &$contact, &$verp, &$urls, $event_queue_id) {
     $type = $token_a['type'];
     $token = $token_a['token'];
     $data = $token;
@@ -1446,7 +1451,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
     $id = $params['id'] ?? $ids['mailing_id'] ?? NULL;
 
     if (empty($params['id']) && !empty($ids)) {
-      \Civi::log('Parameter $ids is no longer used by Mailing::add. Use the api or just pass $params', ['civi.tag' => 'deprecated']);
+      CRM_Core_Error::deprecatedWarning('Parameter $ids is no longer used by Mailing::add. Use the api or just pass $params');
     }
 
     if ($id) {
@@ -1525,7 +1530,13 @@ ORDER BY   civicrm_email.is_bulkmail DESC
 
     if (empty($params['id']) && (array_filter($ids) !== [])) {
       $params['id'] = $ids['mailing_id'] ?? $ids['id'];
-      \Civi::log('Parameter $ids is no longer used by Mailing::create. Use the api or just pass $params', ['civi.tag' => 'deprecated']);
+      CRM_Core_Error::deprecatedWarning('Parameter $ids is no longer used by Mailing::create. Use the api or just pass $params');
+    }
+
+    // CRM-#1843
+    // If it is a mass sms, set url_tracking to false
+    if (!empty($params['sms_provider_id'])) {
+      $params['url_tracking'] = 0;
     }
 
     // CRM-12430
@@ -2457,7 +2468,7 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
       throw new CRM_Core_Exception(ts('No id passed to mailing del function'));
     }
 
-    CRM_Utils_Hook::pre('delete', 'Mailing', $id, CRM_Core_DAO::$_nullArray);
+    CRM_Utils_Hook::pre('delete', 'Mailing', $id);
 
     // delete all file attachments
     CRM_Core_BAO_File::deleteEntityFile('civicrm_mailing',
@@ -2487,7 +2498,7 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
       throw new CRM_Core_Exception(ts('No id passed to mailing delJob function'));
     }
 
-    \Civi::log('This function is deprecated, use CRM_Mailing_BAO_MailingJob::del instead', ['civi.tag' => 'deprecated']);
+    CRM_Core_Error::deprecatedWarning('This function is deprecated, use CRM_Mailing_BAO_MailingJob::del instead');
 
     CRM_Mailing_BAO_MailingJob::del($id);
   }
@@ -2746,8 +2757,9 @@ WHERE  civicrm_mailing_job.id = %1
     $config = CRM_Core_Config::singleton();
 
     if ($mode == NULL && CRM_Core_BAO_MailSettings::defaultDomain() == "EXAMPLE.ORG") {
+      // Using forceBackend=TRUE because WordPress sometimes fails to detect cron
       throw new CRM_Core_Exception(ts('The <a href="%1">default mailbox</a> has not been configured. You will find <a href="%2">more info in the online system administrator guide</a>', [
-        1 => CRM_Utils_System::url('civicrm/admin/mailSettings', 'reset=1'),
+        1 => CRM_Utils_System::url('civicrm/admin/mailSettings', 'reset=1', FALSE, NULL, TRUE, FALSE, TRUE),
         2 => "https://docs.civicrm.org/sysadmin/en/latest/setup/civimail/",
       ]));
     }

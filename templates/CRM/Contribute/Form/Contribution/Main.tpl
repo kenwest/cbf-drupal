@@ -50,21 +50,22 @@
     {include file="CRM/Contribute/Form/Contribution/PreviewHeader.tpl"}
   {/if}
 
-  {if $displayCaptchaWarning}
-    <div class="messages status no-popup">
-      {ts}To display reCAPTCHA on form you must get an API key from<br /> <a href='https://www.google.com/recaptcha/admin/create'>https://www.google.com/recaptcha/admin/create</a>{/ts}
-    </div>
+  {if call_user_func(array('CRM_Core_Permission','check'), 'administer CiviCRM') }
+    {capture assign="buttonTitle"}{ts}Configure Contribution Page{/ts}{/capture}
+    {crmButton target="_blank" p="civicrm/admin/contribute/settings" q="reset=1&action=update&id=`$contributionPageID`" fb=1 title="$buttonTitle" icon="fa-wrench"}{ts}Configure{/ts}{/crmButton}
+    <div class='clear'></div>
   {/if}
-
   {include file="CRM/common/TrackingFields.tpl"}
 
   <div class="crm-contribution-page-id-{$contributionPageID} crm-block crm-contribution-main-form-block">
 
+    {crmRegion name='contribution-main-not-you-block'}
     {if $contact_id && !$ccid}
       <div class="messages status no-popup crm-not-you-message">
         {ts 1=$display_name}Welcome %1{/ts}. (<a href="{crmURL p='civicrm/contribute/transact' q="cid=0&reset=1&id=`$contributionPageID`"}" title="{ts}Click here to do this for a different person.{/ts}">{ts 1=$display_name}Not %1, or want to do this for a different person{/ts}</a>?)
       </div>
     {/if}
+    {/crmRegion}
 
     <div id="intro_text" class="crm-public-form-item crm-section intro_text-section">
       {$intro_text}
@@ -83,6 +84,7 @@
       </div>
     </div>
     {include file="CRM/common/cidzero.tpl"}
+
     {if $islifetime or $ispricelifetime}
       <div class="help">{ts}You have a current Lifetime Membership which does not need to be renewed.{/ts}</div>
     {/if}
@@ -101,7 +103,7 @@
       {else}
         <div class="display-block">
           <td class="label">{$form.total_amount.label}</td>
-          <td><span>{$form.total_amount.html|crmMoney}&nbsp;&nbsp;{if $taxAmount}{ts 1=$taxTerm 2=$taxAmount|crmMoney}(includes %1 of %2){/ts}{/if}</span></td>
+          <td><span>{$form.total_amount.html}&nbsp;&nbsp;{if $taxAmount}{ts 1=$taxTerm 2=$taxAmount|crmMoney}(includes %1 of %2){/ts}{/if}</span></td>
         </div>
       {/if}
     {else}
@@ -150,14 +152,16 @@
         <div class="crm-public-form-item crm-section {$form.is_recur.name}-section">
           <div class="label">&nbsp;</div>
           <div class="content">
-            {$form.is_recur.html} {$form.is_recur.label} {ts}every{/ts}
+            {$form.is_recur.html} {$form.is_recur.label}
             {if $is_recur_interval}
               {$form.frequency_interval.html}
             {/if}
-            {if $one_frequency_unit}
-              {$frequency_unit}
-            {else}
-              {$form.frequency_unit.html}
+            {if !$all_text_recur}
+              {if $one_frequency_unit}
+                {$form.frequency_interval.label}
+              {else}
+                {$form.frequency_unit.html}
+              {/if}
             {/if}
             {if $is_recur_installments}
               <span id="recur_installments_num">
@@ -350,17 +354,27 @@
       var isRecur = cj('input[id="is_recur"]:checked');
       var allowAutoRenew = {/literal}'{$allowAutoRenewMembership}'{literal};
       var quickConfig = {/literal}{$quickConfig}{literal};
-      if ( allowAutoRenew && cj("#auto_renew") && quickConfig) {
+      if (allowAutoRenew && cj("#auto_renew") && quickConfig) {
         showHideAutoRenew(null);
       }
+
+      var frequencyUnit = cj('#frequency_unit');
+      var frequencyInerval = cj('#frequency_interval');
+      var installments = cj('#installments');
+      isDisabled = false;
+
       if (isRecur.val() > 0) {
         cj('#recurHelp').show();
-        cj('#recur_installments_num').show();
+        frequencyUnit.prop('disabled', false).addClass('required');
+        frequencyInerval.prop('disabled', false).addClass('required');
+        installments.prop('disabled', false);
         cj('#amount_sum_label').text('{/literal}{ts escape='js'}Regular amount{/ts}{literal}');
       }
       else {
         cj('#recurHelp').hide();
-        cj('#recur_installments_num').hide();
+        frequencyUnit.prop('disabled', true).removeClass('required');
+        frequencyInerval.prop('disabled', true).removeClass('required');
+        installments.prop('disabled', true);
         cj('#amount_sum_label').text('{/literal}{ts escape='js'}Total Amount{/ts}{literal}');
       }
     }

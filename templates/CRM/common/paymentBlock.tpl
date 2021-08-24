@@ -19,18 +19,28 @@
     var payment_options = cj(".payment_options-group");
     var payment_processor = cj("div.payment_processor-section");
     var payment_information = cj("div#payment_information");
+    // I've added a hide for billing block. But, actually the issue
+    // might be that the unselecting of the processor should cause it
+    // to be hidden (or removed) in which case it can go from this function.
     var billing_block = cj("div#billing-payment-block");
     if (isHide) {
       payment_options.hide();
       payment_processor.hide();
       payment_information.hide();
       billing_block.hide();
+      // Ensure that jquery validation doesn't block submission when we don't need to fill in the billing details section
+      cj('#billing-payment-block select.crm-select2').addClass('crm-no-validate');
+      // also unset selected payment methods
+      cj('input[name="payment_processor_id"]').removeProp('checked');
     }
     else {
       payment_options.show();
       payment_processor.show();
       payment_information.show();
       billing_block.show();
+      cj('#billing-payment-block select.crm-select2').removeClass('crm-no-validate');
+      // also set selected payment methods
+      cj('input[name="payment_processor_id"][checked=checked]').prop('checked', true);
     }
   }
 
@@ -88,7 +98,10 @@
 
       var payment_instrument_id = $('#payment_instrument_id').val();
 
-      var dataUrl = "{crmURL p='civicrm/payment/form' h=0 q="formName=`$form.formName`&currency=`$currency`&`$urlPathVar``$isBackOfficePathVar``$profilePathVar``$contributionPageID``$preProfileID`processor_id="}" + type;
+      var currency = '{$currency}';
+      currency = currency == '' ? $('#currency').val() : currency;
+
+      var dataUrl = "{crmURL p='civicrm/payment/form' h=0 q="formName=`$form.formName``$urlPathVar``$isBackOfficePathVar``$profilePathVar``$contributionPageID``$preProfileID`processor_id="}" + type;
       {literal}
       if (typeof(CRM.vars) != "undefined") {
         if (typeof(CRM.vars.coreForm) != "undefined") {
@@ -101,15 +114,18 @@
           }
         }
       }
-      dataUrl =  dataUrl + "&payment_instrument_id=" + payment_instrument_id;
+      dataUrl =  dataUrl + "&payment_instrument_id=" + payment_instrument_id + "&currency=" + currency;
 
       // Processors like pp-express will hide the form submit buttons, so re-show them when switching
       $('.crm-submit-buttons', $form).show().find('input').prop('disabled', true);
       CRM.loadPage(dataUrl, {target: '#billing-payment-block'});
     }
 
-    $('[name=payment_processor_id]').on('change.paymentBlock', function() {
-        buildPaymentBlock($(this).val());
+    $('[name=payment_processor_id], #currency').on('change.paymentBlock', function() {
+      var payment_processor_id = $('[name=payment_processor_id]:checked').val() == undefined ? $('[name=payment_processor_id]').val() : $('[name=payment_processor_id]:checked').val();
+      if (payment_processor_id != undefined) {
+        buildPaymentBlock(payment_processor_id);
+      }
     });
 
     $('#payment_instrument_id').on('change.paymentBlock', function() {

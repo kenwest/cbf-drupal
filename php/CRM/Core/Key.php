@@ -13,8 +13,6 @@
  *
  * @package CRM
  * @copyright CiviCRM LLC https://civicrm.org/licensing
- * $Id$
- *
  */
 class CRM_Core_Key {
 
@@ -34,10 +32,10 @@ class CRM_Core_Key {
   const HASH_ALGO = 'sha256';
 
   /**
-   * The length of a generated signature/digest (expressed in hex digits).
+   * The minimum length of a generated signature/digest (expressed in base36 digits).
    * @var int
    */
-  const HASH_LENGTH = 64;
+  const HASH_LENGTH = 25;
 
   public static $_key = NULL;
 
@@ -91,7 +89,7 @@ class CRM_Core_Key {
     $key = self::sign($name);
 
     if ($addSequence) {
-      // now generate a random number between 1 and 100K and add it to the key
+      // now generate a random number between 1 and 10000 and add it to the key
       // so that we can have forms in mutiple tabs etc
       $key = $key . '_' . mt_rand(1, 10000);
     }
@@ -140,38 +138,26 @@ class CRM_Core_Key {
       $k = $key;
     }
 
-    if (!hash_equals($k, self::sign($name))) {
+    $expected = self::sign($name);
+    if (!hash_equals($k, $expected)) {
       return NULL;
     }
     return $key;
   }
 
   /**
-   * @param $key
+   * Check that the key is well-formed. This does not check that the key is
+   * currently a key that is in use or belongs to a real form/session.
+   *
+   * @param string $key
    *
    * @return bool
    *   TRUE if the signature ($key) is well-formed.
    */
   public static function valid($key) {
-    // a valid key is a hex number
-    // followed by an optional _ and a number between 1 and 10000
-    if (strpos('_', $key) !== FALSE) {
-      list($hash, $seq) = explode('_', $key);
-
-      // ensure seq is between 1 and 10000
-      if (!is_numeric($seq) ||
-        $seq < 1 ||
-        $seq > 10000
-      ) {
-        return FALSE;
-      }
-    }
-    else {
-      $hash = $key;
-    }
-
-    // ensure that hash is a hex number (of expected length)
-    return preg_match('#[0-9a-f]{' . self::HASH_LENGTH . '}#i', $hash) ? TRUE : FALSE;
+    // ensure that key is an alphanumeric string of at least HASH_LENGTH with
+    // an optional underscore+digits at the end.
+    return preg_match('#^[0-9a-zA-Z]{' . self::HASH_LENGTH . ',}+(_\d+)?$#', $key) ? TRUE : FALSE;
   }
 
   /**
@@ -187,8 +173,10 @@ class CRM_Core_Key {
     if (strpos($sessionID, $delim) !== FALSE || strpos($name, $delim) !== FALSE) {
       throw new \RuntimeException("Failed to generate signature. Malformed session-id or form-name.");
     }
+    // The "prefix" gives some advisory details to help with debugging.
+    $prefix = preg_replace('/[^a-zA-Z0-9]/', '', $name);
     // Note: Unsure why $sessionID is included, but it's always been there, and it doesn't seem harmful.
-    return hash_hmac(self::HASH_ALGO, $sessionID . $delim . $name, $privateKey);
+    return $prefix . base_convert(hash_hmac(self::HASH_ALGO, $sessionID . $delim . $name, $privateKey), 16, 36);
 
   }
 
