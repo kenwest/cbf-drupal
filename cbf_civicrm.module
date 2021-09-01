@@ -1047,6 +1047,20 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             'course' => 990121,
             'expiry' => '6 months',
           ],
+          22 => [     // Never more hostile, never more open
+            'free' => [
+              'course' => 1447564,
+              'expiry' => '1 month',
+            ],
+            'paid' => [
+              'course' => 857232,
+              'expiry' => '6 months',
+            ],
+          ],
+          23 => [     // Never more hostile, never more open - group license
+            'course' => 857232,
+            'expiry' => '6 months',
+          ],
         ];
         $thinkificCourse = $thinkificCourses[$form->_id] ?? null;
         if (isset($thinkificCourse)) {
