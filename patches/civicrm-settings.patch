@@ -1,23 +1,5 @@
 --- civicrm-5.28.4-drupal/templates/CRM/common/civicrm.settings.php.template	2020-09-02 10:50:22.000000000 +1000
 +++ civicrm-5.40.2-drupal/templates/CRM/common/civicrm.settings.php.template	2021-08-07 00:35:31.000000000 +1000
-@@ -73,7 +73,7 @@
-  *      define( 'CIVICRM_UF_DSN', 'mysql://cms_db_username:cms_db_password@db_server/cms_database?new_link=true');
-  */
- if (!defined('CIVICRM_UF_DSN') && CIVICRM_UF !== 'UnitTests') {
--  define( 'CIVICRM_UF_DSN'           , 'mysql://%%CMSdbUser%%:%%CMSdbPass%%@%%CMSdbHost%%/%%CMSdbName%%?new_link=true');
-+  define( 'CIVICRM_UF_DSN'           , 'mysql://%%CMSdbUser%%:%%CMSdbPass%%@%%CMSdbHost%%/%%CMSdbName%%?new_link=true%%CMSdbSSL%%');
- }
- 
- // %%extraSettings%%
-@@ -106,7 +106,7 @@
-     define('CIVICRM_DSN', $GLOBALS['_CV']['TEST_DB_DSN']);
-   }
-   else {
--    define('CIVICRM_DSN', 'mysql://%%dbUser%%:%%dbPass%%@%%dbHost%%/%%dbName%%?new_link=true');
-+    define('CIVICRM_DSN', 'mysql://%%dbUser%%:%%dbPass%%@%%dbHost%%/%%dbName%%?new_link=true%%dbSSL%%');
-   }
- }
- 
 @@ -294,13 +294,58 @@
   * If you are using any CiviCRM script in the bin directory that
   * requires authentication, then you also need to set this key.
