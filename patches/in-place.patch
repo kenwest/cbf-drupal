@@ -170,6 +170,59 @@ diff -ur ./css/civicrm.css /var/www/civicrm/sites/all/modules/civicrm/css/civicr
  }
  
  #crm-container.crm-public #crm-submit-buttons {
+diff -ur ./ext/ckeditor4/js/crm.ckeditor.js /var/www/civicrm/sites/all/modules/civicrm/ext/ckeditor4/js/crm.ckeditor.js
+--- ./ext/ckeditor4/js/crm.ckeditor.js	2021-08-27 12:35:48.000000000 +1000
++++ /var/www/civicrm/sites/all/modules/civicrm/ext/ckeditor4/js/crm.ckeditor.js	2021-09-08 12:09:16.328450536 +1000
+@@ -64,12 +64,22 @@
+       $(item).addClass('crm-wysiwyg-enabled');
+ 
+       CKEDITOR.replace($(item)[0], {
+-        filebrowserBrowseUrl: browseUrl + '&type=files',
+-        filebrowserImageBrowseUrl: browseUrl + '&type=images',
+-        filebrowserFlashBrowseUrl: browseUrl + '&type=flash',
+-        filebrowserUploadUrl: uploadUrl + '&type=files',
+-        filebrowserImageUploadUrl: uploadUrl + '&type=images',
+-        filebrowserFlashUploadUrl: uploadUrl + '&type=flash',
++        filebrowserBrowseUrl      : '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|',
++        filebrowserImageBrowseUrl : '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|',
++        filebrowserFlashBrowseUrl : '/imce?app=ckeditor|sendto%40ckeditor_imceSendTo|',
++        filebrowserUploadUrl      : '',
++        filebrowserImageUploadUrl : '',
++        filebrowserFlashUploadUrl : '',
++        bodyClass                 : 'cke_editable',
++        contentsCss               : '/sites/all/themes/cbf2019/css/editor.css',
++        stylesSet                 : 'civicrm:/sites/all/themes/cbf2019/js/ckeditor.styles.js',
++        scayt_autoStartup         : true,
++        scayt_sLang               : 'en_GB',
++        forcePasteAsPlainText     : true,
++        // allowedContent: 'meta title style iframe ol ul li table tbody tr th td div h1 h2 h3 h4 h5 h6 p span a img i[*]{*}(*);br em strong center blockquote',
++        // disallowedContent: 'img{width,height,border*}',
++        // If it gets too hard, set allowedContent to true and remove disallowedContent.
++        allowedContent: true,
+         customConfig: customConfig,
+         on: {
+           instanceReady: onReady
+@@ -145,3 +155,20 @@
+   };
+ 
+ })(CRM.$, CRM._);
++
++/**
++ * IMCE support
++ * Copied from ckeditor.utils.js
++ */
++var ckeditor_imceSendTo = function (file, win){
++  var cfunc = win.location.href.split('&');
++
++  for (var x in cfunc) {
++    if (cfunc[x].match(/^CKEditorFuncNum=\d+$/)) {
++      cfunc = cfunc[x].split('=');
++      break;
++    }
++  }
++  CKEDITOR.tools.callFunction(cfunc[1], file.url);
++  win.close();
++};
 diff -ur ./extern/url.php /var/www/civicrm/sites/all/modules/civicrm/extern/url.php
 --- ./extern/url.php	2020-08-06 12:54:52.000000000 +1000
 +++ /var/www/civicrm/sites/all/modules/civicrm/extern/url.php	2021-09-02 17:17:25.458326774 +1000

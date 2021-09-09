@@ -36,11 +36,11 @@ function _cbf_civicrm_email_audience($params, $context) {
         $h = str_replace('.', '\.', $h);
         $audienceData['audiences'][$domainAudience]['patterns'] = [
           'colour' =>        '!' . '(color: |")' . $audienceData['audiences'][$domainAudience]['colour'] . '(;|")' . '!i',
-          '2' =>             '!' . ' href="(http(s)?:)?//' . $h . '("|/)' . '!i',
+          '2' =>             '!' . ' href=("|\')(http(s)?:)?//' . $h . '("|\'|/)' . '!i',
           '3' =>             '!' . '^' . $h . '$' . '!i',
           'email domain' =>  '!' . '(@)' . $h . '(>|$)' . '!i',
           'email name' =>    '!' . '(".*)(' . $audienceData['audiences'][$domainAudience]['name'] . ')(.*")' . '!i',
-          'html' =>          '!' . ' (href|src)="(http(s)?:)?//' . $h . '("|/)' . '!i',
+          'html' =>          '!' . ' (href|src)=("|\')(http(s)?:)?//' . $h . '("|\'|/)' . '!i',
           'text' =>          '!' . '(^| )(http(s)?:)?//' . $h . '( |/)?' . '!i',
         ];
       }
@@ -290,6 +290,18 @@ function _cbf_civicrm_email_audience($params, $context) {
  */
 function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
   /*
+   * If $html is empty then do nothing. This protects against the case that
+   * we are processing an SMS.
+   *  - We can't set the Campaign for a Bulk SMS so the Audience data is
+   *    unreliable.
+   *  - We have modified CRM_SMS_Provider::getMessage() to behave as if the
+   *    HTML part is empty. 
+   */
+  if (empty($html)) {
+    return;
+  }
+
+  /*
    * Convert relative URLs to absolute
    * Convert old-style email PNG to $audience
    * Convert old-style white email PNG to $audience
@@ -390,7 +402,7 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
       $replacements[] = [
         'comment' => "Convert HTML $a references to $audience links",
         'from' => $data['patterns']['html'],
-        'to' => ' $1="' . $host . '$5',
+        'to' => ' $1=$2' . $host . '$6',
         'html' => true,
         'text' => false,
       ];
@@ -935,6 +947,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         $buttons = $form->getElement('buttons');
         $submit = $buttons->getElements();
         $submit[0]->setValue('Next >>');
+        $submit[0]->setContent('Next');
       }
 
       /*
