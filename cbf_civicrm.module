@@ -290,6 +290,18 @@ function _cbf_civicrm_email_audience($params, $context) {
  */
 function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
   /*
+   * If $html is empty then do nothing. This protects against the case that
+   * we are processing an SMS.
+   *  - We can't set the Campaign for a Bulk SMS so the Audience data is
+   *    unreliable.
+   *  - We have modified CRM_SMS_Provider::getMessage() to behave as if the
+   *    HTML part is empty.
+   */
+  if (empty($html)) {
+    return;
+  }
+
+  /*
    * Convert relative URLs to absolute
    * Convert old-style email PNG to $audience
    * Convert old-style white email PNG to $audience
