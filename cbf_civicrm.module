@@ -295,7 +295,7 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
    *  - We can't set the Campaign for a Bulk SMS so the Audience data is
    *    unreliable.
    *  - We have modified CRM_SMS_Provider::getMessage() to behave as if the
-   *    HTML part is empty. 
+   *    HTML part is empty.
    */
   if (empty($html)) {
     return;
