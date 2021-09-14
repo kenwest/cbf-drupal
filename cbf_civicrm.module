@@ -946,8 +946,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       if ($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->elementExists('buttons') ) {
         $buttons = $form->getElement('buttons');
         $submit = $buttons->getElements();
-        $submit[0]->setValue('Next >>');
-        $submit[0]->setContent('Next');
+        $submit[0]->setContent('<i class="crm-i fa-chevron-right" aria-hidden="true"></i> Next');
       }
 
       /*
@@ -1000,9 +999,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
 
         $buttons = $form->getElement('buttons');
         $submit = $buttons->getElements();
-        $submit[0]->setValue($makePaymentLabel);
-
-        $tpl->assign('button', $makePaymentLabel);
+        $submit[0]->setContent($makePaymentLabel);
       }
 
       /*
