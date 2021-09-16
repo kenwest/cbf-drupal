@@ -33,14 +33,15 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
     CRM_Core_Error::debug_var('Request data', $data);
     $resource = $data->resource;
     $action = $data->action;
+    $payload = $data->payload;
 
     switch ($resource) {
       case 'enrollment':
         try {
-          $enrolment = $data->payload->id;
-          $course = $data->payload->course->id;
-          $user = $data->payload->user->id;
-          $percent = (int) 100 * $data->payload->percentage_completed;
+          $enrolment = $payload->id;
+          $course = $payload->course->id;
+          $user = $payload->user->id;
+          $percent = (int) 100 * $payload->percentage_completed;
 
           CRM_Core_Error::debug_var('Thinkific notification', 'Thinkific ' . $action . ' ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
 
@@ -66,9 +67,9 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               // No previous enrolments by this Thinkific user, so try to find a Contact that matches
               $contacts = \Civi\Api4\Contact::get()
                 ->setJoin([['Email AS email', false],])
-                ->addWhere('first_name', '=', $data->payload->user->first_name)
-                ->addWhere('last_name', '=', $data->payload->user->last_name)
-                ->addWhere('email.email', '=', $data->payload->user->email)
+                ->addWhere('first_name', '=', $payload->user->first_name)
+                ->addWhere('last_name', '=', $payload->user->last_name)
+                ->addWhere('email.email', '=', $payload->user->email)
                 ->setLimit(2)
                 ->setCheckPermissions(false)
                 ->execute();
@@ -77,13 +78,13 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
 
                 // No matching Contact found, so create one. May need deduping later.
                 $contacts = \Civi\Api4\Contact::create()
-                ->addValue('first_name', $data->payload->user->first_name)
-                ->addValue('last_name', $data->payload->user->last_name)
+                ->addValue('first_name', $payload->user->first_name)
+                ->addValue('last_name', $payload->user->last_name)
                   ->addValue('contact_type', 'Individual')
                   ->addChain('email', \Civi\Api4\Email::create()
                     ->addValue('contact_id', '$id')
                     ->addValue('location_type_id', 6 /* Main */)
-                    ->addValue('email', $data->payload->user->email)
+                    ->addValue('email', $payload->user->email)
                     ->addValue('is_primary', TRUE)
                   )
                   ->setCheckPermissions(FALSE)
@@ -139,18 +140,18 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
            * ------------------------------------------------------------------------
            * This is a hack to work around API4 not being able to process date values
            *
-           * When we add ->addValue('Completed', $data->payload->completed_at) to the
+           * When we add ->addValue('Completed', $payload->completed_at) to the
            * Civi\Api4\CustomValue::create() call, API4 interprets this payload value
            * correctly but then dies in the SQL because the date is not quoted as a
            * string.
            */
           $dateFields = [
-            'Created' => $data->payload->created_at,
-            'Activated' => $data->payload->activated_at,
-            'Started' => $data->payload->started_at,
-            'Updated' => $data->payload->updated_at,
-            'Completed' => $data->payload->completed_at,
-            'Expired' => $data->payload->expiry_date,
+            'Created' => $payload->created_at,
+            'Activated' => $payload->activated_at,
+            'Started' => $payload->started_at,
+            'Updated' => $payload->updated_at,
+            'Completed' => $payload->completed_at,
+            'Expired' => $payload->expiry_date,
           ];
           $dateFieldKeys = array_keys($dateFields);
           $customGroups = \Civi\Api4\CustomGroup::get()
