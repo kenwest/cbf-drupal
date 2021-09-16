@@ -5,6 +5,7 @@ package = City Bible Forum
 dependencies[] = ctools
 dependencies[] = webhook
 
+files[] = plugins/unserializer/CBF_Webhook_Unserializer_Thinkific.class.inc
 files[] = plugins/processor/CBF_Webhook_Processor_Thinkific.class.inc
 
 version = "7.x-1.0"

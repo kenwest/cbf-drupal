@@ -16,6 +16,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
    * Configuration form.
    */
   public function config_form() {
+
     // No configuration needed.
     return [];
   }
@@ -23,14 +24,22 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
   /**
    * Processes data.
    */
-  public function process(stdClass $data) {
+  public function process(stdClass $request) {
+
     civicrm_initialize();
-    CRM_Core_Error::debug_var('Thinkific headers', [
-      'X-Thinkific-Topic' => $_SERVER['HTTP_X_THINKIFIC_TOPIC'],
-      'X-Thinkific-Hmac-Sha256' => $_SERVER['HTTP_X_THINKIFIC_HMAC_SHA256'],
-      'X-Thinkific-Subdomain' => $_SERVER['HTTP_X_THINKIFIC_SUBDOMAIN'],
-    ]);
-    CRM_Core_Error::debug_var('Request data', $data);
+
+    if ($request->hmac->us != $request->hmac->them || $request->subdomain->us != $request->subdomain->them) {
+      CRM_Core_Error::debug_var('Thinkific header mismatch', [
+        'Supplied HMAC' => $request->hmac->them,
+        'Generated HMAC' => $request->hmac->us,
+        'Supplied subdomain' => $request->subdomain->them,
+        'Local subdomain' => $request->subdomain->us,
+        'Raw data' => $request->raw,
+        'Unserialized data' => $request->cooked,
+      ]);
+    }
+
+    $data = $request->cooked;
     $resource = $data->resource;
     $action = $data->action;
     $payload = $data->payload;

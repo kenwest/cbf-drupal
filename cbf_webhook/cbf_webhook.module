@@ -32,5 +32,18 @@ function cbf_webhook_webhook_processor() {
  * Implements hook_webhook_unserializer().
  */
 function cbf_webhook_webhook_unserializer() {
-  return [];
+
+  $path = drupal_get_path('module', 'cbf_webhook') . '/plugins/unserializer';
+  $plugins = [];
+
+  $plugins['thinkific_json'] = [
+    'title' => t('Thinkific JSON'),
+    'unserializer' => [
+      'path' => $path,
+      'file' => 'CBF_Webhook_Unserializer_Thinkific.class.inc',
+      'class' => 'CBF_Webhook_Unserializer_Thinkific',
+    ],
+  ];
+
+  return $plugins;
 }
