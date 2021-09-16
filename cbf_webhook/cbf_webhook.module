@@ -1,0 +1,36 @@
+<?php
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function cbf_webhook_ctools_plugin_directory($module, $type) {
+  if ('webhook' == $module) {
+    return "plugins/{$type}";
+  }
+}
+
+/**
+ * Implements hook_webhook_processor().
+ */
+function cbf_webhook_webhook_processor() {
+
+  $path = drupal_get_path('module', 'cbf_webhook') . '/plugins/processor';
+  $plugins = [];
+
+  $plugins['thinkific'] = [
+    'title' => t('Thinkific'),
+    'processor' => [
+      'path' => $path,
+      'file' => 'CBF_Webhook_Processor_Thinkific.class.inc',
+      'class' => 'CBF_Webhook_Processor_Thinkific',
+    ],
+  ];
+
+  return $plugins;
+}
+
+/**
+ * Implements hook_webhook_unserializer().
+ */
+function cbf_webhook_webhook_unserializer() {
+  return [];
+}

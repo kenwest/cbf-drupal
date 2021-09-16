@@ -1,0 +1,11 @@
+name = CBF webhooks
+description = Webhooks provided by CBF website
+core = 7.x
+package = City Bible Forum
+dependencies[] = ctools
+dependencies[] = webhook
+
+files[] = plugins/processor/CBF_Webhook_Processor_Thinkific.class.inc
+
+version = "7.x-1.0"
+core = "7.x"
