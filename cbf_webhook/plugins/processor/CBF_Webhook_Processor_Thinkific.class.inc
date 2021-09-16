@@ -106,7 +106,6 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               break;
             }
 
-            CRM_Core_Error::debug_var('Thinkific processing', 'Create ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
             $results = \Civi\Api4\CustomValue::create('Courses')
               ->addValue('entity_id', $contactId)
               ->addValue('Enrolment_Id', $enrolment)
@@ -119,9 +118,11 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolment);
               break;
             }
+            else {
+              CRM_Core_Error::debug_var('Thinkific processing', 'Created ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
+            }
           }
           else {
-            CRM_Core_Error::debug_var('Thinkific processing', 'Update ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
             $results = \Civi\Api4\CustomValue::update('Courses')
               ->addWhere('Enrolment_Id', '=', $enrolment)
               ->addValue('Course', $course)
@@ -133,6 +134,9 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
             if ($results->first()['is_error']) {
               CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolment);
               break;
+            }
+            else {
+              CRM_Core_Error::debug_var('Thinkific processing', 'Updated ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
             }
           }
 
