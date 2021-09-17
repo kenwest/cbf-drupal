@@ -34,7 +34,13 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
         'Generated HMAC' => $request->hmac->us,
         'Supplied subdomain' => $request->subdomain->them,
         'Local subdomain' => $request->subdomain->us,
-        'Raw data' => $request->raw,
+        'Raw Thinkific data' => $request->raw,
+        'Unserialized data' => $request->cooked,
+      ]);
+    }
+    else {
+      CRM_Core_Error::debug_var('Thinkific data', [
+        'Raw Thinkific data' => $request->raw,
         'Unserialized data' => $request->cooked,
       ]);
     }
