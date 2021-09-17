@@ -100,9 +100,9 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
                     ->addValue('contact_id', '$id')
                     ->addValue('location_type_id', 6 /* Main */)
                     ->addValue('email', $payload->user->email)
-                    ->addValue('is_primary', TRUE)
+                    ->addValue('is_primary', true)
                   )
-                  ->setCheckPermissions(FALSE)
+                  ->setCheckPermissions(false)
                   ->execute();
               }
               $contactId = $contacts->first()['id'] ?? null;
@@ -144,7 +144,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               ->addValue('User_Id', $user)
               ->addValue('Percent_complete', $percent)
               ->setLimit(25)
-              ->setCheckPermissions(FALSE)
+              ->setCheckPermissions(false)
               ->execute();
             if ($results->first()['is_error']) {
               CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolment);
@@ -176,12 +176,12 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
           $customGroups = \Civi\Api4\CustomGroup::get()
             ->addWhere('name', '=', 'Courses')
             ->setLimit(25)
-            ->setCheckPermissions(FALSE)
+            ->setCheckPermissions(false)
             ->execute();
           $customFields = \Civi\Api4\CustomField::get()
             ->addWhere('custom_group_id:name', '=', 'Courses')
             ->setLimit(25)
-            ->setCheckPermissions(FALSE)
+            ->setCheckPermissions(false)
             ->execute();
           $table = $customGroups->first()['table_name'];
           $assignments = [];
