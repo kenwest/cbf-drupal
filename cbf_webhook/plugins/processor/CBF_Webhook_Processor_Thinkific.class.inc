@@ -56,7 +56,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
           $enrolment = $payload->id;
           $course = $payload->course->id;
           $user = $payload->user->id;
-          $percent = (int) 100 * $payload->percentage_completed;
+          $percent = (int) (100 * $payload->percentage_completed);
 
           CRM_Core_Error::debug_var('Thinkific notification', 'Thinkific ' . $action . ' ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
 
