@@ -70,6 +70,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
             CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
 
             // No enrolment found, so find other enrolments by this Thinkific user 
+            $contactAction = 'Found';
             $users = \Civi\Api4\CustomValue::get('Courses')
               ->addSelect('entity_id')
               ->addWhere('User_Id', '=', $user)
@@ -92,6 +93,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
                 CRM_Core_Error::debug_var('Thinkific processing', 'No contact record for user ' . $user);
 
                 // No matching Contact found, so create one. May need deduping later.
+                $contactAction = 'Created';
                 $contacts = \Civi\Api4\Contact::create()
                 ->addValue('first_name', $payload->user->first_name)
                 ->addValue('last_name', $payload->user->last_name)
@@ -106,11 +108,9 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
                   ->execute();
               }
               $contactId = $contacts->first()['id'] ?? null;
-              $contactAction = 'Created';
             }
             else {
               $contactId = $users->first()['entity_id'];
-              $contactAction = 'Found';
             }
 
             if ($contactId) {
