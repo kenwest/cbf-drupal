@@ -66,7 +66,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
             ->setLimit(2) // we expect 0 or 1 but we warn of duplicates
             ->setCheckPermissions(false)
             ->execute();
-          if ($enrolments->rowCount == 0) {
+          if ($enrolments->count() == 0) {
             CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
 
             // No enrolment found, so find other enrolments by this Thinkific user 
@@ -76,7 +76,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               ->setLimit(2)
               ->setCheckPermissions(false)
               ->execute();
-            if ($users->rowCount == 0) {
+            if ($users->count() == 0) {
               CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' records for user ' . $user);
 
               // No previous enrolments by this Thinkific user, so try to find a Contact that matches
@@ -88,7 +88,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
                 ->setLimit(2)
                 ->setCheckPermissions(false)
                 ->execute();
-              if ($contacts->rowCount == 0) {
+              if ($contacts->count() == 0) {
                 CRM_Core_Error::debug_var('Thinkific processing', 'No contact record for user ' . $user);
 
                 // No matching Contact found, so create one. May need deduping later.
@@ -212,7 +212,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
            * ------------------------------------------------------------------------
            */
 
-          if ($enrolments->rowCount > 1) {
+          if ($enrolments->count() > 1) {
             CRM_Core_Error::debug_var('Thinkific processing', 'Warning: there are multiple records for ' . $resource . ' ' . $enrolment);
           }
         } catch (\API_Exception $e) {
