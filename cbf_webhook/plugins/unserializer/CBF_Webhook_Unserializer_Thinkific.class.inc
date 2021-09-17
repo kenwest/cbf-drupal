@@ -12,7 +12,7 @@ class CBF_Webhook_Unserializer_Thinkific implements Webhook_Plugins_Unserializer
 
   public function unserialize($data) {
 
-    $hmac = drupal_hmac_base64($data, variable_get('cbf_thinkific_api'));
+    $hmac = hash_hmac('sha256', $data, variable_get('cbf_thinkific_api'));
 
     $json = webhook_load_unserializer('json');
 
