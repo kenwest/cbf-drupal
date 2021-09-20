@@ -2811,3 +2811,30 @@ function cbf_civicrm_civicrm_findDuplicates($dedupeParams, &$dedupeResults, $con
     }
   }
 }
+
+/*
+ * Advise if this staff member is contactable
+ */
+function _cbf_civicrm_staff_is_contactable($id) {
+
+  $contactable = 'Staff.Contactable';
+  $email = 'Staff.Staff_email_on_website';
+  $mobile = 'Staff.Staff_mobile_on_website';
+  $phone = 'Staff.Staff_phone_on_website';
+
+  $contact = \Civi\Api4\Contact::get()
+  ->addSelect($contactable, $email, $mobile, $phone)
+    ->addWhere('id', '=', $id)
+    ->addWhere('contact_sub_type', '=', 'Staff')
+    ->setLimit(1)
+    ->setCheckPermissions(FALSE)
+    ->execute()
+    ->first();
+
+  return [
+    'contactable' => $contact[$contactable] ?? false,
+    'email' => $contact[$email] ?? false,
+    'mobile' => $contact[$mobile] ?? false,
+    'phone' => $contact[$phone] ?? false,
+  ];
+}
