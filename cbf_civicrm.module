@@ -562,6 +562,25 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     }
   }
 
+  /*
+   * Update the To header to use the Staff email.
+   *
+   * An example of this is the Staff Contact form which sends a case_activity
+   * singleEmail to the staff member addressed by the form.
+   */
+  if ($context == 'singleEmail' && $params['valueName'] == 'case_activity' && $params['contactId']) {
+    $email = \Civi\Api4\Email::get()
+      ->addWhere('contact_id', '=', $params['contactId'])
+      ->addWhere('location_type_id:name', '=', 'Staff')
+      ->setLimit(1)
+      ->setCheckPermissions(FALSE)
+      ->execute()
+      ->first();
+    if ($email) {
+      $params['toEmail'] = $email['email'];
+    }
+  }
+
   _cbf_civicrm_amend_email($params['html'], $params['text'], $audienceData);
 
   $htmlMessage = $params['html'];
