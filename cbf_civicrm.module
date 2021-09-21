@@ -477,7 +477,8 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   $audience = $audienceData['audience'];
 
   /*
-   * Update the From, Return-Path and Reply-To headers
+   * Update the From, Return-Path and Reply-To headers to match the audience.
+   *
    * Do the From header before the others so we have a default value
    * The From and Reply-To headers have a name and an address part.
    * The Return-Path header only has the address part.
