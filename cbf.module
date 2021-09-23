@@ -507,6 +507,14 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
   if (isset($form['field_event_date'])) {
     $form['#validate'][] = 'cbf_field_event_date_validate';
   }
+
+  /*
+   * If the form is googleanalytics_admin_settings_form then add a function
+   * that will be called on Submit
+   */
+  if ($form_id == 'googleanalytics_admin_settings_form') {
+    $form['#submit'][] = 'cbf_googleanalytics_admin_settings_submit';
+  }
 }
 
 /*
@@ -3841,4 +3849,23 @@ function cbf_hotjar_access() {
     return HOTJAR_ACCESS_ALLOW;
   }
     return HOTJAR_ACCESS_DENY;
+}
+
+/*
+ * Workaround a bug in the patched version of Google Analytics, by giving a
+ * name to the custom dimensions. This fix will fail safe if a future version
+ * of GA adds names.
+ */
+function cbf_googleanalytics_admin_settings_submit($form, &$form_state) {
+  $names = [
+    1 => 'Roles',
+    2 => 'City',
+    3 => 'Activity',
+    4 => 'Domain',
+  ];
+  foreach ($names as $i => $name) {
+    if (empty($form_state['values']['googleanalytics_custom_dimension'][$i]['name'])) {
+      $form_state['values']['googleanalytics_custom_dimension'][$i]['name'] = $name;
+    }
+  }
 }
