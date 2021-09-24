@@ -41,6 +41,17 @@ function cbf_init() {
     }
   }
 
+  /*
+   * Redirect people from /civicrm/event/info?reset=1&id=NNNN to /civicrm-event/NNNN
+   * unless the query parameter 'original' is present
+   */
+  $q = $_GET['q'] ?? '';
+  $id = $_GET['id'] ?? '';
+  $original = $_GET['original'] ?? '';
+  if ($q == 'civicrm/event/info' && is_numeric($id) && empty($original)) {
+    drupal_goto('civicrm-event/' . $id, [], 301);
+  }
+
   if (arg(0) == 'node') {
     if (arg(1) == 'add') {
       /*
