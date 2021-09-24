@@ -477,7 +477,8 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
   $audience = $audienceData['audience'];
 
   /*
-   * Update the From, Return-Path and Reply-To headers
+   * Update the From, Return-Path and Reply-To headers to match the audience.
+   *
    * Do the From header before the others so we have a default value
    * The From and Reply-To headers have a name and an address part.
    * The Return-Path header only has the address part.
@@ -558,6 +559,25 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
           '$1',
           $params[$headerData['headers']['From']['parameter'][$context]]);
       }
+    }
+  }
+
+  /*
+   * Update the To header to use the Staff email.
+   *
+   * An example of this is the Staff Contact form which sends a case_activity
+   * singleEmail to the staff member addressed by the form.
+   */
+  if ($context == 'singleEmail' && $params['valueName'] == 'case_activity' && $params['contactId']) {
+    $email = \Civi\Api4\Email::get()
+      ->addWhere('contact_id', '=', $params['contactId'])
+      ->addWhere('location_type_id:name', '=', 'Staff')
+      ->setLimit(1)
+      ->setCheckPermissions(FALSE)
+      ->execute()
+      ->first();
+    if ($email) {
+      $params['toEmail'] = $email['email'];
     }
   }
 
@@ -2808,4 +2828,31 @@ function cbf_civicrm_civicrm_findDuplicates($dedupeParams, &$dedupeResults, $con
     } catch (CiviCRM_API3_Exception $e) {
     }
   }
+}
+
+/*
+ * Advise if this staff member is contactable
+ */
+function _cbf_civicrm_staff_is_contactable($id) {
+
+  $contactable = 'Staff.Contactable';
+  $email = 'Staff.Staff_email_on_website';
+  $mobile = 'Staff.Staff_mobile_on_website';
+  $phone = 'Staff.Staff_phone_on_website';
+
+  $contact = \Civi\Api4\Contact::get()
+  ->addSelect($contactable, $email, $mobile, $phone)
+    ->addWhere('id', '=', $id)
+    ->addWhere('contact_sub_type', '=', 'Staff')
+    ->setLimit(1)
+    ->setCheckPermissions(FALSE)
+    ->execute()
+    ->first();
+
+  return [
+    'contactable' => $contact[$contactable] ?? false,
+    'email' => $contact[$email] ?? false,
+    'mobile' => $contact[$mobile] ?? false,
+    'phone' => $contact[$phone] ?? false,
+  ];
 }

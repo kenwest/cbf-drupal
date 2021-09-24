@@ -1,0 +1,76 @@
+<?php
+/*
+ * This hook is called at the beginning of a Drupal page request.
+ */
+function cbf_webhook_init() {
+
+  /*
+   * If the site is in maintenance_mode the default Drupal behaviour is to
+   * return maintenance_mode content and return a status of 200. The system
+   * invoking the webhook will interpret the 200 to mean the webhook has been
+   * processed correctly.
+   *
+   * This hook returns a 503 status code indicating ...
+   *
+   * "The server is currently unable to handle the request due to a temporary
+   * overloading or maintenance of the server. The implication is that this is
+   * a temporary condition which will be alleviated after some delay."
+   *   -- https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+   */
+
+  if (arg(0) == 'webhook') {
+    if (variable_get('maintenance_mode', 0)) {
+      drupal_add_http_header('Status', '503 Service Unavailable');
+      drupal_exit();
+    }
+  }
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function cbf_webhook_ctools_plugin_directory($module, $type) {
+  if ('webhook' == $module) {
+    return "plugins/{$type}";
+  }
+}
+
+/**
+ * Implements hook_webhook_processor().
+ */
+function cbf_webhook_webhook_processor() {
+
+  $path = drupal_get_path('module', 'cbf_webhook') . '/plugins/processor';
+  $plugins = [];
+
+  $plugins['thinkific'] = [
+    'title' => t('Thinkific'),
+    'processor' => [
+      'path' => $path,
+      'file' => 'CBF_Webhook_Processor_Thinkific.class.inc',
+      'class' => 'CBF_Webhook_Processor_Thinkific',
+    ],
+  ];
+
+  return $plugins;
+}
+
+/**
+ * Implements hook_webhook_unserializer().
+ */
+function cbf_webhook_webhook_unserializer() {
+
+  $path = drupal_get_path('module', 'cbf_webhook') . '/plugins/unserializer';
+  $plugins = [];
+
+  $plugins['thinkific_json'] = [
+    'title' => t('Thinkific JSON'),
+    'unserializer' => [
+      'path' => $path,
+      'file' => 'CBF_Webhook_Unserializer_Thinkific.class.inc',
+      'class' => 'CBF_Webhook_Unserializer_Thinkific',
+    ],
+  ];
+
+  return $plugins;
+}

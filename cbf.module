@@ -41,6 +41,17 @@ function cbf_init() {
     }
   }
 
+  /*
+   * Redirect people from /civicrm/event/info?reset=1&id=NNNN to /civicrm-event/NNNN
+   * unless the query parameter 'original' is present
+   */
+  $q = $_GET['q'] ?? '';
+  $id = $_GET['id'] ?? '';
+  $original = $_GET['original'] ?? '';
+  if ($q == 'civicrm/event/info' && is_numeric($id) && empty($original)) {
+    drupal_goto('civicrm-event/' . $id, [], 301);
+  }
+
   if (arg(0) == 'node') {
     if (arg(1) == 'add') {
       /*
@@ -506,6 +517,14 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
    */
   if (isset($form['field_event_date'])) {
     $form['#validate'][] = 'cbf_field_event_date_validate';
+  }
+
+  /*
+   * If the form is googleanalytics_admin_settings_form then add a function
+   * that will be called on Submit
+   */
+  if ($form_id == 'googleanalytics_admin_settings_form') {
+    $form['#submit'][] = 'cbf_googleanalytics_admin_settings_submit';
   }
 }
 
@@ -3749,7 +3768,33 @@ function cbf_entity_view($entity, $type, $view_mode, $langcode) {
         ['civicrm_1_contact_1_fieldset_fieldset']['civicrm_1_contact_1_contact_existing']
         ['#value'] ?? '';
       $requested = drupal_get_query_parameters()['cid1'] ?? '';
-      if ($staff && $staff != $requested) {
+      $contactable = _cbf_civicrm_staff_is_contactable($staff);
+      if ($staff && $requested && $staff == $requested && $contactable['contactable'])
+      {
+        /*
+         * Adjust the visibility of staff information to suit the staff record
+         */
+        $map = [
+          'email' => 'civicrm_1_contact_1_email_email',
+          'mobile' => 'civicrm_1_contact_1_phone_phone',
+          'phone' => 'civicrm_1_contact_2_phone_phone',
+        ];
+        foreach ($map as $key => $value) {
+          $field = $entity->content['webform']['#form']['submitted']
+          ['civicrm_1_contact_1_fieldset_fieldset']
+          [$value]['#value'] ?? '';
+          $readonly = $entity->content['webform']['#form']['submitted']
+          ['civicrm_1_contact_1_fieldset_fieldset']
+          [$value]['#attributes']['readonly'] ?? '';
+          if ($field && $readonly == 'readonly' && !$contactable[$key]) {
+            $entity->content['webform']['#form']['submitted']
+            ['civicrm_1_contact_1_fieldset_fieldset']
+            [$value]['#value']
+              = '';
+          }
+        }
+      }
+      else {
         drupal_goto('contact-us', ['query' => []]);
       }
     }
@@ -3815,4 +3860,23 @@ function cbf_hotjar_access() {
     return HOTJAR_ACCESS_ALLOW;
   }
     return HOTJAR_ACCESS_DENY;
+}
+
+/*
+ * Workaround a bug in the patched version of Google Analytics, by giving a
+ * name to the custom dimensions. This fix will fail safe if a future version
+ * of GA adds names.
+ */
+function cbf_googleanalytics_admin_settings_submit($form, &$form_state) {
+  $names = [
+    1 => 'Roles',
+    2 => 'City',
+    3 => 'Activity',
+    4 => 'Domain',
+  ];
+  foreach ($names as $i => $name) {
+    if (empty($form_state['values']['googleanalytics_custom_dimension'][$i]['name'])) {
+      $form_state['values']['googleanalytics_custom_dimension'][$i]['name'] = $name;
+    }
+  }
 }
