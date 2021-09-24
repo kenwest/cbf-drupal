@@ -761,7 +761,12 @@ function computed_field_field_next_action_display($field, $entity_field_item) {
  */
 function _computed_field_date_text_compute($entity_type, $entity) {
   $current_time = strtotime('now');
-  $next_week    = strtotime('now +1 week');
+  /*
+   * $seven_days is 7 24-hour days except when daylight savings starts between
+   * the next event and the one after that. Subtracting 1 hour from 24*7 allows
+   * us to include all events occuring within 7 days of the next one.
+   */
+  $seven_days   = (24*7 - 1) * 60 * 60;
   $startstamp   = 0;
   $endstamp     = 0;
   $upperlimit   = 0;
@@ -858,7 +863,7 @@ function _computed_field_date_text_compute($entity_type, $entity) {
       }
 
       if ($upperlimit == 0 && $endstamp > $current_time) {
-        $upperlimit = $startstamp + ($next_week - $current_time);
+        $upperlimit = $startstamp + $seven_days;
       }
 
       if ($endstamp <= $current_time) {
