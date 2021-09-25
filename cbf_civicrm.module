@@ -2540,15 +2540,16 @@ function _cbf_civicrm_redirect_to_session_for_qfKey() {
         $progress[] = 'Trying session with ssid = ' . $session['ssid'];
         if (session_decode($session['session'])) {
           list($k, $t) = explode('_', $qfKey);
-          $hashKey = hash_hmac(
-            CRM_Core_Key::HASH_ALGO,
-            $_SESSION['CiviCRM']['qfSessionID'] . chr(0) . $controller,
-            $_SESSION['CiviCRM']['qfPrivateKey']
-          );
-          $progress[] = 'qfSessionID = ' . $_SESSION['CiviCRM']['qfSessionID'];
-          $progress[] = 'qfPrivateKey = ' . $_SESSION['CiviCRM']['qfPrivateKey'];
-          $progress[] = 'hashed key = ' . $hashKey;
           if ($t >= 1 && $t < 10000) {
+            $prefix = preg_replace('/[^a-zA-Z0-9]/', '', $controller);
+            $hashKey = hash_hmac(
+              CRM_Core_Key::HASH_ALGO,
+              $_SESSION['CiviCRM']['qfSessionID'] . chr(0) . $controller,
+              $_SESSION['CiviCRM']['qfPrivateKey']);
+            $hashKey = $prefix . base_convert($hashKey, 16, 36);
+            $progress[] = 'qfSessionID = ' . $_SESSION['CiviCRM']['qfSessionID'];
+            $progress[] = 'qfPrivateKey = ' . $_SESSION['CiviCRM']['qfPrivateKey'];
+            $progress[] = 'hashed key = ' . $hashKey;
             if (hash_equals($k, $hashKey)) {
               $matches[] = $session;
               $progress[] = 'Matched session with ssid = ' . $session['ssid'];
