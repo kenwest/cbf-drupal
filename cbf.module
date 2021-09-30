@@ -3858,3 +3858,45 @@ function cbf_hotjar_access() {
   }
     return HOTJAR_ACCESS_DENY;
 }
+
+/*
+ * An implementation of hook_views_rss_feed_alter()
+ */
+function cbf_views_rss_feed_alter(&$rss_feed) {
+  $indices = [
+    'title' => -1,
+    'description' => -1,
+    'link' => -1,
+    'image' => -1,
+    'itunes:subtitle' => -1,
+    'itunes:image' => -1,
+  ];
+  foreach ($rss_feed['value'][0]['value'] as $index => $value) {
+    $key = $indices[$value['key']] ?? -2;
+    if ($key === -1) {
+      $indices[$value['key']] = $index;
+    }
+  }
+  $title = $rss_feed['value'][0]['value'][$indices['title']]['value'];
+  $t = explode('/', $title);
+  if (is_array($t) && count($t) == 2 && $t[0] == 'collection' && is_numeric($t[1])) {
+    $result = entityform_load($t[1]);
+    $field_title = reset(field_get_items('entityform', $result, 'field_title'))['safe_value'];
+    $field_subtitle = reset(field_get_items('entityform', $result, 'field_subtitle'))['safe_value'];
+    $field_short_form = strip_tags(reset(field_get_items('entityform', $result, 'field_short_form'))['value']);
+
+    $link = $rss_feed['value'][0]['value'][$indices['link']]['value'] . $title;
+    $image = $rss_feed['value'][0]['value'][$indices['image']]['value']['url'];
+    $image = preg_replace('![^/]+$!i', $t[0].'-'.$t[1].'-rss-feed.jpg', $image) ?? $image;
+
+    $rss_feed['value'][0]['value'][$indices['title']]['value'] = $field_title;
+    $rss_feed['value'][0]['value'][$indices['description']]['value'] = $field_short_form;
+    $rss_feed['value'][0]['value'][$indices['link']]['value'] = $link;
+    $rss_feed['value'][0]['value'][$indices['image']]['value']['url'] = $image;
+    $rss_feed['value'][0]['value'][$indices['image']]['value']['title'] = $field_title;
+    $rss_feed['value'][0]['value'][$indices['image']]['value']['link'] = $link;
+    $rss_feed['value'][0]['value'][$indices['image']]['value']['description'] = $field_short_form;
+    $rss_feed['value'][0]['value'][$indices['itunes:subtitle']]['value'] = $field_subtitle;
+    $rss_feed['value'][0]['value'][$indices['itunes:image']]['attributes']['href'] = $image;
+  }
+}
