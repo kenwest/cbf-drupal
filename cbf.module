@@ -3869,6 +3869,7 @@ function cbf_views_rss_feed_alter(&$rss_feed) {
     'link' => -1,
     'image' => -1,
     'itunes:subtitle' => -1,
+    'itunes:summary' => -1,
     'itunes:image' => -1,
   ];
   foreach ($rss_feed['value'][0]['value'] as $index => $value) {
@@ -3897,6 +3898,7 @@ function cbf_views_rss_feed_alter(&$rss_feed) {
     $rss_feed['value'][0]['value'][$indices['image']]['value']['link'] = $link;
     $rss_feed['value'][0]['value'][$indices['image']]['value']['description'] = $field_short_form;
     $rss_feed['value'][0]['value'][$indices['itunes:subtitle']]['value'] = $field_subtitle;
+    $rss_feed['value'][0]['value'][$indices['itunes:summary']]['value'] = $field_short_form;
     $rss_feed['value'][0]['value'][$indices['itunes:image']]['attributes']['href'] = $image;
   }
 }
