@@ -3897,6 +3897,8 @@ function cbf_views_rss_feed_alter(&$rss_feed) {
     $rss_feed['value'][0]['value'][$indices['image']]['value']['title'] = $field_title;
     $rss_feed['value'][0]['value'][$indices['image']]['value']['link'] = $link;
     $rss_feed['value'][0]['value'][$indices['image']]['value']['description'] = $field_short_form;
+    $rss_feed['value'][0]['value'][$indices['image']]['value']['width'] = 1400;
+    $rss_feed['value'][0]['value'][$indices['image']]['value']['height'] = 1400;
     $rss_feed['value'][0]['value'][$indices['itunes:subtitle']]['value'] = $field_subtitle;
     $rss_feed['value'][0]['value'][$indices['itunes:summary']]['value'] = $field_short_form;
     $rss_feed['value'][0]['value'][$indices['itunes:image']]['attributes']['href'] = $image;
