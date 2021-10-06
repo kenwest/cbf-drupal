@@ -953,9 +953,9 @@ function computed_field_field_national_date_text_compute(&$entity_field, $entity
   $entity_field[0]['value'] = $text['field_national_date_text'];
 
   // A hack for the 2020 National Prayer Breakfast
-  if ($entity_type == 'civicrm_event' && $entity->id == '2377') {
+  if ($entity_type == 'civicrm_event' && $entity->id == '2562') {
     $entity_field[0]['value'] =
-      '<div>Mon 12 Oct</div>' .
+      '<div>Mon 8 Nov</div>' .
       '<div>7.30-8.30am AEDT &amp; AWST</div>';
   }
 }
