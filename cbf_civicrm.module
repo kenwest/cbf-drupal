@@ -49,12 +49,12 @@ function _cbf_civicrm_email_audience($params, $context) {
     /*
      * We can determine the $audience for the email using one of the following
      * rules ...
-     *  1 - Inspect the Campaign associated with the email for an Audience
-     *       a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
-     *       b - For a Send Email action use Activity > Campaign > Audience
-     *  2 - Inspect the email for HREF links that select an Audience
-     *  3 - Inspect the current domain to see if that selects an Audience
-     *  4 - If the previous rules fail to set an $audience, set it to 'general'
+     *  1  - Inspect the Campaign associated with the email for an Audience
+     *        a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
+     *        b - For a Send Email action use Activity > Campaign > Audience
+     *  2  - Inspect the email for HREF links that select an Audience
+     *  3  - Inspect the current domain to see if that selects an Audience
+     *  99 - If the previous rules fail to set an $audience, set it to 'general'
      */
 
     /*
@@ -272,7 +272,7 @@ function _cbf_civicrm_email_audience($params, $context) {
     }
 
     /*
-     * If applicable, try $audience rule 4:
+     * If applicable, try $audience rule 99:
      * If $audience is not set, set it to 'general'
      */
     if (empty($audience)) {
