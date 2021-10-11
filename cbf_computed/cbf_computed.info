@@ -1,0 +1,7 @@
+name = CBF computed fields
+description = Computed fields for the CBF website
+core = 7.x
+package = City Bible Forum
+dependencies[] = computed_field
+version = "7.x-1.0"
+core = "7.x"
