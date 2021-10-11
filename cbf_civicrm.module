@@ -36,8 +36,8 @@ function _cbf_civicrm_email_audience($params, $context) {
         $h = str_replace('.', '\.', $h);
         $audienceData['audiences'][$domainAudience]['patterns'] = [
           'colour' =>        '!' . '(color: |")' . $audienceData['audiences'][$domainAudience]['colour'] . '(;|")' . '!i',
-          '2' =>             '!' . ' href=("|\')(http(s)?:)?//' . $h . '("|\'|/)' . '!i',
-          '3' =>             '!' . '^' . $h . '$' . '!i',
+          '20' =>             '!' . ' href=("|\')(http(s)?:)?//' . $h . '("|\'|/)' . '!i',
+          '30' =>             '!' . '^' . $h . '$' . '!i',
           'email domain' =>  '!' . '(@)' . $h . '(>|$)' . '!i',
           'email name' =>    '!' . '(".*)(' . $audienceData['audiences'][$domainAudience]['name'] . ')(.*")' . '!i',
           'html' =>          '!' . ' (href|src)=("|\')(http(s)?:)?//' . $h . '("|\'|/)' . '!i',
@@ -49,11 +49,11 @@ function _cbf_civicrm_email_audience($params, $context) {
     /*
      * We can determine the $audience for the email using one of the following
      * rules ...
-     *  1  - Inspect the Campaign associated with the email for an Audience
-     *        a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
-     *        b - For a Send Email action use Activity > Campaign > Audience
-     *  2  - Inspect the email for HREF links that select an Audience
-     *  3  - Inspect the current domain to see if that selects an Audience
+     *  1   - Inspect the Campaign associated with the email for an Audience
+     *         a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
+     *         b - For a Send Email action use Activity > Campaign > Audience
+     *  20  - Inspect the email for HREF links that select an Audience
+     *  30  - Inspect the current domain to see if that selects an Audience
      *  99 - If the previous rules fail to set an $audience, set it to 'general'
      */
 
@@ -83,15 +83,15 @@ function _cbf_civicrm_email_audience($params, $context) {
     switch ($context) {
       case 'civimail':
         $audienceRule['1.a'] = true;
-        $audienceRule['2'] = true;
+        $audienceRule['20'] = true;
         break;
 
       case 'singleEmail':
         switch ($params['groupName']) {
           case 'Activity Email Sender':
             $audienceRule['1.b'] = true;
-            $audienceRule['2'] = true;
-            $audienceRule['3'] = true;
+            $audienceRule['20'] = true;
+            $audienceRule['30'] = true;
             break;
         }
 
@@ -113,7 +113,7 @@ function _cbf_civicrm_email_audience($params, $context) {
           case 'pcp_supporter_notify':
           case 'pledge_acknowledge':
           case 'uf_notify':
-            $audienceRule['3'] = true;
+            $audienceRule['30'] = true;
             break;
 
           // Batch actions where 'christian' can be assumed
@@ -123,7 +123,7 @@ function _cbf_civicrm_email_audience($params, $context) {
           case 'membership_autorenew_billing':
           case 'membership_autorenew_cancelled':
           case 'pledge_reminder':
-            $audienceRule['3'] = true;
+            $audienceRule['30'] = true;
             break;
 
           // Offline actions where 'christian' is not offensive if chosen
@@ -132,16 +132,16 @@ function _cbf_civicrm_email_audience($params, $context) {
           case 'event_offline_receipt':
           case 'membership_offline_receipt':
           case 'payment_or_refund_notification':
-            $audienceRule['3'] = true;
+            $audienceRule['30'] = true;
             break;
         }
         break;
 
       case 'messageTemplate':
         /*
-         * No staff involvement so just use Rule 3
+         * No staff involvement so just use Rule 30
          */
-        $audienceRule['3'] = true;
+        $audienceRule['30'] = true;
         break;
     }
 
@@ -226,13 +226,13 @@ function _cbf_civicrm_email_audience($params, $context) {
     }
 
     /*
-     * If applicable, try $audience rule 2:
+     * If applicable, try $audience rule 20:
      * Inspect the email for HREF links that select an Audience
      */
-    if (empty($audience) && isset($audienceRule['2'])) {
+    if (empty($audience) && isset($audienceRule['20'])) {
       $audienceMatches = [];
       foreach ($audienceData['audiences'] as $a => $data) {
-        $audienceMatches[$a] = preg_match($data['patterns']['2'], $params['html']);
+        $audienceMatches[$a] = preg_match($data['patterns']['20'], $params['html']);
       }
 
       foreach ($audienceMatches as $a => $match) {
@@ -249,13 +249,13 @@ function _cbf_civicrm_email_audience($params, $context) {
     }
 
     /*
-     * If applicable, try $audience rule 3:
+     * If applicable, try $audience rule 30:
      * Inspect the current domain to see if that selects an Audience
      */
-    if (empty($audience) && isset($audienceRule['3'])) {
+    if (empty($audience) && isset($audienceRule['30'])) {
       $audienceMatches = [];
       foreach ($audienceData['audiences'] as $a => $data) {
-        $audienceMatches[$a] = preg_match($data['patterns']['3'], $_SERVER['HTTP_HOST']);
+        $audienceMatches[$a] = preg_match($data['patterns']['30'], $_SERVER['HTTP_HOST']);
       }
 
       foreach ($audienceMatches as $a => $match) {
