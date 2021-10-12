@@ -17,7 +17,6 @@ function _cbf_civicrm_email_audience($params, $context) {
           'colour' => '#1c9cd6',
         ],
       ],
-      'cache' => [],
     ];
 
     foreach (domain_list_by_machine_name() as $domain) {
@@ -264,7 +263,6 @@ function _cbf_civicrm_email_audience($params, $context) {
                     $audience = 'general';
                     break;
                 }
-                $audienceData['cache']['event'] = $event->id;
               }
             }
           }
