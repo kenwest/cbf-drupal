@@ -52,6 +52,8 @@ function _cbf_civicrm_email_audience($params, $context) {
      *  1   - Inspect the Campaign associated with the email for an Audience
      *         a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
      *         b - For a Send Email action use Activity > Campaign > Audience
+     *  2   - Inspect the Audience of the Drupal CiviCRM Event
+     *         a - For a Scheduled Reminder sent to a Participant
      *  20  - Inspect the email for HREF links that select an Audience
      *  30  - Inspect the current domain to see if that selects an Audience
      *  99 - If the previous rules fail to set an $audience, set it to 'general'
@@ -94,6 +96,12 @@ function _cbf_civicrm_email_audience($params, $context) {
             $audienceRule['1.b'] = true;
             $audienceRule['20'] = true;
             $audienceRule['30'] = true;
+            break;
+
+          // Scheduled Reminder
+          case 'Scheduled Reminder Sender':
+            $audienceRule['2.a'] = true;
+            $audienceRule['20'] = true;
             break;
 
           // Non-batch actions
@@ -223,6 +231,44 @@ function _cbf_civicrm_email_audience($params, $context) {
         }
       } catch (CiviCRM_API3_Exception $e) {
         ;
+      }
+    }
+
+    /*
+     * If applicable, try $audience rule 2.a
+     * Inspect the Audience of the Drupal CiviCRM Event
+     * For a Scheduled Reminder sent to a Participant
+     */
+    if (empty($audience) && isset($audienceRule['2.a'])) {
+      $entityType = $params['entity'] ?? '';
+      $entityId = $params['entity_id'] ?? '';
+      if ($entityType == 'action_schedule' && $entityId) {
+        try {
+          $actionSchedules = \Civi\Api4\ActionSchedule::get(FALSE)
+            ->addSelect('recipient', 'entity_value')
+            ->addWhere('id', '=', $entityId)
+            ->setLimit(1)
+            ->execute();
+          foreach ($actionSchedules as $actionSchedule) {
+            if ($actionSchedule['recipient'] == 'participant_role') {
+              $events = entity_load('civicrm_event', $actionSchedule['entity_value']);
+              foreach ($events as $event) {
+                $audienceTerm = field_get_items('civicrm_event', $event, 'taxonomy_vocabulary_3');
+                $tid = $audienceTerm[0]['tid'] ?? '';
+                switch ($tid) {
+                  case '47':
+                    $audience = 'christian';
+                    break;
+                  case '48':
+                    $audience = 'general';
+                    break;
+                }
+              }
+            }
+          }
+        } catch (\API_Exception $e) {
+          ;
+        }
       }
     }
 
