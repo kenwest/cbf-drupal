@@ -61,6 +61,7 @@ function _cbf_civicrm_email_audience($params, $context) {
      * The $context and $params guide which $audience rules are applicable
      */
     $audienceRule = [];
+    $workflow = $params['workflow_name'] ?? $params['valueName'] ?? $params['groupName'];
     if (empty($context)) {
       /*
        * This function can be called from cbf_civicrm_civicrm_alterMailContent
@@ -73,7 +74,7 @@ function _cbf_civicrm_email_audience($params, $context) {
       else if (!empty($params['messageTemplateID'])) {
         $context = 'messageTemplate';
       }
-      else if (!empty($params['valueName'])) {
+      else if ($workflow) {
         $context = 'singleEmail';
       }
       else {
@@ -87,15 +88,14 @@ function _cbf_civicrm_email_audience($params, $context) {
         break;
 
       case 'singleEmail':
-        switch ($params['groupName']) {
+        switch ($workflow) {
+          // Send Email action
           case 'Activity Email Sender':
             $audienceRule['1.b'] = true;
             $audienceRule['20'] = true;
             $audienceRule['30'] = true;
             break;
-        }
 
-        switch ($params['valueName']) {
           // Non-batch actions
           case 'case_activity':
           case 'contribution_dupalert':
