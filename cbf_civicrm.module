@@ -755,6 +755,35 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
         break;
     }
 
+    /*
+     * When sending a Scheduled Reminder to a Zoom registrant, replace
+     * 'ZOOM_PARTICIPANT_JOIN_LINK' with the link provided by Zoom. Note that
+     * the Event Id will have been cached in this case.
+     */
+    $needle = 'ZOOM_PARTICIPANT_JOIN_LINK';
+    $select = 'zoom_data_sync.Zoom_Participant_Join_Link';
+    $contactId = $params['contactId'] ?? '';
+    $eventId = $audienceData['cache']['event'] ?? '';
+    if ($contactId && $eventId && strpos($htmlMessage, $needle) !== false) {
+      try {
+        $participants = \Civi\Api4\Participant::get(FALSE)
+        ->addSelect($select)
+        ->addWhere('contact_id', '=', $contactId)
+        ->addWhere('event_id', '=', $eventId)
+        ->addOrderBy('id', 'DESC') // Assume more recent regos are better
+        ->setLimit(25)
+        ->execute();
+        foreach ($participants as $participant) {
+          if ($participant[$select]) {
+            $htmlMessage = preg_replace("#$needle#", $participant[$select], $htmlMessage) ?? $htmlMessage;
+            break; // Ignore any other participant records
+          }
+        }
+      } catch (\API_Exception $e) {
+        ;
+      }
+    }
+
     $params['html'] = $htmlMessage;
   }
 }
