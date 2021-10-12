@@ -71,11 +71,11 @@ function _cbf_civicrm_email_audience($params, $context) {
       if (isset($params['mailingID'])) {
         $context = 'civimail';
       }
-      else if (!empty($params['messageTemplateID'])) {
-        $context = 'messageTemplate';
-      }
       else if ($workflow) {
         $context = 'singleEmail';
+      }
+      else if (!empty($params['messageTemplateID'])) {
+        $context = 'messageTemplate';
       }
       else {
         $context = 'civimail';
@@ -139,10 +139,11 @@ function _cbf_civicrm_email_audience($params, $context) {
 
       case 'messageTemplate':
         /*
-         * No staff involvement so just use Rule 30
+         * It's too early to set an $audience, knowing that we'll return here
+         * later with context 'singleEmail'.
          */
-        $audienceRule['30'] = true;
-        break;
+        $audienceData = null;
+        return $audienceData;
     }
 
     $audience = '';
@@ -441,7 +442,9 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
  */
 function cbf_civicrm_civicrm_alterMailContent(&$content) {
   $audienceData = _cbf_civicrm_email_audience($content, null);
-  _cbf_civicrm_amend_email($content['html'], $content['text'], $audienceData);
+  if ($audienceData) {
+    _cbf_civicrm_amend_email($content['html'], $content['text'], $audienceData);
+  }
 }
 
 /*
