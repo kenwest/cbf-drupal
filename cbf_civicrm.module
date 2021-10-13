@@ -37,8 +37,8 @@ function _cbf_civicrm_email_audience($params, $context) {
         $h = str_replace('.', '\.', $h);
         $audienceData['audiences'][$domainAudience]['patterns'] = [
           'colour' =>        '!' . '(color: |")' . $audienceData['audiences'][$domainAudience]['colour'] . '(;|")' . '!i',
-          '20' =>             '!' . ' href=("|\')(http(s)?:)?//' . $h . '("|\'|/)' . '!i',
-          '30' =>             '!' . '^' . $h . '$' . '!i',
+          '20' =>            '!' . ' href=("|\')(http(s)?:)?//' . $h . '("|\'|/)' . '!i',
+          '30' =>            '!' . '^' . $h . '$' . '!i',
           'email domain' =>  '!' . '(@)' . $h . '(>|$)' . '!i',
           'email name' =>    '!' . '(".*)(' . $audienceData['audiences'][$domainAudience]['name'] . ')(.*")' . '!i',
           'html' =>          '!' . ' (href|src)=("|\')(http(s)?:)?//' . $h . '("|\'|/)' . '!i',
