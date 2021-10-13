@@ -2008,6 +2008,34 @@ function cbf_civicrm_civicrm_accountPullPreSave($entity, &$data, &$save, &$param
 function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$params) {
   switch ($entity) {
     case 'contact':
+      /* Baulk if all the Contributions for this Contact have
+       *  - the Suppress Xero Invoice is set
+       *  - the contribution is a test
+       *  - the contribution is zero-valued
+       */
+      try {
+        $contributions = \Civi\Api4\Contribution::get(FALSE)
+          ->addWhere('contact_id', '=', $data['contact_id'])
+          ->addClause(
+            'OR',
+            ['Xero_invoice.Suppress_Xero_invoice', '=', 0],
+            ['Xero_invoice.Suppress_Xero_invoice', 'IS NULL'])
+          ->addWhere('is_test', '=', FALSE)
+          ->addWhere('total_amount', '>', 0)
+          ->setLimit(1)
+          ->execute();
+          $save = false;
+        foreach ($contributions as $_) {
+          $save = true;
+        }
+        CRM_Core_Error::debug_var('cbf_civicrm_civicrm_accountPushAlterMapped', [
+          'contact' => $data['contact_id'],
+          'push to Xero' => $save,
+        ]);
+      } catch (\API_Exception $e) {
+        CRM_Core_Error::debug_var('cbf_civicrm_civicrm_accountPushAlterMapped exception', $e);
+      }
+
       // Remove prefixes etc from Contact name
       if ($data['contact_type'] == 'Individual') {
         $params['Name'] = $data['first_name'] . ' ' . $data['last_name'] . ' - ' . $data['contact_id'];
