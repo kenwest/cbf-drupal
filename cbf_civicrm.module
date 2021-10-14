@@ -246,26 +246,25 @@ function _cbf_civicrm_email_audience($params, $context) {
       if ($entityType == 'action_schedule' && $entityId) {
         try {
           $actionSchedules = \Civi\Api4\ActionSchedule::get(FALSE)
-            ->addSelect('recipient', 'entity_value')
+            ->addSelect('entity_value')
             ->addWhere('id', '=', $entityId)
+            ->addWhere('mapping_id', 'IN', [2, 3, 5]) // Event type, Event, or Event template
             ->setLimit(1)
             ->execute();
           foreach ($actionSchedules as $actionSchedule) {
-            if ($actionSchedule['recipient'] == 'participant_role') {
-              $events = entity_load('civicrm_event', $actionSchedule['entity_value']);
-              foreach ($events as $event) {
-                $audienceTerm = field_get_items('civicrm_event', $event, 'taxonomy_vocabulary_3');
-                $tid = $audienceTerm[0]['tid'] ?? '';
-                switch ($tid) {
-                  case '47':
-                    $audience = 'christian';
-                    break;
-                  case '48':
-                    $audience = 'general';
-                    break;
-                }
-                $audienceData['cache']['event'] = $event->id;
+            $events = entity_load('civicrm_event', $actionSchedule['entity_value']);
+            foreach ($events as $event) {
+              $audienceTerm = field_get_items('civicrm_event', $event, 'taxonomy_vocabulary_3');
+              $tid = $audienceTerm[0]['tid'] ?? '';
+              switch ($tid) {
+                case '47':
+                  $audience = 'christian';
+                  break;
+                case '48':
+                  $audience = 'general';
+                  break;
               }
+              $audienceData['cache']['event'] = $event->id;
             }
           }
         } catch (\API_Exception $e) {
