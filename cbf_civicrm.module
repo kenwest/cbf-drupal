@@ -634,6 +634,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
 
   _cbf_civicrm_amend_email($params['html'], $params['text'], $audienceData);
 
+  $workflow = $params['workflow'] ?? $params['valueName'] ?? $params['groupName'] ?? '';
   $htmlMessage = $params['html'];
   if ( $htmlMessage ) {
     /*
@@ -760,28 +761,39 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
      * 'ZOOM_PARTICIPANT_JOIN_LINK' with the link provided by Zoom. Note that
      * the Event Id will have been cached in this case.
      */
-    $needle = 'ZOOM_PARTICIPANT_JOIN_LINK';
-    $select = 'zoom_data_sync.Zoom_Participant_Join_Link';
-    $contactId = $params['contactId'] ?? '';
-    $eventId = $audienceData['cache']['event'] ?? '';
-    if ($contactId && $eventId && strpos($htmlMessage, $needle) !== false) {
-      try {
-        $participants = \Civi\Api4\Participant::get(FALSE)
-        ->addSelect($select)
-        ->addWhere('contact_id', '=', $contactId)
-        ->addWhere('event_id', '=', $eventId)
-        ->addOrderBy('id', 'DESC') // Assume more recent regos are better
-        ->setLimit(25)
-        ->execute();
-        foreach ($participants as $participant) {
-          if ($participant[$select]) {
-            $htmlMessage = preg_replace("#$needle#", $participant[$select], $htmlMessage) ?? $htmlMessage;
-            break; // Ignore any other participant records
+    if ($workflow == 'Scheduled Reminder Sender') {
+      $needle = 'ZOOM_PARTICIPANT_JOIN_LINK';
+      $select = 'zoom_data_sync.Zoom_Participant_Join_Link';
+      $contactId = $params['contactId'] ?? '';
+      $eventId = $audienceData['cache']['event'] ?? '';
+      if ($contactId && $eventId && strpos($htmlMessage, $needle) !== false) {
+        try {
+          $participants = \Civi\Api4\Participant::get(FALSE)
+          ->addSelect($select)
+          ->addWhere('contact_id', '=', $contactId)
+          ->addWhere('event_id', '=', $eventId)
+          ->addOrderBy('id', 'DESC') // Assume more recent regos are better
+          ->setLimit(25)
+          ->execute();
+          foreach ($participants as $participant) {
+            if ($participant[$select]) {
+              $htmlMessage = preg_replace("#$needle#", $participant[$select], $htmlMessage) ?? $htmlMessage;
+              break; // Ignore any other participant records
+            }
           }
+        } catch (\API_Exception $e) {
+          ;
         }
-      } catch (\API_Exception $e) {
-        ;
       }
+      CRM_Core_Error::debug_var(
+        'Scheduled Reminder Sender',
+        [
+          'contact' => $contactId,
+          'event' => $eventId,
+          'participant' => $participant['id'] ?? 'not set',
+          'zoom link' => $participant[$select] ?? 'not set',
+        ]
+      );
     }
 
     $params['html'] = $htmlMessage;
