@@ -272,6 +272,17 @@ function _cbf_civicrm_email_audience($params, $context) {
           ;
         }
       }
+      CRM_Core_Error::debug_var(
+        'Audience rule 2.a',
+        [
+          'entitytype' => $entityType,
+          'entityid' => $entityId,
+          'actionschedule' => $actionSchedule ?? 'not set',
+          'event' => $event ?? 'not set',
+          'audience' => $audience ?? 'not set',
+          'cached event' => $audienceData['cache']['event'] ?? 'not set',
+        ]
+      );
     }
 
     /*
