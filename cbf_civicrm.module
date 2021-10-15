@@ -50,11 +50,12 @@ function _cbf_civicrm_email_audience($params, $context) {
     /*
      * We can determine the $audience for the email using one of the following
      * rules ...
-     *  1   - Inspect the Campaign associated with the email for an Audience
-     *         a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
-     *         b - For a Send Email action use Activity > Campaign > Audience
-     *  2   - Inspect the Audience of the Drupal CiviCRM Event
+     *  1   - Inspect the Audience of the Drupal CiviCRM Event
      *         a - For a Scheduled Reminder sent to a Participant
+     *  2   - Inspect the Campaign associated with the email for an Audience
+     *         a - For a Send Email action use Activity > Campaign > Audience
+     *         b - For a CiviMail use MailingJob > Mailing > Campaign > Audience
+     *         c - For a Scheduled Reminder use Event > Campaign > Audience
      *  20  - Inspect the email for HREF links that select an Audience
      *  30  - Inspect the current domain to see if that selects an Audience
      *  99 - If the previous rules fail to set an $audience, set it to 'general'
@@ -85,24 +86,20 @@ function _cbf_civicrm_email_audience($params, $context) {
       }
     }
     switch ($context) {
-      case 'civimail':
-        $audienceRule['1.a'] = true;
-        $audienceRule['20'] = true;
-        break;
-
       case 'singleEmail':
         switch ($workflow) {
-          // Send Email action
-          case 'Activity Email Sender':
-            $audienceRule['1.b'] = true;
-            $audienceRule['20'] = true;
-            $audienceRule['30'] = true;
-            break;
-
           // Scheduled Reminder
           case 'Scheduled Reminder Sender':
+            $audienceRule['1.a'] = true;
+            $audienceRule['2.c'] = true;
+            $audienceRule['20'] = true;
+            break;
+
+          // Send Email action
+          case 'Activity Email Sender':
             $audienceRule['2.a'] = true;
             $audienceRule['20'] = true;
+            $audienceRule['30'] = true;
             break;
 
           // Non-batch actions
@@ -146,6 +143,11 @@ function _cbf_civicrm_email_audience($params, $context) {
         }
         break;
 
+      case 'civimail':
+        $audienceRule['2.b'] = true;
+        $audienceRule['20'] = true;
+        break;
+
       case 'messageTemplate':
         /*
          * It's too early to set an $audience, knowing that we'll return here
@@ -159,98 +161,20 @@ function _cbf_civicrm_email_audience($params, $context) {
 
     /*
      * If applicable, try $audience rule 1.a:
-     * For a CiviMail use MailingJob > Mailing > Campaign > Audience
-     */
-    if (empty($audience) && isset($audienceRule['1.a'])) {
-      if (!empty($params['campaign_id'])) {
-        $audienceRule['1'] = [
-          'key' => 'campaign_type_id.name',
-          'entity' => 'Campaign',
-          'id' => $params['campaign_id'],
-        ];
-      }
-      else if (!empty($params['mailingID'])) {
-        $audienceRule['1'] = [
-          'key' => 'campaign_id.campaign_type_id.name',
-          'entity' => 'Mailing',
-          'id' => $params['mailingID'],
-        ];
-      }
-      else if (!empty($params['job_id'])) {
-        $audienceRule['1'] = [
-          'key' => 'mailing_id.campaign_id.campaign_type_id.name',
-          'entity' => 'MailingJob',
-          'id' => $params['job_id'],
-        ];
-      }
-    }
-
-    /*
-     * If applicable, try $audience rule 1.b:
-     * For a Send Email action use Activity > Campaign > Audience
-     */
-    if (empty($audience) && isset($audienceRule['1.b'])) {
-      if (!empty($params['campaign_id'])) {
-        $audienceRule['1'] = [
-          'key' => 'campaign_type_id.name',
-          'entity' => 'Campaign',
-          'id' => $params['campaign_id'],
-        ];
-      }
-      else if (!empty($params['activityId'])) {
-        $audienceRule['1'] = [
-          'key' => 'campaign_id.campaign_type_id.name',
-          'entity' => 'Activity',
-          'id' => $params['activityId'],
-        ];
-      }
-    }
-
-    /*
-     * If applicable, try $audience rule 1:
-     * Inspect the Campaign associated with the email for an Audience
-     */
-    if (empty($audience) && isset($audienceRule['1'])) {
-      try {
-        $result = civicrm_api3($audienceRule['1']['entity'], 'get', [
-          'sequential' => 1,
-          'return' => [ $audienceRule['1']['key'] ],
-          'id' => $audienceRule['1']['id'],
-        ]);
-        $campaignType = $result['values'][0][$audienceRule['1']['key']] ?? '';
-        switch ($campaignType) {
-          case 'Mobilising':
-          case 'Equipping':
-          case 'Fundraising':
-            $audience = 'christian';
-            break;
-          case 'Engaging':
-          case 'Forum or fellowship':
-          case 'Relationship building':
-            $audience = 'general';
-            break;
-        }
-      } catch (CiviCRM_API3_Exception $e) {
-        ;
-      }
-    }
-
-    /*
-     * If applicable, try $audience rule 2.a
      * Inspect the Audience of the Drupal CiviCRM Event
      * For a Scheduled Reminder sent to a Participant
      */
-    if (empty($audience) && isset($audienceRule['2.a'])) {
+    if (empty($audience) && isset($audienceRule['1.a'])) {
       $entityType = $params['entity'] ?? '';
       $entityId = $params['entity_id'] ?? '';
       if ($entityType == 'action_schedule' && $entityId) {
         try {
           $actionSchedules = \Civi\Api4\ActionSchedule::get(FALSE)
-            ->addSelect('entity_value')
-            ->addWhere('id', '=', $entityId)
-            ->addWhere('mapping_id', 'IN', [2, 3, 5]) // Event type, Event, or Event template
-            ->setLimit(1)
-            ->execute();
+          ->addSelect('entity_value')
+          ->addWhere('id', '=', $entityId)
+          ->addWhere('mapping_id', '=', 3) // Event
+          ->setLimit(1)
+          ->execute();
           foreach ($actionSchedules as $actionSchedule) {
             $events = entity_load('civicrm_event', $actionSchedule['entity_value']);
             foreach ($events as $event) {
@@ -271,17 +195,98 @@ function _cbf_civicrm_email_audience($params, $context) {
           ;
         }
       }
-      CRM_Core_Error::debug_var(
-        'Audience rule 2.a',
-        [
-          'entitytype' => $entityType,
-          'entityid' => $entityId,
-          'actionschedule' => $actionSchedule ?? 'not set',
-          'event' => $event ?? 'not set',
-          'audience' => $audience ?? 'not set',
-          'cached event' => $audienceData['cache']['event'] ?? 'not set',
-        ]
-      );
+    }
+
+    /*
+     * If applicable, try $audience rule 2.a:
+     * For a Send Email action use Activity > Campaign > Audience
+     */
+    if (empty($audience) && isset($audienceRule['2.a'])) {
+      if (!empty($params['campaign_id'])) {
+        $audienceRule['2'] = [
+          'key' => 'campaign_type_id.name',
+          'entity' => 'Campaign',
+          'id' => $params['campaign_id'],
+        ];
+      }
+      else if (!empty($params['activityId'])) {
+        $audienceRule['2'] = [
+          'key' => 'campaign_id.campaign_type_id.name',
+          'entity' => 'Activity',
+          'id' => $params['activityId'],
+        ];
+      }
+    }
+
+    /*
+     * If applicable, try $audience rule 2.b:
+     * For a CiviMail use MailingJob > Mailing > Campaign > Audience
+     */
+    if (empty($audience) && isset($audienceRule['2.b'])) {
+      if (!empty($params['campaign_id'])) {
+        $audienceRule['2'] = [
+          'key' => 'campaign_type_id.name',
+          'entity' => 'Campaign',
+          'id' => $params['campaign_id'],
+        ];
+      }
+      else if (!empty($params['mailingID'])) {
+        $audienceRule['2'] = [
+          'key' => 'campaign_id.campaign_type_id.name',
+          'entity' => 'Mailing',
+          'id' => $params['mailingID'],
+        ];
+      }
+      else if (!empty($params['job_id'])) {
+        $audienceRule['2'] = [
+          'key' => 'mailing_id.campaign_id.campaign_type_id.name',
+          'entity' => 'MailingJob',
+          'id' => $params['job_id'],
+        ];
+      }
+    }
+
+    /*
+     * If applicable, try $audience rule 2.c:
+     * For a Scheduled Reminder use Event > Campaign > Audience
+     */
+    if (empty($audience) && isset($audienceRule['2.c'])) {
+      if (!empty($audienceData['cache']['event'])) {
+        $audienceRule['2'] = [
+          'key' => 'campaign_id.campaign_type_id.name',
+          'entity' => 'Event',
+          'id' => $audienceData['cache']['event'],
+        ];
+      }
+    }
+
+    /*
+     * If applicable, try $audience rule 2:
+     * Inspect the Campaign associated with the email for an Audience
+     */
+    if (empty($audience) && isset($audienceRule['2'])) {
+      try {
+        $result = civicrm_api3($audienceRule['2']['entity'], 'get', [
+          'sequential' => 1,
+          'return' => [ $audienceRule['2']['key'] ],
+          'id' => $audienceRule['2']['id'],
+        ]);
+        $campaignType = $result['values'][0][$audienceRule['2']['key']] ?? '';
+        switch ($campaignType) {
+          case 'Mobilising':
+          case 'Equipping':
+          case 'Fundraising':
+            $audience = 'christian';
+            break;
+          case 'Engaging':
+          case 'Forum or fellowship':
+          case 'Relationship building':
+            $audience = 'general';
+            break;
+        }
+      } catch (CiviCRM_API3_Exception $e) {
+        ;
+      }
     }
 
     /*
