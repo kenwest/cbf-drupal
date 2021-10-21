@@ -793,8 +793,11 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
           foreach ($participants as $participant) {
             if ($participant[$select]) {
               $htmlMessage = preg_replace("#$needle#", $participant[$select], $htmlMessage) ?? $htmlMessage;
-              break; // Ignore any other participant records
             }
+            else {
+              $params['abortMailSend'] = 1;
+            }
+            break; // Ignore any other participant records
           }
         } catch (\API_Exception $e) {
           ;
