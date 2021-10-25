@@ -24,7 +24,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
     civicrm_initialize();
 
     CRM_Core_Error::debug_var('Feedback webhook invoked', [
-      '$_SERVER' => $request->_server,
+      'Agent' => $request->agent,
       'Raw data' => $request->raw,
       'Unserialized data' => $request->cooked,
     ]);
