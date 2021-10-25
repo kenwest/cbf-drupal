@@ -21,7 +21,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
    */
   public function process(stdClass $request) {
 
-    CRM_Core_Error::debug_var('Thinkific header mismatch', [
+    CRM_Core_Error::debug_var('Feedback webhook invoked', [
       '$_SERVER' => $request->_server,
       'Raw data' => $request->raw,
       'Unserialized data' => $request->cooked,
