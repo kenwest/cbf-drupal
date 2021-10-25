@@ -1,14 +1,9 @@
 <?php
 
 /**
- * @file
- * Example plugin class for logging github pushes to watchdog
- */
-
-/**
  * CBF Webhook Processor Thinkific class.
  *
- * Records github actions in watchdog log.
+ * Processes Thinkific enrolments.
  */
 class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Interface {
 
