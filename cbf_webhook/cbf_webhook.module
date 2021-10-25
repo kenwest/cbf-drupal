@@ -52,6 +52,15 @@ function cbf_webhook_webhook_processor() {
     ],
   ];
 
+  $plugins['feedback'] = [
+    'title' => t('Feedback form'),
+    'processor' => [
+      'path' => $path,
+      'file' => 'CBF_Webhook_Processor_Feedback.class.inc',
+      'class' => 'CBF_Webhook_Processor_Feedback',
+    ],
+  ];
+
   return $plugins;
 }
 
@@ -69,6 +78,15 @@ function cbf_webhook_webhook_unserializer() {
       'path' => $path,
       'file' => 'CBF_Webhook_Unserializer_Thinkific.class.inc',
       'class' => 'CBF_Webhook_Unserializer_Thinkific',
+    ],
+  ];
+
+  $plugins['zapier_json'] = [
+    'title' => t('Zapier JSON'),
+    'unserializer' => [
+      'path' => $path,
+      'file' => 'CBF_Webhook_Unserializer_Zapier.class.inc',
+      'class' => 'CBF_Webhook_Unserializer_Zapier',
     ],
   ];
 
