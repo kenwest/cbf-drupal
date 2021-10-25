@@ -37,6 +37,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
         'Raw Thinkific data' => $request->raw,
         'Unserialized data' => $request->cooked,
       ]);
+      return;
     }
     else {
       CRM_Core_Error::debug_var('Thinkific data', [
