@@ -240,7 +240,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           $network = null;
           $optionValues = \Civi\Api4\OptionValue::get(false)
             ->addSelect('id', 'label', 'name')
-            ->addWhere('option_group_id:name', '=', 'network_20211029164643')
+            ->addWhere('option_group_id.title', '=', 'Network')
             ->addWhere('label', '=', $request->cooked['network'])
             ->setLimit(1)
             ->execute();
