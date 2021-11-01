@@ -765,7 +765,10 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     switch ($workflow) {
       case 'contribution_offline_receipt':
       case 'contribution_online_receipt':
-        $htmlMessage = preg_replace('#THINKIFIC_EMAIL#', $params['toEmail'], $htmlMessage);
+        $htmlMessage = preg_replace('#THINKIFIC_EMAIL#', $params['toEmail'], $htmlMessage) ?? $htmlMessage;
+        if (isset($params['text'])) {
+          $params['text'] = preg_replace('#THINKIFIC_EMAIL#', $params['toEmail'], $params['text']) ?? $params['text'];
+        }
         break;
     }
 
@@ -781,7 +784,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
       $eventId = $audienceData['cache']['event'] ?? '';
       if ($contactId && $eventId && strpos($htmlMessage, $needle) !== false) {
         try {
-          $participants = \Civi\Api4\Participant::get(FALSE)
+          $participants = \Civi\Api4\Participant::get(false)
           ->addSelect($select)
           ->addWhere('contact_id', '=', $contactId)
           ->addWhere('event_id', '=', $eventId)
@@ -791,6 +794,9 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
           foreach ($participants as $participant) {
             if ($participant[$select]) {
               $htmlMessage = preg_replace("#$needle#", $participant[$select], $htmlMessage) ?? $htmlMessage;
+              if (isset($params['text'])) {
+                $params['text'] = preg_replace("#$needle#", $participant[$select], $params['text']) ?? $params['text'];
+              }
             }
             else {
               $params['abortMailSend'] = 1;
