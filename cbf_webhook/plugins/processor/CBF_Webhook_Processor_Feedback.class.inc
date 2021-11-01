@@ -289,15 +289,21 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
             ->addValue('activity_type_id:name', 'Feedback form submission')
             ->addValue('source_contact_id', $agent['id'])
             ->addValue('target_contact_id', [ $target['id'], ])
-            ->addValue('assignee_contact_id', [ $network['id'], ])
             ->addValue('subject', $request->cooked['subject'])
             ->addValue('details', $comment)
-            ->addValue('status_id:name', 'Completed')
-            ->addValue('Contact_form.Ministry_Centre:name', $ministryCentre['label'] ?? '')
-            ->addValue('Contact_form.Network:name', $network['Network_details.Network:name'] ?? $network['name'] ?? '')
+            ->addValue('status_id:name', 'Completed');
 // @todo: handle Is Christian / Is non-Christian
 // ->addValue('Contact_form.Is_Christian:name', 'Christian')
-            ->execute();
+          if ($network) {
+            $results = $results
+              ->addValue('assignee_contact_id', [ $network['id'], ])
+              ->addValue('Contact_form.Network:name', $network['Network_details.Network:name'] ?? $network['name']);
+          }
+          if ($ministryCentre) {
+            $results = $results
+              ->addValue('Contact_form.Ministry_Centre:name', $ministryCentre['label']);
+          }
+          $results = $results->execute();
           foreach ($results as $result) {
             $progress[] = 'Activity ' . $result['id'] . ' created';
           }
