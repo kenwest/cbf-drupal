@@ -1,0 +1,14 @@
+
+'Cooked data' includes ...
+
+    Email contains no spaces
+    Mobile is not empty
+    listIf is an array
+    leadIf is an array
+
+
+'Feedback webhook progress' should say ...
+
+    Agent API key not found... stopping
+
+

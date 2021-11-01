@@ -1,0 +1,18 @@
+
+To see log of tests, open a new terminal and ...
+
+    $ cd /var/www/test/sites/default/files/civicrm/ConfigAndLog/ # for example
+    $ tail -f $(ls -tr | tail -1)                                # see the tail of the active log
+
+
+'Cooked data' includes ...
+
+    Contact Id is zero
+    Options is an array
+
+
+'Feedback webhook progress' should say ...
+
+    Agent API key not supplied... stopping
+
+

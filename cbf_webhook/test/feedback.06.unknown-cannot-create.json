@@ -1,0 +1,13 @@
+{
+  "comment": "This is a comment",
+  "email": "",
+  "firstName": "Ken",
+  "lastName": "West",
+  "mobile" : "",
+  "ministryCentre": "Adelaide",
+  "network": "Men's Fellowship",
+  "options": "This was my first session, Please send me emails about future events, Tell me more about the small groups",
+  "listIf" : "send me emails",
+  "leadIf" : "first session, small groups",
+  "timestamp": "25/10/2021 21:19:25"
+}
