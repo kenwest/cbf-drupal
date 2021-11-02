@@ -1205,6 +1205,28 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             'course' => 857232,
             'expiry' => '6 months',
           ],
+          24 => [     // The Post Covid Playbook
+            'free' => [
+              'course' => 1575723,
+              'expiry' => '1 month',
+            ],
+            'paid' => [
+              'course' => 1547489,
+              'expiry' => '6 months',
+            ],
+          ],
+          25 => [     // The Post Covid Playbook - group license
+            'course' => 1547489,
+            'expiry' => '6 months',
+          ],
+          26 => [     // Finding God in Film
+            'course' => 27700079,
+            'expiry' => '6 months',
+          ],
+          27 => [     // Finding God in Film - group license
+            'course' => 27700079,
+            'expiry' => '6 months',
+          ],
         ];
         $thinkificCourse = $thinkificCourses[$form->_id] ?? null;
         if (isset($thinkificCourse)) {
