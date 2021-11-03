@@ -278,6 +278,18 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           }
 
           /* ------------------------------------------------------------------
+           * Process the if-conditions on the options selected
+           */
+          $isLead = false;
+          $matchAll = '*';
+          foreach (array_merge($request->cooked['options'], [$matchAll]) as $option) {
+            foreach ($request->cooked['leadIf'] as $v) {
+              if (stristr($option, $v) !== false) {
+                $isLead = true;
+              }
+            }
+          }
+          /* ------------------------------------------------------------------
            * Process the activity
            */
           $comment = '<p><strong>Comment</strong>: ' . $request->cooked['comment'] . '</p>';
@@ -304,6 +316,10 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           if ($ministryCentre) {
             $results = $results
               ->addValue('Contact_form_fields.Ministry_Centre:name', $ministryCentre['label']);
+          }
+          if ($isLead) {
+            $results = $results
+              ->addValue('Contact_form_fields.Customer_value_journey_stage:name', 'Lead');
           }
           $results = $results->execute();
           foreach ($results as $result) {
