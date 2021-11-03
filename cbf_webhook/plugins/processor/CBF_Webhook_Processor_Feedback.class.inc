@@ -287,7 +287,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
             $comment .= '<ul><li>' . $options . '</li></ul>';
           }
 
-          $results = \Civi\Api4\Activity::create(FALSE)
+          $results = \Civi\Api4\Activity::create(false)
             ->addValue('activity_type_id:name', 'Feedback form submission')
             ->addValue('source_contact_id', $agent['id'])
             ->addValue('target_contact_id', [ $target['id'], ])
