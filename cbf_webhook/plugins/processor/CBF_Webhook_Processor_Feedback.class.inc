@@ -301,11 +301,11 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           if ($network) {
             $results = $results
               ->addValue('assignee_contact_id', [ $network['id'], ])
-              ->addValue('Contact_form.Network:name', $network['Network_details.Network:name'] ?? $network['name']);
+              ->addValue('Contact_form_fields.Network:name', $network['Network_details.Network:name'] ?? $network['name']);
           }
           if ($ministryCentre) {
             $results = $results
-              ->addValue('Contact_form.Ministry_Centre:name', $ministryCentre['label']);
+              ->addValue('Contact_form_fields.Ministry_Centre:name', $ministryCentre['label']);
           }
           $results = $results->execute();
           foreach ($results as $result) {
