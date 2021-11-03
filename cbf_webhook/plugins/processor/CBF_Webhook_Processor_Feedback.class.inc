@@ -268,6 +268,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
               ->addWhere('Network_details.Network:name', '=', $network['name'])
               ->setLimit(1)
               ->addChain('lists', \Civi\Api4\GroupContact::get(false)
+                ->addSelect('group_id', 'group_id:label')
                 ->addWhere('contact_id', '=', '$id')
               )
               ->execute();
@@ -281,11 +282,33 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
            * Process the if-conditions on the options selected
            */
           $isLead = false;
+          $isList = false;
           $matchAll = '*';
           foreach (array_merge($request->cooked['options'], [$matchAll]) as $option) {
             foreach ($request->cooked['leadIf'] as $v) {
               if (stristr($option, $v) !== false) {
                 $isLead = true;
+              }
+            }
+            foreach ($request->cooked['listIf'] as $v) {
+              if (stristr($option, $v) !== false) {
+                $isList = true;
+              }
+            }
+          }
+
+          /* ------------------------------------------------------------------
+           * Process the lists
+           */
+          if ($isList && $network) {
+            foreach ($network['lists'] as $list) {
+              $results = \Civi\Api4\GroupContact::create(false)
+                ->addValue('group_id', $list['group_id'])
+                ->addValue('contact_id', $target['id'])
+                ->addValue('status', 'Added')
+                ->execute();
+              foreach ($results as $result) {
+                $progress[] = 'Added contact ' . $target['id'] . ' to list \'' . $list['group_id:label' . '\''];
               }
             }
           }
