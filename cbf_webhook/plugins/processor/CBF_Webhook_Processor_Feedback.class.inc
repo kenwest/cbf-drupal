@@ -225,16 +225,14 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           }
 
           if ($ministryCentre) {
-            if (empty($target['ministryCentres'])) {
-              $addTag = 'Ministry centre is ' . $ministryCentre['label'];
-              $results = \Civi\Api4\EntityTag::create(false)
-                ->addValue('entity_table', 'civicrm_contact')
-                ->addValue('entity_id', $target['id'])
-                ->addValue('tag_id.name', $addTag)
-                ->execute();
-              foreach ($results as $result) {
-                $progress[] = 'Target tagged with \'' . $addTag . '\'';
-              }
+            $addTag = 'Ministry centre is ' . $ministryCentre['label'];
+            $results = \Civi\Api4\EntityTag::create(false)
+              ->addValue('entity_table', 'civicrm_contact')
+              ->addValue('entity_id', $target['id'])
+              ->addValue('tag_id.name', $addTag)
+              ->execute();
+            foreach ($results as $result) {
+              $progress[] = 'Target tagged with \'' . $addTag . '\'';
             }
           }
           
