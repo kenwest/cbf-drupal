@@ -284,6 +284,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           $isLead = false;
           $isList = false;
           $isChristian = false;
+          $isNonChristian = false;
           $matchAll = '*';
           foreach (array_merge($request->cooked['options'], [$matchAll]) as $option) {
             foreach ($request->cooked['leadIf'] as $v) {
@@ -301,6 +302,15 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
                 $isChristian = true;
               }
             }
+            foreach ($request->cooked['nonChristianIf'] as $v) {
+              if (stristr($option, $v) !== false) {
+                $isNonChristian = true;
+              }
+            }
+          }
+          if ($isChristian && $isNonChristian) { // Ignore ambiguous instructions
+            $isChristian = false;
+            $isNonChristian = false;
           }
 
           /* ------------------------------------------------------------------
@@ -352,6 +362,10 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           if ($isChristian) {
             $results = $results
               ->addValue('Contact_form_fields.Is_Christian:name', 'Christian');
+          }
+          if ($isNonChristian) {
+            $results = $results
+              ->addValue('Contact_form_fields.Is_Christian:name', 'Non_Christian');
           }
           $results = $results->execute();
           foreach ($results as $result) {
