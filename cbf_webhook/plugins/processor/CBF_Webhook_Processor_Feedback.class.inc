@@ -214,6 +214,10 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
             ->addSelect('id', 'label', 'name')
             ->addWhere('option_group_id:name', '=', 'ministry_centre_20110828113048')
             ->addWhere('label', '=', $request->cooked['ministryCentre'])
+            ->addClause(
+              'OR',
+              ['label', '=', $request->cooked['ministryCentre']],
+              ['description', 'CONTAINS', ' ' . $request->cooked['ministryCentre'] . ','])
             ->setLimit(1)
             ->execute();
           foreach ($optionValues as $optionValue) {
