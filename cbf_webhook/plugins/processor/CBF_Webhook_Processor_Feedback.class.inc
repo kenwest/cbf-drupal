@@ -27,7 +27,6 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
       'Agent' => $request->agent,
       'Raw data' => $request->raw,
       'Cooked data' => $request->cooked,
-      'Version' => '2021-11-03 15:58:00',
     ]);
 
     $progress = [];
@@ -214,7 +213,6 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           $optionValues = \Civi\Api4\OptionValue::get(false)
             ->addSelect('id', 'label', 'name')
             ->addWhere('option_group_id:name', '=', 'ministry_centre_20110828113048')
-            ->addWhere('label', '=', $request->cooked['ministryCentre'])
             ->addClause(
               'OR',
               ['label', '=', $request->cooked['ministryCentre']],
