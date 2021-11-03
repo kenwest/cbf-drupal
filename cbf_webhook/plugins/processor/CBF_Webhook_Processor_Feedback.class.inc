@@ -318,13 +318,40 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
            */
           if ($isList && $network) {
             foreach ($network['lists'] as $list) {
-              $results = \Civi\Api4\GroupContact::create(false)
-                ->addValue('group_id', $list['group_id'])
-                ->addValue('contact_id', $target['id'])
-                ->addValue('status', 'Added')
+              $groupContact = null;
+              $groupContacts = \Civi\Api4\GroupContact::get(false)
+                ->addSelect('id', 'status:label')
+                ->addWhere('group_id', '=', $list['group_id'])
+                ->addWhere('contact_id', '=', $target['id'])
+                ->setLimit(1)
                 ->execute();
-              foreach ($results as $result) {
-                $progress[] = 'Added contact ' . $target['id'] . ' to list \'' . $list['group_id:label' . '\''];
+              foreach ($groupContacts as $groupContact) {
+                $progress[] =
+                  'Discovered contact ' . $target['id'] .
+                  ' has status \'' . $groupContact['status:label'] .
+                  '\' in list \'' . $list['group_id:label'] . '\'';
+              }
+              if (!$groupContact) {
+                $results = \Civi\Api4\GroupContact::create(false)
+                  ->addValue('group_id', $list['group_id'])
+                  ->addValue('contact_id', $target['id'])
+                  ->addValue('status', 'Added')
+                  ->execute();
+                foreach ($results as $result) {
+                  $progress[] = 'Added contact ' . $target['id'] . ' to list \'' . $list['group_id:label'] . '\'';
+                }
+              }
+              else if ($groupContact['status:label'] != 'Added') {
+                $results = \Civi\Api4\GroupContact::update(false)
+                  ->addValue('status:name', 'Added')
+                  ->addWhere('id', '=', $groupContact['id'])
+                  ->execute();
+                foreach ($results as $result) {
+                  $progress[] =
+                  'Changed contact ' . $target['id'] .
+                  '\' status in list \'' . $list['group_id:label'] . '\'' .
+                  ' from \'' . $groupContact['status:label'] . '\' to \'Added\'';
+                }
               }
             }
           }
