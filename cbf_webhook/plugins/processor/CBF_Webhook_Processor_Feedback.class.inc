@@ -27,6 +27,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
       'Agent' => $request->agent,
       'Raw data' => $request->raw,
       'Cooked data' => $request->cooked,
+      'Version' => '2021-11-03 15:58:00',
     ]);
 
     $progress = [];
