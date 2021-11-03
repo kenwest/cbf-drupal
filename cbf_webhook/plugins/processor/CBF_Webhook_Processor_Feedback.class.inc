@@ -221,6 +221,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
             ->setLimit(1)
             ->execute();
           foreach ($optionValues as $optionValue) {
+            $progress[] = $optionValue;
             $ministryCentre = $optionValue;
           }
 
