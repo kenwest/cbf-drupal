@@ -60,6 +60,10 @@ class CBF_Webhook_Unserializer_Zapier implements Webhook_Plugins_Unserializer_In
         'name' => ['leadIf', 'lead_if', 'lead'],
         'separator' => ', ',
       ],
+      'christianIf' => [
+        'name' => ['christianIf', 'christian_if', 'christian'],
+        'separator' => ', ',
+      ],
       'timestamp' => [
         'name' => ['timestamp'],
       ],

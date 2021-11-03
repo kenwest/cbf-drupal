@@ -283,6 +283,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
            */
           $isLead = false;
           $isList = false;
+          $isChristian = false;
           $matchAll = '*';
           foreach (array_merge($request->cooked['options'], [$matchAll]) as $option) {
             foreach ($request->cooked['leadIf'] as $v) {
@@ -293,6 +294,11 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
             foreach ($request->cooked['listIf'] as $v) {
               if (stristr($option, $v) !== false) {
                 $isList = true;
+              }
+            }
+            foreach ($request->cooked['christianIf'] as $v) {
+              if (stristr($option, $v) !== false) {
+                $isChristian = true;
               }
             }
           }
@@ -312,6 +318,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
               }
             }
           }
+
           /* ------------------------------------------------------------------
            * Process the activity
            */
@@ -329,8 +336,6 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
             ->addValue('subject', $request->cooked['subject'])
             ->addValue('details', $comment)
             ->addValue('status_id:name', 'Completed');
-// @todo: handle Is Christian / Is non-Christian
-// ->addValue('Contact_form.Is_Christian:name', 'Christian')
           if ($network) {
             $results = $results
               ->addValue('assignee_contact_id', [ $network['id'], ])
@@ -343,6 +348,10 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           if ($isLead) {
             $results = $results
               ->addValue('Contact_form_fields.Customer_value_journey_stage:name', 'Lead');
+          }
+          if ($isChristian) {
+            $results = $results
+              ->addValue('Contact_form_fields.Is_Christian:name', 'Christian');
           }
           $results = $results->execute();
           foreach ($results as $result) {
