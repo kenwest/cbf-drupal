@@ -1220,11 +1220,11 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             'expiry' => '6 months',
           ],
           26 => [     // Finding God in Film
-            'course' => 27700079,
+            'course' => 857428,
             'expiry' => '6 months',
           ],
           27 => [     // Finding God in Film - group license
-            'course' => 27700079,
+            'course' => 857428,
             'expiry' => '6 months',
           ],
         ];
