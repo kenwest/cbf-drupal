@@ -176,12 +176,15 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
               $results = $results->addChain('email', \Civi\Api4\Email::create(false)
                 ->addValue('contact_id', '$id')
                 ->addValue('email', $email)
+                ->addValue('location_type_id:name', 'Main')
               );
             }
             if ($last9digits) {
               $results = $results->addChain('mobile', \Civi\Api4\Phone::create(false)
                 ->addValue('contact_id', '$id')
                 ->addValue('phone', $mobile)
+                ->addValue('location_type_id:name', 'Main')
+                ->addValue('phone_type_id:name', 'Mobile')
               );
             }
             $results = $results->execute();
