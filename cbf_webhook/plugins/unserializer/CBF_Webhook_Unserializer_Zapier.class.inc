@@ -52,6 +52,9 @@ class CBF_Webhook_Unserializer_Zapier implements Webhook_Plugins_Unserializer_In
       'comment' => [
         'name' => ['comment'],
       ],
+      'campaign' => [
+        'name' => ['campaign'],
+      ],
       'listIf' => [
         'name' => ['listIf', 'list_if', 'list'],
         'separator' => ', ',

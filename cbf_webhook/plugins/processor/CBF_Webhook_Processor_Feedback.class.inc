@@ -357,6 +357,22 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           }
 
           /* ------------------------------------------------------------------
+           * Process the campaign
+           */
+          $campaign = null;
+          if ($request->cooked['campaign']) {
+            $campaigns = \Civi\Api4\Campaign::get(false)
+            ->addSelect('id')
+            ->addWhere('title', '=', $request->cooked['campaign'])
+            ->addOrderBy('id', 'DESC')
+            ->setLimit(1)
+            ->execute();
+            foreach ($campaigns as $c) {
+              $campaign = $c;
+            }
+          }
+
+          /* ------------------------------------------------------------------
            * Process the activity
            */
           $comment = '<p><strong>Comment</strong>: ' . $request->cooked['comment'] . '</p>';
@@ -381,6 +397,10 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           if ($ministryCentre) {
             $results = $results
               ->addValue('Contact_form_fields.Ministry_Centre:name', $ministryCentre['label']);
+          }
+          if ($campaign) {
+            $results = $results
+              ->addValue('campaign_id', $campaign['id']);
           }
           if ($isLead) {
             $results = $results
