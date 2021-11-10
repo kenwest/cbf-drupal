@@ -127,12 +127,12 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           $potentials = [];
           foreach ($contacts as $contact) {
             // Tighten the search conditions to avoid false positives due to use of CONTAINS
-            if ($firstName != $contact['first_name']
+            if (strtolower($firstName) != strtolower($contact['first_name'])
               && !stristr(' ' . $contact['nick_name'] . ',', ' ' . $firstName . ',')) {
               $progress[] = 'Contact ' . $contact['id'] . ' nickname doesn\'t match first name';
               continue;
             }
-            if ($lastName != $contact['last_name']
+            if (strtolower($lastName) != strtolower($contact['last_name'])
               && !stristr(' ' . $contact['nick_name'] . ',', ' ' . $lastName . ',')) {
               $progress[] = 'Contact ' . $contact['id'] . ' nickname doesn\'t match last name';
               continue;
