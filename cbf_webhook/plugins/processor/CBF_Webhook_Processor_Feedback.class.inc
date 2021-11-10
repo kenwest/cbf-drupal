@@ -376,7 +376,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
            * Process the activity
            */
           $comment = '<p><strong>Comment</strong>: ' . $request->cooked['comment'] . '</p>';
-          $options = implode('</li><li>', $request->cooked['options']);
+          $options = implode('</li><li>', array_filter($request->cooked['options']));
           if ($options) {
             $comment .= '<p><strong>Options selected</strong>:</p>';
             $comment .= '<ul><li>' . $options . '</li></ul>';
