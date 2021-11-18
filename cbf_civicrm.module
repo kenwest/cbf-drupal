@@ -1162,7 +1162,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
        */
       if ($formName == 'CRM_Contribute_Form_Contribution_ThankYou') {
         $thinkificCourses = [
-          10 => null, // Contribution page was used in testing
           15 => [     // Sharing Jesus at Work
             'free' => [
               'course' => 1150926,
@@ -1227,23 +1226,36 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             'course' => 857428,
             'expiry' => '6 months',
           ],
+          1000 => [   // Test data
+            'bundles' => [50405, 79135],
+            'expiry' => '12 months'
+          ],
         ];
-        $thinkificCourse = $thinkificCourses[$form->_id] ?? null;
-        if (isset($thinkificCourse)) {
+        $thinkificCourse = $thinkificCourses[$form->_id] ?? false;
+        if ($thinkificCourse) {
+          $bundles = $thinkificCourse['bundles'] ?? [];
+          if ($bundles) {
+            $course = false;
+          }
+          else {
+            $course = $thinkificCourse['course'] ?? (
+              $form->_amount == 0
+                ? $thinkificCourse['free']['course']
+                : $thinkificCourse['paid']['course']);
+          }
+          $expiry = $thinkificCourse['expiry'] ?? (
+            $form->_amount == 0
+              ? $thinkificCourse['free']['expiry']
+              : $thinkificCourse['paid']['expiry']);
           $bltID = $form->_bltID ?? 5;
           $enrolment = _cbf_civicrm_thinkific_enrolment(
             $form->_params['first_name'],
             $form->_params['last_name'],
             $form->_params["email-{$bltID}"],
             $_SESSION['CiviCRM']['transaction.userID'] ?? $form->_contactID,
-            $thinkificCourse['course'] ?? (
-              $form->_amount == 0
-                ? $thinkificCourse['free']['course']
-                : $thinkificCourse['paid']['course']),
-            $thinkificCourse['expiry'] ?? (
-              $form->_amount == 0
-                ? $thinkificCourse['free']['expiry']
-                : $thinkificCourse['paid']['expiry'])
+            $bundles,
+            $course,
+            $expiry
           );
           foreach (['thankyou_text', 'thankyou_footer'] as $tplVar) {
             $form->assign(
@@ -2511,7 +2523,7 @@ function cbf_civicrm_ministry_team_viewable_fields($team) {
   return $result;
 }
 
-function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $course, $expiry) {
+function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, $course, $expiry) {
   $api = 'https://api.thinkific.com/api/public/v1/';
   $headers = [
     'X-Auth-API-Key' => variable_get('cbf_thinkific_api'),
@@ -2524,109 +2536,151 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $course, $
   $expiry_time = new DateObject(strtotime($expiry), 'UTC');
   $expiry_time = $expiry_time->format($thinkificDateFormat);
 
+  $steps = [
+    'find user' => [
+      'action' => 'find user',
+      'method' => 'GET',
+      'endpoint' => 'users?query[email]=' . $email,
+      'data' => [],
+    ],
+    'create user' => [
+      'action' => 'create user',
+      'method' => 'POST',
+      'endpoint' => 'users',
+      'data' => [
+        'first_name' => $first,
+        'last_name' => $last,
+        'email' => $email,
+      ],
+    ],
+  ];
+  foreach ($bundles as $bundle) {
+    $steps["find bundle $bundle"] = [
+      'action' => 'find bundle',
+      'method' => 'GET',
+      'endpoint' => 'bundles/' . $bundle,
+      'data' => [],
+    ];
+    $steps["enrol user in bundle $bundle"] = [
+      'action' => 'enrol user in bundle',
+      'method' => 'POST',
+      'endpoint' => 'bundles/' . $bundle . '/enrollments',
+      'data' => [
+        'user_id' => '',
+        'activated_at' => $activation_time,
+        'expiry_date' => $expiry_time,
+      ],
+    ];
+  }
+  if ($course) {
+    $steps["find course $course"] = [
+      'action' => 'find course',
+      'method' => 'GET',
+      'endpoint' => 'courses/' . $course,
+      'data' => [],
+    ];
+    $steps["enrol user in course $course"] = [
+      'action' => 'enrol user in course',
+      'method' => 'POST',
+      'endpoint' => 'enrollments',
+      'data' => [
+        'course_id' => $course . '',
+        'user_id' => '',
+        'activated_at' => $activation_time,
+        'expiry_date' => $expiry_time,
+      ],
+    ];
+  }
+  if (is_numeric($id)) {
+    $steps['create user']['data']['external_id'] = $id . '';
+  }
+
   $result = [
-    'status' => 'find user',
     'progress' => [],
     'thinkific' => [
       'user' => '',
+      'bundles' => [],
       'course' => '',
     ],
   ];
 
-  while (true) {
-    $steps = [
-      'find user' => [
-        'method' => 'GET',
-        'endpoint' => 'users?query[email]=' . $email,
-        'data' => [],
-      ],
-      'create user' => [
-        'method' => 'POST',
-        'endpoint' => 'users',
-        'data' => [
-          'first_name' => $first,
-          'last_name' => $last,
-          'email' => $email,
-        ],
-      ],
-      'find course' => [
-        'method' => 'GET',
-        'endpoint' => 'courses/' . $course,
-        'data' => [],
-      ],
-      'enrol user' => [
-        'method' => 'POST',
-        'endpoint' => 'enrollments',
-        'data' => [
-          'course_id' => $course . '',
-          'user_id' => $result['thinkific']['user'] . '',
-          'activated_at' => $activation_time,
-          'expiry_date' => $expiry_time,
-        ],
-      ],
-    ];
-    if (is_numeric($id)) {
-      $steps['create user']['data']['external_id'] = $id . '';
+  foreach ($steps as $stepName => $step) {
+
+    if ($step['action'] == 'create user' && $result['thinkific']['user']) {
+      // Skip creating a user if we have found one
     }
+    else {
 
-    $step = $steps[$result['status']];
-    $httpResult = drupal_http_request(
-      $api . $step['endpoint'],
-      [
-        'headers' => $headers,
-        'method' => $step['method'],
-        'data' => json_encode($step['data']),
-      ]
-    );
+      if (isset($step['data']['user_id']) && $result['thinkific']['user']) {
+        $step['data']['user_id'] = $result['thinkific']['user'] . '';
+      }
 
-    switch ($httpResult->code) {
-      case 200: // OK
-      case 201: // Created
-        $httpResponse = json_decode($httpResult->data);
-        switch ($result['status']) {
-          case 'find user':
-            if (empty($httpResponse->items)) {
-              $result['progress'][] = "No existing user for {$email}";
-              $result['status'] = 'create user';
-            }
-            else {
-              $result['thinkific']['user'] = $httpResponse->items[0]->id;
-              $result['progress'][] = "User {$email} found";
-              $result['status'] = 'find course';
-            }
-            break;
+      $httpResult = drupal_http_request(
+        $api . $step['endpoint'],
+        [
+          'headers' => $headers,
+          'method' => $step['method'],
+          'data' => json_encode($step['data']),
+        ]
+      );
 
-          case 'create user':
-            $result['thinkific']['user'] = $httpResponse->id;
-            $result['progress'][] = "User {$email} created";
-            $result['status'] = 'find course';
-            break;
+      switch ($httpResult->code) {
+        case 200: // OK
+        case 201: // Created
+        case 202: // Created asynchronously 
+          $httpResponse = json_decode($httpResult->data);
+          switch ($step['action']) {
+            case 'find user':
+              if (empty($httpResponse->items)) {
+                $result['progress'][] = "No existing user for {$email}";
+              }
+              else {
+                $result['thinkific']['user'] = $httpResponse->items[0]->id;
+                $result['progress'][] = "User {$email} found";
+              }
+              break;
 
-          case 'find course':
-            $result['thinkific']['course'] = $httpResponse->name;
-            $result['progress'][] = "Course '{$result['thinkific']['course']}' found";
-            $result['status'] = 'enrol user';
-            break;
+            case 'create user':
+              $result['thinkific']['user'] = $httpResponse->id;
+              $result['progress'][] = "User {$email} created";
+              break;
 
-          case 'enrol user':
-            $result['progress'][] = "User {$email} enrolled in course";
-            $result['status'] = 'Success';
-            return $result;
-        }
-        break;
+            case 'find bundle':
+              $result['thinkific']['bundles'][] = $httpResponse->name;
+              $result['progress'][] = "Bundle '{$httpResponse->name}' found";
+              break;
 
-      case 400: // Bad request
-      case 403: // Access forbidden
-      case 404: // Not found
-      case 422: // Validation error
-      case 500: // Internal server error
-      default:  // Unexpected error
-        $result['progress'][] = "Failed to {$result['status']}";
-        $result['progress'][] = "HTTP code was {$httpResult->code}";
-        $result['status'] = 'Failure';
-        return $result;
+            case 'enrol user in bundle':
+              $result['progress'][] = "User {$email} enrolled in bundle";
+              break;
+
+            case 'find course':
+              $result['thinkific']['course'] = $httpResponse->name;
+              $result['progress'][] = "Course '{$httpResponse->name}' found";
+              break;
+
+            case 'enrol user in course':
+              $result['progress'][] = "User {$email} enrolled in course";
+              break;
+          }
+          break;
+
+        case 400: // Bad request
+        case 403: // Access forbidden
+        case 404: // Not found
+        case 422: // Validation error
+        case 500: // Internal server error
+        default:  // Unexpected error
+          $result['progress'][] = "Failed to $stepName";
+          $result['progress'][] = "HTTP code was {$httpResult->code}";
+          $result['status'] = 'Failure';
+          return $result;
+      }
     }
   }
+
+  $result['status'] = 'Success';
+  return $result;
 }
 
 /*
