@@ -1164,66 +1164,66 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         $thinkificCourses = [
           15 => [     // Sharing Jesus at Work
             'free' => [
-              'course' => 1150926,
+              'courses' => [1150926],
               'expiry' => '1 month',
             ],
             'paid' => [
-              'course' => 871216,
+              'courses' => [871216],
               'expiry' => '6 months',
             ],
           ],
           18 => [     // Sharing Jesus at Work - group license
-            'course' => 871216,
+            'courses' => [871216],
             'expiry' => '6 months',
           ],
           20 => [     // I am what I do
             'free' => [
-              'course' => 1383094,
+              'courses' => [1383094],
               'expiry' => '1 month',
             ],
             'paid' => [
-              'course' => 990121,
+              'courses' => [990121],
               'expiry' => '6 months',
             ],
           ],
           21 => [     // I am what I do - group license
-            'course' => 990121,
+            'courses' => [990121],
             'expiry' => '6 months',
           ],
           22 => [     // Never more hostile, never more open
             'free' => [
-              'course' => 1447564,
+              'courses' => [1447564],
               'expiry' => '1 month',
             ],
             'paid' => [
-              'course' => 857232,
+              'courses' => [857232],
               'expiry' => '6 months',
             ],
           ],
           23 => [     // Never more hostile, never more open - group license
-            'course' => 857232,
+            'courses' => [857232],
             'expiry' => '6 months',
           ],
           24 => [     // The Post Covid Playbook
             'free' => [
-              'course' => 1575723,
+              'courses' => [1575723],
               'expiry' => '1 month',
             ],
             'paid' => [
-              'course' => 1547489,
+              'courses' => [1547489],
               'expiry' => '6 months',
             ],
           ],
           25 => [     // The Post Covid Playbook - group license
-            'course' => 1547489,
+            'courses' => [1547489],
             'expiry' => '6 months',
           ],
           26 => [     // Finding God in Film
-            'course' => 857428,
+            'courses' => [857428],
             'expiry' => '6 months',
           ],
           27 => [     // Finding God in Film - group license
-            'course' => 857428,
+            'courses' => [857428],
             'expiry' => '6 months',
           ],
           1000 => [   // Test data
@@ -1232,30 +1232,26 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
           ],
         ];
         $thinkificCourse = $thinkificCourses[$form->_id] ?? false;
+        if ($form->_amount == 0) {
+          if (isset($thinkificCourse['free'])) {
+            $thinkificCourse = $thinkificCourse['free'];
+          }
+        }
+        else {
+          if (isset($thinkificCourse['paid'])) {
+            $thinkificCourse = $thinkificCourse['paid'];
+          }
+        }
         if ($thinkificCourse) {
-          $bundles = $thinkificCourse['bundles'] ?? [];
-          if ($bundles) {
-            $course = false;
-          }
-          else {
-            $course = $thinkificCourse['course'] ?? (
-              $form->_amount == 0
-                ? $thinkificCourse['free']['course']
-                : $thinkificCourse['paid']['course']);
-          }
-          $expiry = $thinkificCourse['expiry'] ?? (
-            $form->_amount == 0
-              ? $thinkificCourse['free']['expiry']
-              : $thinkificCourse['paid']['expiry']);
           $bltID = $form->_bltID ?? 5;
           $enrolment = _cbf_civicrm_thinkific_enrolment(
             $form->_params['first_name'],
             $form->_params['last_name'],
             $form->_params["email-{$bltID}"],
             $_SESSION['CiviCRM']['transaction.userID'] ?? $form->_contactID,
-            $bundles,
-            $course,
-            $expiry
+            $thinkificCourse['bundles'] ?? [],
+            $thinkificCourse['courses'] ?? [],
+            $thinkificCourse['expiry'] ?? '6 months'
           );
           foreach (['thankyou_text', 'thankyou_footer'] as $tplVar) {
             $form->assign(
@@ -2523,7 +2519,7 @@ function cbf_civicrm_ministry_team_viewable_fields($team) {
   return $result;
 }
 
-function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, $course, $expiry) {
+function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, $courses, $expiry) {
   $api = 'https://api.thinkific.com/api/public/v1/';
   $headers = [
     'X-Auth-API-Key' => variable_get('cbf_thinkific_api'),
@@ -2566,7 +2562,7 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
       ],
     ];
   }
-  if ($course) {
+  foreach ($courses as $course) {
     $steps["enrol user in course $course"] = [
       'action' => 'enrol user in course',
       'method' => 'POST',
@@ -2587,7 +2583,7 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
     'progress' => [],
     'thinkific' => [
       'user' => '',
-      'course' => '',
+      'courses' => [],
     ],
   ];
 
@@ -2637,7 +2633,7 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
               break;
 
             case 'enrol user in course':
-              $result['thinkific']['course'] = $httpResponse->course_name;
+              $result['thinkific']['courses'][] = $httpResponse->course_name;
               $result['progress'][] = "User {$email} enrolled in course '{$httpResponse->course_name}'";
               break;
           }
