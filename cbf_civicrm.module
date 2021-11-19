@@ -1228,6 +1228,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
           ],
           1000 => [   // Test data
             'bundles' => [50405, 79135],
+            'courses' => [857428, 1547489],
             'expiry' => '12 months'
           ],
         ];
@@ -2535,12 +2536,14 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
   $steps = [
     'find user' => [
       'action' => 'find user',
+      'id' => $email,
       'method' => 'GET',
       'endpoint' => 'users?query[email]=' . $email,
       'data' => [],
     ],
     'create user' => [
       'action' => 'create user',
+      'id' => $email,
       'method' => 'POST',
       'endpoint' => 'users',
       'data' => [
@@ -2553,6 +2556,7 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
   foreach ($bundles as $bundle) {
     $steps["enrol user in bundle $bundle"] = [
       'action' => 'enrol user in bundle',
+      'id' => $bundle,
       'method' => 'POST',
       'endpoint' => 'bundles/' . $bundle . '/enrollments',
       'data' => [
@@ -2565,6 +2569,7 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
   foreach ($courses as $course) {
     $steps["enrol user in course $course"] = [
       'action' => 'enrol user in course',
+      'id' => $course,
       'method' => 'POST',
       'endpoint' => 'enrollments',
       'data' => [
@@ -2583,6 +2588,7 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
     'progress' => [],
     'thinkific' => [
       'user' => '',
+      'bundles' => [],
       'courses' => [],
     ],
   ];
@@ -2629,7 +2635,8 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
               break;
 
             case 'enrol user in bundle':
-              $result['progress'][] = "User {$email} enrolled in bundle";
+              $result['thinkific']['bundles'][] = $step['id'];
+              $result['progress'][] = "User {$email} enrolled in bundle {$step['id']}";
               break;
 
             case 'enrol user in course':
