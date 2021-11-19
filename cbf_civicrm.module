@@ -2555,12 +2555,6 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
     ],
   ];
   foreach ($bundles as $bundle) {
-    $steps["find bundle $bundle"] = [
-      'action' => 'find bundle',
-      'method' => 'GET',
-      'endpoint' => 'bundles/' . $bundle,
-      'data' => [],
-    ];
     $steps["enrol user in bundle $bundle"] = [
       'action' => 'enrol user in bundle',
       'method' => 'POST',
@@ -2573,12 +2567,6 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
     ];
   }
   if ($course) {
-    $steps["find course $course"] = [
-      'action' => 'find course',
-      'method' => 'GET',
-      'endpoint' => 'courses/' . $course,
-      'data' => [],
-    ];
     $steps["enrol user in course $course"] = [
       'action' => 'enrol user in course',
       'method' => 'POST',
@@ -2599,7 +2587,6 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
     'progress' => [],
     'thinkific' => [
       'user' => '',
-      'bundles' => [],
       'course' => '',
     ],
   ];
@@ -2645,22 +2632,13 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
               $result['progress'][] = "User {$email} created";
               break;
 
-            case 'find bundle':
-              $result['thinkific']['bundles'][] = $httpResponse->name;
-              $result['progress'][] = "Bundle '{$httpResponse->name}' found";
-              break;
-
             case 'enrol user in bundle':
               $result['progress'][] = "User {$email} enrolled in bundle";
               break;
 
-            case 'find course':
-              $result['thinkific']['course'] = $httpResponse->name;
-              $result['progress'][] = "Course '{$httpResponse->name}' found";
-              break;
-
             case 'enrol user in course':
-              $result['progress'][] = "User {$email} enrolled in course";
+              $result['thinkific']['course'] = $httpResponse->course_name;
+              $result['progress'][] = "User {$email} enrolled in course '{$httpResponse->course_name}'";
               break;
           }
           break;
