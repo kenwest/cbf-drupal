@@ -2612,12 +2612,12 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
           'data' => json_encode($step['data']),
         ]
       );
+      $httpResponse = json_decode($httpResult->data);
 
       switch ($httpResult->code) {
         case 200: // OK
         case 201: // Created
         case 202: // Created asynchronously 
-          $httpResponse = json_decode($httpResult->data);
           switch ($step['action']) {
             case 'find user':
               if (empty($httpResponse->items)) {
@@ -2654,6 +2654,7 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
         default:  // Unexpected error
           $result['progress'][] = "Failed to $stepName";
           $result['progress'][] = "HTTP code was {$httpResult->code}";
+          $result['progress'][] = "HTTP response was '" . print_r($httpResponse, true) . "'";
           $result['status'] = 'Failure';
           return $result;
       }
