@@ -1227,6 +1227,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             'expiry' => '6 months',
           ],
           1000 => [   // Test data
+            'groups' => ['The Keg'],
             'bundles' => [50405, 79135],
             'courses' => [857428, 1547489],
             'expiry' => '12 months'
@@ -1250,6 +1251,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
             $form->_params['last_name'],
             $form->_params["email-{$bltID}"],
             $_SESSION['CiviCRM']['transaction.userID'] ?? $form->_contactID,
+            $thinkificCourse['groups'] ?? [],
             $thinkificCourse['bundles'] ?? [],
             $thinkificCourse['courses'] ?? [],
             $thinkificCourse['expiry'] ?? '6 months'
@@ -2520,7 +2522,7 @@ function cbf_civicrm_ministry_team_viewable_fields($team) {
   return $result;
 }
 
-function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, $courses, $expiry) {
+function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $groups, $bundles, $courses, $expiry) {
   $api = 'https://api.thinkific.com/api/public/v1/';
   $headers = [
     'X-Auth-API-Key' => variable_get('cbf_thinkific_api'),
@@ -2553,6 +2555,18 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
       ],
     ],
   ];
+  foreach ($groups as $group) {
+    $steps["add user to group '$group'"] = [
+      'action' => 'add user to group',
+      'id' => $group,
+      'method' => 'POST',
+      'endpoint' => 'group_users',
+      'data' => [
+        'user_id' => '',
+        'group_names' => [$group],
+      ],
+    ];
+  }
   foreach ($bundles as $bundle) {
     $steps["enrol user in bundle $bundle"] = [
       'action' => 'enrol user in bundle',
@@ -2588,6 +2602,7 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
     'progress' => [],
     'thinkific' => [
       'user' => '',
+      'groups' => [],
       'bundles' => [],
       'courses' => [],
     ],
@@ -2634,6 +2649,11 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
               $result['progress'][] = "User {$email} created";
               break;
 
+            case 'add user to group':
+              $result['thinkific']['groups'][] = $step['id'];
+              $result['progress'][] = "User {$email} added to group '{$step['id']}'";
+              break;
+
             case 'enrol user in bundle':
               $result['thinkific']['bundles'][] = $step['id'];
               $result['progress'][] = "User {$email} enrolled in bundle {$step['id']}";
@@ -2652,6 +2672,17 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $bundles, 
         case 422: // Validation error
         case 500: // Internal server error
         default:  // Unexpected error
+          switch ($step['action']) {
+            case 'add user to group':
+              if (
+                  $httpResult->code == 400 &&
+                  stripos($httpResponse->error ?? '', 'already a part of this group') !== false) {
+                $result['thinkific']['groups'][] = $step['id'];
+                $result['progress'][] = "User {$email} already a part of group '{$step['id']}'";
+                break 2; // break from switch on $httpResult->code
+              }
+              break;
+          }
           $result['progress'][] = "Failed to $stepName";
           $result['progress'][] = "HTTP code was {$httpResult->code}";
           $result['progress'][] = "HTTP response was '" . print_r($httpResponse, true) . "'";
