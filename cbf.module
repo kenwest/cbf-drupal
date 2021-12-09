@@ -3207,3 +3207,31 @@ function cbf_views_rss_feed_alter(&$rss_feed) {
     $rss_feed['value'][0]['value'][$indices['itunes:image']]['attributes']['href'] = $image;
   }
 }
+
+/*
+ * Implements hook_cbf_facebook_pixel_event
+ *
+ * Adds the following Facebook Pixel events:
+ *  - ViewContent - for paths on the main menus
+ *  - Search - for results of node searches
+ */
+function cbf_cbf_facebook_pixel_event($domain, $path) {
+
+  $code = '';
+
+  // ViewContent - if this page is an element of the primary menu
+  $trail = menu_get_active_trail();
+  switch (end($trail)['menu_name'] ?? '') {
+    case 'menu-cbf-2019-main-menu':
+    case 'menu-cbf-2019-plus-menu':
+      $code .= "fbq('track', 'ViewContent');";
+      break;
+  }
+
+  // Search - if this page is the result of a Node search
+  if (stripos($path, 'search/node/') === 0) {
+    $code .= "fbq('track', 'Search');";
+  }
+
+  return $code;
+}

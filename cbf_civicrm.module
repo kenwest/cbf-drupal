@@ -1295,6 +1295,41 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       }
       break;
   }
+
+  /*
+   * Add Facebook Pixel events as follows:
+   *  - Donate - on thankyou page of Contributions which are Donations
+   *  - Purchase - on thankyou page of Contributions which are not Donations
+   *  - InitiateCheckout - on register page of Event registrations
+   *  - CompleteRegistration - on thankyou page of Event registrations
+   */
+  if (function_exists('_cbf_facebook_pixel_track')) {
+    switch ($formName) {
+
+      case 'CRM_Contribute_Form_Contribution_ThankYou':
+        $financialTypeId = $form->_values['financial_type_id'];
+        $financialTypes = \Civi\Api4\FinancialType::get(false)
+        ->addSelect('name')
+        ->addWhere('id', '=', $financialTypeId)
+        ->setLimit(1)
+        ->execute();
+        foreach ($financialTypes as $financialType) {
+          if ($financialType['name'] == 'Donation')
+            _cbf_facebook_pixel_track('Donate', $form->_amount);
+            else
+              _cbf_facebook_pixel_track('Purchase', $form->_amount);
+        }
+        break;
+
+      case 'CRM_Event_Form_Registration_Register':
+        _cbf_facebook_pixel_track('InitiateCheckout');
+        break;
+
+      case 'CRM_Event_Form_Registration_ThankYou':
+        _cbf_facebook_pixel_track('CompleteRegistration', $form->_totalAmount);
+        break;
+    }
+  }
 }
 
 /*

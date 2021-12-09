@@ -1,0 +1,6 @@
+name = CBF Facebook Pixel
+description = Facebook pixels used by CBF website
+core = 7.x
+package = City Bible Forum
+dependencies[] = domain
+version = "7.x-1.0"
