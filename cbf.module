@@ -3235,3 +3235,22 @@ function cbf_cbf_facebook_pixel_event($domain, $path) {
 
   return $code;
 }
+
+/*
+ * A wrapper around field_get_items() that returns either a single value or an
+ * array of values. The single value is the default if the field is empty.
+ */
+function cbf_field_get_items($entity_type, $entity, $field_name, $field_value, $default = null, $langcode = null) {
+  $field = field_get_items($entity_type, $entity, $field_name, $langcode);
+  if ($field === false || count($field) == 0) {
+    return $default;
+  }
+  if (count($field) == 1) {
+    return reset($field)[$field_value];
+  }
+  $result = [];
+  foreach ($field as $fieldDelta) {
+    $result[] = $fieldDelta[$field_value];
+  }
+  return $result;
+}
