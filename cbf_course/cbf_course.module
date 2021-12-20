@@ -1,0 +1,210 @@
+<?php
+function cbf_course_entity_presave($entity, $type) {
+  if ($type == 'node' && $entity->type == 'course') {
+    // Find webform components
+    $formKeys = [
+      'course_selection',
+      'civicrm_1_contribution_1_contribution_total_amount',
+      'civicrm_1_activity_1_cg30_custom_154',
+      'civicrm_1_contribution_1_contribution_source',
+      'civicrm_1_activity_1_activity_subject',
+      'contribution_pagebreak',
+      'promotional_code',
+    ];
+    $cids = [];
+    foreach ($formKeys as $formKey) {
+      $cid = webform_get_cid($entity, $formKey);
+      if (is_array($cid) && count($cid) == 1) {
+        $cids[$formKey] = reset($cid);
+      }
+      else {
+        $cids[$formKey] = $cid;
+      }
+    }
+
+    // Read course options from node
+    $cOs = cbf_field_get_items('node', $entity, 'field_course_options', 'value', []);
+    $cOs = entity_load('paragraphs_item', $cOs);
+    $courseOptions = [];
+    $first = null;
+    foreach ($cOs as $cO) {
+      $courseOptions[] = [
+        'name' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_name', 'value'),
+        'price' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_price', 'amount'),
+        'id' => cbf_field_get_items('paragraphs_item', $cO, 'field_thinkific_course_id', 'value') ?? $first['id'],
+        'sessions' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_sessions', 'value') ?? $first['sessions'],
+        'expiry' => cbf_field_get_items('paragraphs_item', $cO, 'field_thinkific_expiry_period', 'value') ?? $first['expiry'],
+        'code' => cbf_field_get_items('paragraphs_item', $cO, 'field_promotional_code', 'value'),
+        'discounted' => cbf_field_get_items('paragraphs_item', $cO, 'field_promotional_price', 'amount'),
+        'group' => cbf_field_get_items('paragraphs_item', $cO, 'field_group_license_count', 'value'),
+      ];
+      if (!$first) {
+        $first = $courseOptions[0];
+      }
+    }
+
+    // Set course options webform component to match node
+    $items = [];
+    foreach ($courseOptions as $i => $cO) {
+      $item = format_string('@i|@name', ['@i' => $i, '@name' => $cO['name'], ]);
+      if ($cO['price']) {
+        $item .= ' - $' . number_format(((float) $cO['price'])/100, 2);
+      }
+      $items[] = $item;
+    }
+    $entity->webform['components'][$cids['course_selection']]['extra']['items'] = implode("\n", $items);
+    $entity->webform['components'][$cids['course_selection']]['value'] = '0';
+
+    // Create webform conditionals from course options
+    $conditionals = [];
+    foreach ($courseOptions as $i => $cO) {
+      // Add a conditional for this course option
+      $fullName = format_string(
+        '@course - @option',
+        [
+          '@course' => $entity->title,
+          '@option' => $cO['name'],
+        ]);
+      $conditional = [
+        'nid' => $entity->nid,
+        'rgid' => '' . count($conditionals),
+        'andor' => null,
+        'weight' => '' . count($conditionals),
+        'rules' => [
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'rid' => '0',
+            'source_type' => 'component',
+            'source' => '' . $cids['course_selection'],
+            'operator' => 'equal',
+            'value' => '' . $i,
+          ],
+        ],
+        'actions' => [
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '0',
+            'target_type' => 'component',
+            'target' => '' . $cids['civicrm_1_contribution_1_contribution_total_amount'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => number_format(((float) $cO['price'])/100, 2),
+          ],
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '1',
+            'target_type' => 'component',
+            'target' => '' . $cids['civicrm_1_contribution_1_contribution_source'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => $fullName,
+          ],
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '2',
+            'target_type' => 'component',
+            'target' => '' . $cids['civicrm_1_activity_1_activity_subject'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => $fullName,
+          ],
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '3',
+            'target_type' => 'component',
+            'target' => '' . $cids['civicrm_1_activity_1_cg30_custom_154'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => $cO['id'],
+          ],
+        ],
+      ];
+      if ($cO['price'] == 0) {
+        // Modify the conditional to not show the payment page
+        $conditional['actions'][] = [
+          'nid' => $entity->nid,
+          'rgid' => '' . count($conditionals),
+          'aid' => '' . count($conditional['actions']),
+          'target_type' => 'component',
+          'target' => '' . $cids['contribution_pagebreak'],
+          'invert' => '1',
+          'action' => 'show',
+          'argument' => '',
+        ];
+      }
+      else if ($cO['code']) {
+        // Modify the conditional to show the code field
+        $conditional['actions'][] = [
+          'nid' => $entity->nid,
+          'rgid' => '' . count($conditionals),
+          'aid' => '' . count($conditional['actions']),
+          'target_type' => 'component',
+          'target' => '' . $cids['promotional_code'],
+          'invert' => '0',
+          'action' => 'show',
+          'argument' => '',
+        ];
+        // Add a conditional for the promotional price
+        $conditionals[] = $conditional;
+        $conditional = [
+          'nid' => $entity->nid,
+          'rgid' => '' . count($conditionals),
+          'andor' => 'and',
+          'weight' => '' . count($conditionals),
+          'rules' => [
+            [
+              'nid' => $entity->nid,
+              'rgid' => '' . count($conditionals),
+              'rid' => '0',
+              'source_type' => 'component',
+              'source' => '' . $cids['course_selection'],
+              'operator' => 'equal',
+              'value' => '' . $i,
+            ],
+            [
+              'nid' => $entity->nid,
+              'rgid' => '' . count($conditionals),
+              'rid' => '1',
+              'source_type' => 'component',
+              'source' => '' . $cids['promotional_code'],
+              'operator' => 'equal',
+              'value' => '' . check_plain($cO['code']),
+            ],
+          ],
+          'actions' => [
+            [
+              'nid' => $entity->nid,
+              'rgid' => '' . count($conditionals),
+              'aid' => '0',
+              'target_type' => 'component',
+              'target' => '' . $cids['civicrm_1_contribution_1_contribution_total_amount'],
+              'invert' => '0',
+              'action' => 'set',
+              'argument' => number_format(((float) $cO['discounted'])/100, 2),
+            ],
+          ],
+        ];
+        if ($cO['discounted'] == 0) {
+          // Modify the conditional to not show the payment page
+          $conditional['actions'][] = [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '' . count($conditional['actions']),
+            'target_type' => 'component',
+            'target' => '' . $cids['contribution_pagebreak'],
+            'invert' => '1',
+            'action' => 'show',
+            'argument' => '',
+          ];
+        }
+      }
+      $conditionals[] = $conditional;
+    }
+    $entity->webform['conditionals'] = $conditionals;
+  }
+}
