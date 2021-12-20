@@ -3107,7 +3107,7 @@ function _cbf_civicrm_staff_is_contactable($id) {
   $mobile = 'Staff.Staff_mobile_on_website';
   $phone = 'Staff.Staff_phone_on_website';
 
-  $contact = \Civi\Api4\Contact::get()
+  $contact = \Civi\Api4\Contact::get(false)
   ->addSelect($contactable, $email, $mobile, $phone)
     ->addWhere('id', '=', $id)
     ->addWhere('contact_sub_type', '=', 'Staff')
