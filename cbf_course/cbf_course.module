@@ -1,4 +1,13 @@
 <?php
+/*
+ * Implements hook_entity_presave()
+ *
+ * "Act on an entity before it is about to be created or updated."
+ *
+ * Set the items on the 'course_selection' webform component to match the
+ * field_course_options. Build the webform conditionals to implement these
+ * options.
+ */
 function cbf_course_entity_presave($entity, $type) {
   if ($type == 'node' && $entity->type == 'course') {
     // Find webform components
