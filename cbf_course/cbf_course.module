@@ -1,5 +1,110 @@
 <?php
 /*
+ * Implements hook_node_validate()
+ *
+ * "Perform node validation before a node is created or updated. This hook is
+ * invoked from node_validate(), after a user has finished editing the node and
+ * is previewing or submitting it. It is invoked at the end of all the standard
+ * validation steps, and after the type-specific hook_validate() is invoked. To
+ * indicate a validation error, use form_set_error(). Note: Changes made to the
+ * $node object within your hook implementation will have no effect. The
+ * preferred method to change a node's content is to use hook_node_presave()
+ * instead. If it is really necessary to change the node at the validate stage,
+ * you can use form_set_value()"
+ */
+function cbf_course_node_validate($node, $form, &$form_state) {
+  if ($node->type == 'course') {
+    // Read course options from node
+    $cOs = cbf_field_get_items('node', $node, 'field_course_options', 'entity', []);
+    $courseOptions = [];
+    foreach ($cOs as $cO) {
+      if (is_object($cO)) {
+        $courseOptions[] = [
+          'name' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_name', 'value'),
+          'price' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_price', 'amount'),
+          'id' => cbf_field_get_items('paragraphs_item', $cO, 'field_thinkific_course_id', 'value'),
+          'sessions' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_sessions', 'value'),
+          'expiry' => cbf_field_get_items('paragraphs_item', $cO, 'field_thinkific_expiry_period', 'value'),
+          'code' => cbf_field_get_items('paragraphs_item', $cO, 'field_promotional_code', 'value'),
+          'discounted' => cbf_field_get_items('paragraphs_item', $cO, 'field_promotional_price', 'amount'),
+          'group' => cbf_field_get_items('paragraphs_item', $cO, 'field_group_license_count', 'value'),
+        ];
+      }
+    }
+
+    $first = true;
+    foreach ($courseOptions as $i => $cO) {
+
+      // Validate price
+      if (!is_numeric($cO['price']) || $cO['price'] < 0) {
+        $element = "field_course_options][und][$i][field_training_option_price][und][0][value";
+        form_set_error($element, 'Price must be a positive number');
+      }
+      else if ($cO['price'] == 0 && $cO['discounted']) {
+        $element = "field_course_options][und][$i][field_training_option_price][und][0][value";
+        form_set_error($element, 'Cannot discount a free option');
+      }
+
+      // Validate discounts
+
+      if ($cO['discounted']) {
+        if (!$cO['code']) {
+          $element = "field_course_options][und][$i][field_promotional_code][und][0][value";
+          form_set_error($element, 'Discounted prices require a promotional code');
+        }
+
+        if (!is_numeric($cO['discounted']) || $cO['discounted'] < 0) {
+          $element = "field_course_options][und][$i][field_promotional_price][und][0][value";
+          form_set_error($element, 'Discounted prices must be positive numbers');
+        }
+        else if ($cO['price'] <= $cO['discounted']) {
+          $element = "field_course_options][und][$i][field_promotional_price][und][0][value";
+          form_set_error($element, 'Discounted price is more than regular price');
+        }
+      }
+
+      // Validate expiry date
+      if ($cO['expiry'] && strtotime($cO['expiry']) === false) {
+        $element = "field_course_options][und][$i][field_thinkific_expiry_period][und][0][value";
+        form_set_error($element, 'Expiry dates take the form "6 months" etc and should evaluate to a future date');
+      }
+
+      // Validate promotional code
+      if ($cO['code']) {
+        if (!$cO['discounted']) {
+          $element = "field_course_options][und][$i][field_promotional_price][und][0][value";
+          form_set_error($element, 'Promotional codes require a discount price');
+        }
+
+        if (preg_match('/^[a-z0-9 ]+$/i', $cO['code']) !== 1) {
+          $element = "field_course_options][und][$i][field_promotional_code][und][0][value";
+          form_set_error($element, 'Promotional codes are limited to alphanumeric characters and spaces');
+        }
+      }
+
+      if ($first) {
+        // The first option must specify a Course Id, #sessions and expiry date so other options can use it
+        if (!$cO['id'] || !$cO['sessions'] || !$cO['expiry']) {
+          $element = "field_course_options][und][$i";
+          form_set_error($element, 'The first option must have Course, id, sessions and expiry so other options can use them');
+        }
+        $first = false;
+      }
+    }
+
+    if ($first) {
+      // There must be at least one option
+      form_set_error('field_course_options', 'There must be at least one course option');
+    }
+
+    // Validate course is known to CiviCRM etc
+    module_invoke_all(
+      'cbf_course_node_validate',
+      $node, $form, $form_state, $courseOptions);
+  }
+}
+
+/*
  * Implements hook_entity_presave()
  *
  * "Act on an entity before it is about to be created or updated."
