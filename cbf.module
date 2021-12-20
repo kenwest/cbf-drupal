@@ -3250,7 +3250,12 @@ function cbf_field_get_items($entity_type, $entity, $field_name, $field_value, $
   }
   $result = [];
   foreach ($field as $fieldDelta) {
-    $result[] = $fieldDelta[$field_value];
+    if ($field_value) {
+      $result[] = $fieldDelta[$field_value];
+    }
+    else {
+      $result[] = $fieldDelta;
+    }
   }
   return $result;
 }
