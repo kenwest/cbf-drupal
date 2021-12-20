@@ -3123,3 +3123,29 @@ function _cbf_civicrm_staff_is_contactable($id) {
     'phone' => $contact[$phone] ?? false,
   ];
 }
+
+/*
+ * Implements hook_cbf_course_node_validate()
+ */
+function cbf_civicrm_cbf_course_node_validate($node, $form, $form_state, $courseOptions) {
+  civicrm_initialize();
+  $valid = [];
+  foreach ($courseOptions as $i => $cO) {
+    if ($cO['id'] && !($valid[$cO['id']] ?? false)) {
+      $valid[$cO['id']] = false;
+      $optionValues = \Civi\Api4\OptionValue::get(false)
+      ->addSelect('id')
+      ->addWhere('option_group_id:name', '=', 'course_20210917103625')
+      ->addWhere('value', '=', $cO['id'])
+      ->setLimit(1)
+      ->execute();
+      foreach ($optionValues as $optionValue) {
+        $valid[$cO['id']] = true;
+      }
+      if (!$valid[$cO['id']]) {
+        $element = "field_course_options][und][$i][field_thinkific_course_id][und][0][value";
+        form_set_error($element, 'This Course Id is not set up in CiviCRM');
+      }
+    }
+  }
+}
