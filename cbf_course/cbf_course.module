@@ -170,6 +170,7 @@ function cbf_course_entity_presave($entity, $type) {
 
     // Create webform conditionals from course options
     $conditionals = [];
+    $promoted = [];
     foreach ($courseOptions as $i => $cO) {
       // Add a conditional for this course option
       $fullName = format_string(
@@ -238,17 +239,7 @@ function cbf_course_entity_presave($entity, $type) {
         ],
       ];
       if ($cO['code']) {
-        // Modify the conditional to show the code field
-        $conditional['actions'][] = [
-          'nid' => $entity->nid,
-          'rgid' => '' . count($conditionals),
-          'aid' => '' . count($conditional['actions']),
-          'target_type' => 'component',
-          'target' => '' . $cids['promotional_code'],
-          'invert' => '0',
-          'action' => 'show',
-          'argument' => '',
-        ];
+        $promoted[] = $i;
         // Add a conditional for the promotional price
         $conditionals[] = $conditional;
         $conditional = [
@@ -292,6 +283,54 @@ function cbf_course_entity_presave($entity, $type) {
       }
       $conditionals[] = $conditional;
     }
+    // Add a conditional to show the promotional code component
+    $conditional = [
+      'nid' => $entity->nid,
+      'rgid' => '' . count($conditionals),
+      'andor' => (count($promoted) > 1) ? 'or' : '',
+      'weight' => '' . count($conditionals),
+      'rules' => [],
+      'actions' => [
+        [
+          'nid' => $entity->nid,
+          'rgid' => '' . count($conditionals),
+          'aid' => '0',
+          'target_type' => 'component',
+          'target' => '' . $cids['promotional_code'],
+          'invert' => '0',
+          'action' => 'show',
+          'argument' => '',
+        ],
+      ],
+    ];
+    if ($promoted) {
+      // Add a condition for each $promoted option
+      foreach ($promoted as $i) {
+        $conditional['rules'][] = [
+          'nid' => $entity->nid,
+          'rgid' => '' . count($conditionals),
+          'rid' => '' . count($conditional['rules']),
+          'source_type' => 'component',
+          'source' => '' . $cids['course_selection'],
+          'operator' => 'equal',
+          'value' => '' . $i,
+        ];
+      }
+    }
+    else {
+      // Add a condition for the empty option - hiding the promotional code always
+      $conditional['rules'][] = [
+        'nid' => $entity->nid,
+        'rgid' => '' . count($conditionals),
+        'rid' => '0',
+        'source_type' => 'component',
+        'source' => '' . $cids['course_selection'],
+        'operator' => 'empty',
+        'value' => '',
+      ];
+    }
+    $conditionals[] = $conditional;
+
     $entity->webform['conditionals'] = $conditionals;
   }
 }
