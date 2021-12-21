@@ -123,6 +123,7 @@ function cbf_course_entity_presave($entity, $type) {
       'civicrm_1_contribution_1_contribution_source',
       'civicrm_1_activity_1_activity_subject',
       'promotional_code',
+      'expiry',
     ];
     $cids = [];
     foreach ($formKeys as $formKey) {
@@ -235,6 +236,16 @@ function cbf_course_entity_presave($entity, $type) {
             'invert' => '0',
             'action' => 'set',
             'argument' => $cO['id'],
+          ],
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '4',
+            'target_type' => 'component',
+            'target' => '' . $cids['expiry'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => $cO['expiry'],
           ],
         ],
       ];
