@@ -122,7 +122,6 @@ function cbf_course_entity_presave($entity, $type) {
       'civicrm_1_activity_1_cg30_custom_154',
       'civicrm_1_contribution_1_contribution_source',
       'civicrm_1_activity_1_activity_subject',
-      'contribution_pagebreak',
       'promotional_code',
     ];
     $cids = [];
@@ -238,20 +237,7 @@ function cbf_course_entity_presave($entity, $type) {
           ],
         ],
       ];
-      if ($cO['price'] == 0) {
-        // Modify the conditional to not show the payment page
-        $conditional['actions'][] = [
-          'nid' => $entity->nid,
-          'rgid' => '' . count($conditionals),
-          'aid' => '' . count($conditional['actions']),
-          'target_type' => 'component',
-          'target' => '' . $cids['contribution_pagebreak'],
-          'invert' => '1',
-          'action' => 'show',
-          'argument' => '',
-        ];
-      }
-      else if ($cO['code']) {
+      if ($cO['code']) {
         // Modify the conditional to show the code field
         $conditional['actions'][] = [
           'nid' => $entity->nid,
@@ -303,19 +289,6 @@ function cbf_course_entity_presave($entity, $type) {
             ],
           ],
         ];
-        if ($cO['discounted'] == 0) {
-          // Modify the conditional to not show the payment page
-          $conditional['actions'][] = [
-            'nid' => $entity->nid,
-            'rgid' => '' . count($conditionals),
-            'aid' => '' . count($conditional['actions']),
-            'target_type' => 'component',
-            'target' => '' . $cids['contribution_pagebreak'],
-            'invert' => '1',
-            'action' => 'show',
-            'argument' => '',
-          ];
-        }
       }
       $conditionals[] = $conditional;
     }
