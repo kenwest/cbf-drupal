@@ -346,6 +346,40 @@ function cbf_course_entity_presave($entity, $type) {
   }
 }
 
+/*
+ * Implements hook_webform_submission_insert()
+ *
+ * Respond to a Webform submission being inserted.
+ *
+ * Note that this hook is called after a submission has already been saved to
+ * the database. If needing to modify the submission prior to insertion, use
+ * hook_webform_submission_presave().
+ */
+function cbf_course_webform_submission_insert($node, $submission) {
+  if ($node->type == 'course') {
+    // Get data from the submission
+    $data = [];
+    foreach ($submission->data as $cid => $value) {
+      $formKey = $node->webform['components'][$cid]['form_key'];
+      if (!is_array($value) || count($value) != 1) {
+        $data[$formKey] = $value;
+      }
+      else {
+        $data[$formKey] = reset($value);
+      }
+    }
+    cbf_course_thinkific_enrolment(
+      $data['civicrm_1_contact_1_contact_first_name'],
+      $data['civicrm_1_contact_1_contact_last_name'],
+      $data['civicrm_1_contact_1_email_email'],
+      $data['civicrm_1_contact_1_contact_existing'],
+      [],
+      [],
+      [$data['civicrm_1_activity_1_cg30_custom_154']],
+      $data['expiry']);
+  }
+}
+
 function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bundles, $courses, $expiry) {
   $api = 'https://api.thinkific.com/api/public/v1/';
   $headers = [
