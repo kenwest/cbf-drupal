@@ -415,7 +415,7 @@ function cbf_course_webform_submission_presave($node, &$submission) {
       $groupText = '';
     }
 
-    $submission->data[$cids['civicrm_1_activity_1_cg32_custom_164']] = [$expiryDate];
+    $submission->data[$cids['civicrm_1_activity_1_cg32_custom_162']] = [$expiryDate];
     $submission->data[$cids['civicrm_1_activity_1_cg32_custom_161']] = [$token];
     $submission->data[$cids['group_license_instructions']] = [$groupText];
   }
