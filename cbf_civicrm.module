@@ -638,7 +638,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
    * singleEmail to the staff member addressed by the form.
    */
   if ($context == 'singleEmail' && $workflow == 'case_activity' && $params['contactId']) {
-    $email = \Civi\Api4\Email::get()
+    $email = \Civi\Api4\Email::get(false)
       ->addWhere('contact_id', '=', $params['contactId'])
       ->addWhere('location_type_id:name', '=', 'Staff')
       ->setLimit(1)
