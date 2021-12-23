@@ -443,7 +443,9 @@ function cbf_course_webform_submission_insert($node, $submission) {
         $data[$formKey] = reset($value);
       }
     }
-    cbf_course_thinkific_enrolment(
+    $pathway = cbf_field_get_items('node', $node, 'field_training_pathway', 'entity');
+
+    $enrolment = cbf_course_thinkific_enrolment(
       $data['civicrm_1_contact_1_contact_first_name'],
       $data['civicrm_1_contact_1_contact_last_name'],
       $data['civicrm_1_contact_1_email_email'],
@@ -452,6 +454,43 @@ function cbf_course_webform_submission_insert($node, $submission) {
       [],
       [$data['civicrm_1_activity_1_cg30_custom_154']],
       $data['expiry']);
+
+    $email = cbf_civicrm_send_email(
+      '"Do not reply" <do-not-reply@citybibleforum.org>',
+      format_string(
+        '@first @last',
+        [
+          '@first' => $data['civicrm_1_contact_1_contact_first_name'],
+          '@last' => $data['civicrm_1_contact_1_contact_last_name'],
+        ]),
+      $data['civicrm_1_contact_1_email_email'],
+      format_string('Enrolled in @title', ['@title' => $node->title]),
+      'Course registration - system use only',
+      [
+        '@title' => $node->title,
+        '@course' => $data['civicrm_1_activity_1_activity_subject'],
+        '@link' => 'https://citybible.thinkific.com/users/express_signin?email='
+        . $data['civicrm_1_contact_1_email_email'],
+        '!group' => $data['group_license_instructions'],
+        '@pathway' => $pathway->name,
+        '!pathway_description' => $pathway->description,
+      ]);
+
+    watchdog(
+      'CBF',
+      'Thinkific enrolment: ' . implode('. ', $enrolment['progress']),
+      null,
+      $enrolment['status'] != 'Success' ? WATCHDOG_ERROR : WATCHDOG_INFO
+      );
+    if ($enrolment['status'] != 'Success') {
+      drupal_set_message(
+        'Unfortunately we will need to complete your enrolment manually. Please contact us to resolve this issue.',
+        'error'
+        );
+    }
+    if (!$email) {
+      drupal_set_message('Failed to send confirmation email.', 'error');
+    }
   }
 }
 
