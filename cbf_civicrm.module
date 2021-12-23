@@ -140,6 +140,11 @@ function _cbf_civicrm_email_audience($params, $context) {
           case 'payment_or_refund_notification':
             $audienceRule['30'] = true;
             break;
+
+          // CBF-generated online action
+          case 'cbf_civicrm_send_email':
+            $audienceRule['30'] = true;
+            break;
         }
         break;
 
@@ -3148,4 +3153,29 @@ function cbf_civicrm_cbf_course_node_validate($node, $form, $form_state, $course
       }
     }
   }
+}
+
+/*
+ * Sends an email using the named message template
+ */
+function cbf_civicrm_send_email($from, $toName, $toEmail, $subject, $template, $args) {
+  $messageTemplates = \Civi\Api4\MessageTemplate::get(false)
+    ->addSelect('msg_html')
+    ->addWhere('msg_title', '=', $template)
+    ->setLimit(1)
+    ->execute();
+  foreach ($messageTemplates as $messageTemplate) {
+    $html = format_string($messageTemplate['msg_html'], $args);
+    $params = [
+      'from' => $from,
+      'toName' => $toName,
+      'toEmail' => $toEmail,
+      'html' => $html,
+      'subject' => $subject,
+      'workflow' => 'cbf_civicrm_send_email',
+    ];
+    return CRM_Utils_Mail::send($params);
+  }
+
+  return false;
 }
