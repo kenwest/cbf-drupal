@@ -357,6 +357,26 @@ function cbf_course_entity_presave($entity, $type) {
 }
 
 /*
+ * Implements hook_form_alter().
+ *
+ * "Perform alterations before a form is rendered"
+ *
+ * Add a CAPTCHA if the price is non-zero
+ */
+function cbf_course_form_alter(&$form, &$form_state, $form_id) {
+  $nodeType = $form['#node']->type ?? false;
+  if ($nodeType == 'course') {
+    $price = $form_state['input']['submitted']['options_and_price']['civicrm_1_contribution_1_contribution_total_amount'] ?? 0;
+    if ($price > 0) {
+      $form['payment_captcha_protection'] = [
+        '#type' => 'captcha',
+        '#captcha_type' => 'default',
+      ];
+    }
+  }
+}
+
+/*
  * Implements hook_webform_submission_presave()
  *
  * "Modify a Webform submission, prior to saving it in the database."
