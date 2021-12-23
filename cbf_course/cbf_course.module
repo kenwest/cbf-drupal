@@ -123,6 +123,7 @@ function cbf_course_entity_presave($entity, $type) {
       'civicrm_1_activity_1_activity_subject',
       'promotional_code',
       'expiry',
+      'civicrm_1_activity_1_cg32_custom_163',
     ];
     $cids = [];
     foreach ($formKeys as $formKey) {
@@ -246,6 +247,16 @@ function cbf_course_entity_presave($entity, $type) {
             'action' => 'set',
             'argument' => $cO['expiry'],
           ],
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '5',
+            'target_type' => 'component',
+            'target' => '' . $cids['civicrm_1_activity_1_cg32_custom_163'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => '' . $cO['group'],
+          ],
         ],
       ];
       if ($cO['code']) {
@@ -342,6 +353,51 @@ function cbf_course_entity_presave($entity, $type) {
     $conditionals[] = $conditional;
 
     $entity->webform['conditionals'] = $conditionals;
+  }
+}
+
+/*
+ * Implements hook_webform_submission_presave()
+ *
+ * "Modify a Webform submission, prior to saving it in the database."
+ *
+ * Group Licenses: the instructions and data saved into the CiviCRM Activity
+ * vary depending on whether this is a Group License registration
+ */
+function cbf_course_webform_submission_presave($node, &$submission) {
+  if ($node->type == 'course') {
+    // Get the component IDs from their form keys
+    $cids = [];
+    foreach ($submission->data as $cid => $_) {
+      $formKey = $node->webform['components'][$cid]['form_key'];
+      $cids[$formKey] = $cid;
+    }
+
+    $group = reset($submission->data[$cids['civicrm_1_activity_1_cg32_custom_163']]);
+    if ($group) {
+
+      $expiry = reset($submission->data[$cids['expiry']]);
+      $expiryDate = date('Y-m-d H:i:s', strtotime($expiry));
+
+      $token = drupal_random_key(16);
+      $courseArg = preg_replace('/[ "]+/', '+', $node->title);
+      $groupText = format_string(
+        reset($submission->data[$cids['group_license_instructions']]),
+        [
+          '@course' => $courseArg,
+          '@group' => $token,
+          '@expiry' => $expiry,
+        ]);
+    }
+    else {
+      $expiryDate = '';
+      $token = '';
+      $groupText = '';
+    }
+
+    $submission->data[$cids['civicrm_1_activity_1_cg32_custom_164']] = [$expiryDate];
+    $submission->data[$cids['civicrm_1_activity_1_cg32_custom_161']] = [$token];
+    $submission->data[$cids['group_license_instructions']] = [$groupText];
   }
 }
 
