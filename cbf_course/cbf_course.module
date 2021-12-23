@@ -46,14 +46,13 @@ function cbf_course_node_validate($node, $form, &$form_state) {
       }
 
       // Validate discounts
-
-      if ($cO['discounted']) {
+      if (is_numeric($cO['discounted'])) {
         if (!$cO['code']) {
           $element = "field_course_options][und][$i][field_promotional_code][und][0][value";
           form_set_error($element, 'Discounted prices require a promotional code');
         }
 
-        if (!is_numeric($cO['discounted']) || $cO['discounted'] < 0) {
+        if ($cO['discounted'] < 0) {
           $element = "field_course_options][und][$i][field_promotional_price][und][0][value";
           form_set_error($element, 'Discounted prices must be positive numbers');
         }
@@ -71,7 +70,7 @@ function cbf_course_node_validate($node, $form, &$form_state) {
 
       // Validate promotional code
       if ($cO['code']) {
-        if (!$cO['discounted']) {
+        if (!is_numeric($cO['discounted'])) {
           $element = "field_course_options][und][$i][field_promotional_price][und][0][value";
           form_set_error($element, 'Promotional codes require a discount price');
         }
