@@ -162,7 +162,7 @@ function cbf_course_entity_presave($entity, $type) {
     foreach ($courseOptions as $i => $cO) {
       $item = format_string('@i|@name', ['@i' => $i, '@name' => $cO['name'], ]);
       if ($cO['price']) {
-        $item .= ' - $' . number_format(((float) $cO['price'])/100, 2);
+        $item .= ' - $' . str_replace('.00', '', number_format(((float) $cO['price'])/100, 2));
       }
       $items[] = $item;
     }
