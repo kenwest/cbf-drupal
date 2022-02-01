@@ -1,0 +1,10 @@
+
+'Feedback webhook progress' should say ...
+
+    Agent is contact NNNNN
+    Target is contact 10222
+
+
+The new CiviCRM activity should be of type 'Feedback form submission'
+
+

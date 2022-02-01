@@ -3,7 +3,7 @@
 /**
  * CBF Webhook Processor Feedback class.
  *
- * Processes Feedback forms.
+ * Processes Feedback and Contact forms.
  */
 class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interface {
 
@@ -23,7 +23,18 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
 
     civicrm_initialize();
 
-    CRM_Core_Error::debug_var('Feedback webhook invoked', [
+    $requestPath = explode('/', request_path());
+    switch (end($requestPath)) {
+      case 'contact':
+        $webhook = 'Contact';
+        break;
+
+      default:
+        $webhook = 'Feedback';
+        break;
+    }
+
+    CRM_Core_Error::debug_var("$webhook webhook invoked", [
       'Agent' => $request->agent,
       'Raw data' => $request->raw,
       'Cooked data' => $request->cooked,
@@ -386,7 +397,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           }
 
           $results = \Civi\Api4\Activity::create(false)
-            ->addValue('activity_type_id:name', 'Feedback form submission')
+            ->addValue('activity_type_id:name', "$webhook form submission")
             ->addValue('source_contact_id', $agent['id'])
             ->addValue('target_contact_id', [ $target['id'], ])
             ->addValue('subject', $request->cooked['subject'])
@@ -424,9 +435,9 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
         }
       }
     } catch (\API_Exception $e) {
-      CRM_Core_Error::debug_var('Feedback webhook exception', $e);
+      CRM_Core_Error::debug_var("$webhook webhook exception", $e);
     }
     
-    CRM_Core_Error::debug_var('Feedback webhook progress', $progress);
+    CRM_Core_Error::debug_var("$webhook webhook progress", $progress);
   }
 }
