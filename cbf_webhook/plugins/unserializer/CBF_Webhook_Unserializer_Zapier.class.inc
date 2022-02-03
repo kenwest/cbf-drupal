@@ -36,25 +36,6 @@ class CBF_Webhook_Unserializer_Zapier implements Webhook_Plugins_Unserializer_In
       'mobile' => [
         'name' => ['mobile', 'phone'],
       ],
-      'ministryCentre' => [
-        'name' => ['ministryCentre'],
-      ],
-      'network' => [
-        'name' => ['network'],
-      ],
-      'options' => [
-        'name' => ['options', 'actions'],
-        'separator' => ', ',
-      ],
-      'subject' => [
-        'name' => ['subject'],
-      ],
-      'comment' => [
-        'name' => ['comment'],
-      ],
-      'campaign' => [
-        'name' => ['campaign'],
-      ],
       'yearEnteredWorkforce' => [
         'name' => ['yearEnteredWorkforce', 'year_entered_workforce'],
         'validate' => FILTER_VALIDATE_INT,
@@ -62,6 +43,25 @@ class CBF_Webhook_Unserializer_Zapier implements Webhook_Plugins_Unserializer_In
       ],
       'church' => [
         'name' => ['church'],
+      ],
+      'subject' => [
+        'name' => ['subject'],
+      ],
+      'comment' => [
+        'name' => ['comment'],
+      ],
+      'options' => [
+        'name' => ['options', 'actions'],
+        'separator' => ', ',
+      ],
+      'ministryCentre' => [
+        'name' => ['ministryCentre'],
+      ],
+      'network' => [
+        'name' => ['network'],
+      ],
+      'campaign' => [
+        'name' => ['campaign'],
       ],
       'listIf' => [
         'name' => ['listIf', 'list_if', 'list'],
