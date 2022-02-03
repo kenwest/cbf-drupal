@@ -88,7 +88,7 @@ class CBF_Webhook_Unserializer_Zapier implements Webhook_Plugins_Unserializer_In
     foreach ($map as $field => $source) {
       $t = null;
       foreach ($source['name'] as $name) {
-        $t = $t ?? $cooking->$name ?? null;
+        $t = $t ?? $cooking->$name ?? null; // the first listed name has priority if multiple are supplied
       }
       $t = htmlspecialchars(trim($t));
       $t = filter_var($t, $source['sanitise'] ?? FILTER_UNSAFE_RAW);
