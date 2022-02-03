@@ -221,6 +221,29 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           $progress[] = 'Target is contact ' . $target['id'];
           
           /* ------------------------------------------------------------------
+           * Process any contact details that have been supplied
+           */
+          if (
+            $request->cooked['yearEnteredWorkforce'] ||
+            $request->cooked['church']
+          ) {
+            $results = \Civi\Api4\Contact::update(false);
+            if ($request->cooked['yearEnteredWorkforce']) {
+              $results->addValue('Classification.Year_started_work', $request->cooked['yearEnteredWorkforce']);
+              $progress[] = 'Target entered workforce in ' . $request->cooked['yearEnteredWorkforce'];
+            }
+            if ($request->cooked['church']) {
+              $results->addValue('Classification.Church', $request->cooked['church']);
+              $progress[] = 'Target church is \'' . $request->cooked['church'] . '\'';
+            }
+            $results->addWhere('id', '=', $target['id'])
+              ->execute();
+            foreach ($results as $result) {
+              break;
+            }
+          }
+
+          /* ------------------------------------------------------------------
            * Process the ministry centre
            */
           $ministryCentre = null;

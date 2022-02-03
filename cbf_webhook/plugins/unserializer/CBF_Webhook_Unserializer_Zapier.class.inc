@@ -55,6 +55,14 @@ class CBF_Webhook_Unserializer_Zapier implements Webhook_Plugins_Unserializer_In
       'campaign' => [
         'name' => ['campaign'],
       ],
+      'yearEnteredWorkforce' => [
+        'name' => ['yearEnteredWorkforce', 'year_entered_workforce'],
+        'validate' => FILTER_VALIDATE_INT,
+        'options' => ['options' => ['min_range' => 1970, 'max_range' => 2070]],
+      ],
+      'church' => [
+        'name' => ['church'],
+      ],
       'listIf' => [
         'name' => ['listIf', 'list_if', 'list'],
         'separator' => ', ',
