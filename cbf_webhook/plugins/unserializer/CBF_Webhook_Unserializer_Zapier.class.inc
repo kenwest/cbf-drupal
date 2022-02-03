@@ -19,7 +19,7 @@ class CBF_Webhook_Unserializer_Zapier implements Webhook_Plugins_Unserializer_In
       'id' => [
         'name' => ['contact', 'id'], // the first listed has priority
         'validate' => FILTER_VALIDATE_INT,
-        'options' => ['options' => ['default' => 0]],
+        'options' => ['options' => ['min_range' => 1]],
       ],
       'first' => [
         'name' => ['firstName', 'first_name', 'first'],
