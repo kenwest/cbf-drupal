@@ -137,6 +137,7 @@ function cbf_course_entity_presave($entity, $type) {
     }
 
     // Read course options from node
+    // Some details from the $first option can be reused by later options
     $cOs = cbf_field_get_items('node', $entity, 'field_course_options', 'value', []);
     $cOs = entity_load('paragraphs_item', $cOs);
     $courseOptions = [];
