@@ -495,6 +495,31 @@ function cbf_course_webform_submission_insert($node, $submission) {
   }
 }
 
+function cbf_course_group_license_participation($first, $last, $email, $id, $course, $courseName, $expiry) {
+  $enrolment = cbf_course_thinkific_enrolment($first, $last, $email, $id, [], [], [$course], $expiry);
+
+  $email = cbf_civicrm_send_email(
+    '"Do not reply" <do-not-reply@citybibleforum.org>',
+    format_string('@first @last', ['@first' => $first, '@last' => $last,]),
+    $email,
+    "Enrolled in '$courseName'",
+    'Course group licence participation - system use only',
+    ['@course' => $courseName,]);
+}
+
+function cbf_course_failed_group_license_participation($first, $last, $email, $courseName, $errors) {
+  $errors = implode('</li><li>', $errors);
+  $errors = '<ul><li>' . $errors . '</li></ul>';
+
+  $email = cbf_civicrm_send_email(
+    '"Do not reply" <do-not-reply@citybibleforum.org>',
+    format_string('@first @last', ['@first' => $first, '@last' => $last,]),
+    $email,
+    "Failed to enrol in '$courseName'",
+    'Course group licence participation failed - system use only',
+    ['@course' => $courseName, '!errors' => $errors]);
+}
+
 function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bundles, $courses, $expiry) {
   $api = 'https://api.thinkific.com/api/public/v1/';
   $headers = [
