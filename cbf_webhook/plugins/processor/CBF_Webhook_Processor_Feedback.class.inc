@@ -21,15 +21,14 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
    */
   public function process(stdClass $request) {
 
-    civicrm_initialize();
-
     $requestPath = explode('/', request_path());
+    $webhook = 'Unknown';
     switch (end($requestPath)) {
       case 'contact':
         $webhook = 'Contact';
         break;
 
-      default:
+      case 'feedback':
         $webhook = 'Feedback';
         break;
     }
@@ -39,6 +38,12 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
       'Raw data' => $request->raw,
       'Cooked data' => $request->cooked,
     ]);
+
+    if ($webhook == 'Unknown') {
+      return;
+    }
+
+    civicrm_initialize();
 
     $progress = [];
 
