@@ -63,6 +63,9 @@ class CBF_Webhook_Unserializer_Zapier implements Webhook_Plugins_Unserializer_In
       'campaign' => [
         'name' => ['campaign'],
       ],
+      'groupLicenceToken' => [
+        'name' => ['groupLicenceToken', 'groupLicenseToken', 'group_licence_token', 'group_license_token'],
+      ],
       'listIf' => [
         'name' => ['listIf', 'list_if', 'list'],
         'separator' => ', ',
