@@ -77,7 +77,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
         $progress[] = 'Agent is contact ' . $agent['id'];
 
         /* --------------------------------------------------------------------
-         * Find the target contact 
+         * Find the target contact
          */
         $firstName = $request->cooked['first'];
         $lastName = $request->cooked['last'];
