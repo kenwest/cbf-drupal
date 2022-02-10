@@ -28,6 +28,12 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
         $webhook = 'Contact';
         break;
 
+      case 'group':
+        if (prev($requestPath) == 'course') {
+          $webhook = 'Group licence participation';
+        }
+        break;
+
       case 'feedback':
         $webhook = 'Feedback';
         break;
@@ -414,56 +420,143 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
             }
           }
 
+          /* --------------------------------------------------------------------
+           * Validate the group licence token before processing the Activity
+           */
+          $addActivity = true;
+          $groupLicenceToken = $request->cooked['groupLicenceToken'];
+          if ($groupLicenceToken) {
+            $groupLicence = null;
+            $activities = \Civi\Api4\Activity::get(false)
+              ->addSelect(
+                'id',
+                'activity_date_time',
+                'Contact_form_fields.Course',
+                'Contact_form_fields.Course:label',
+                'Group_license.Group_license_expiry',
+                'Group_license.Group_licenses_remaining')
+              ->addWhere('Group_license.Group_license_token', '=', $groupLicenceToken)
+              ->addWhere('activity_type_id:name', '=', 'Course registration')
+              ->setLimit(1)
+              ->execute();
+            foreach ($activities as $activity) {
+              $groupLicence = [
+                'activity' => $activity['id'],
+                'course' => $activity['Contact_form_fields.Course'],
+                'name' => $activity['Contact_form_fields.Course:label'],
+                'created' => strtotime($activity['activity_date_time']),
+                'expiry' => strtotime($activity['Group_license.Group_license_expiry']),
+                'remaining' => 'Group_license.Group_licenses_remaining',
+              ];
+            }
+            $errors = [];
+            if (!$groupLicence) {
+              $errors[] = 'The supplied token doesn\'t match any Group Licences';
+            }
+            else {
+              if ($groupLicence['expiry'] < strtotime('now')) {
+                $errors[] = 'The Group Licence has expired';
+              }
+              if ($groupLicence['remaining'] == 0) {
+                $errors[] = 'The Group Licence has no participations left - all have been used';
+              }
+            }
+            if ($errors) {
+              cbf_course_failed_group_license_participation(
+                $firstName,
+                $lastName,
+                $email,
+                $groupLicence['name'],
+                $errors);
+              $addActivity = false;
+            }
+            else {
+              $expiry = new DateObject(strtotime('now') + ($groupLicence['expiry'] - $groupLicence['created']), 'UTC');
+              $expiry = $expiry->format('Y-m-d H:i:s');
+
+              cbf_course_group_license_participation(
+                $firstName,
+                $lastName,
+                $email,
+                $target['id'],
+                $groupLicence['course'],
+                $groupLicence['name'],
+                $expiry);
+
+              $results = \Civi\Api4\Activity::update(false)
+                ->addValue('Group_license.Group_licenses_remaining', $groupLicence['remaining'] - 1)
+                ->addWhere('id', '=', $groupLicence['activity'])
+                ->execute();
+              foreach ($results as $result) {
+                // do something
+              }
+            }
+          }
+
           /* ------------------------------------------------------------------
            * Process the activity
            */
-          $comment = '<p><strong>Comment</strong>: ' . $request->cooked['comment'] . '</p>';
-          $options = implode('</li><li>', array_filter($request->cooked['options']));
-          if ($options) {
-            $comment .= '<p><strong>Options selected</strong>:</p>';
-            $comment .= '<ul><li>' . $options . '</li></ul>';
-          }
+          if ($addActivity) {
+            $comment = '<p><strong>Comment</strong>: ' . $request->cooked['comment'] . '</p>';
+            $options = implode('</li><li>', array_filter($request->cooked['options']));
+            if ($options) {
+              $comment .= '<p><strong>Options selected</strong>:</p>';
+              $comment .= '<ul><li>' . $options . '</li></ul>';
+            }
+            if ($groupLicenceToken && ($groupLicence['course'] ?? false)) {
+              $actions = "Registered contact in the '{$groupLicence['name']}' group licence $groupLicenceToken";
+            }
+            if ($actions) {
+              $comment .= '<p><strong>System actions</strong>:</p>';
+              $comment .= '<ul><li>' . $actions . '</li></ul>';
+            }
 
-          $activityNames = [
-            'Contact' => 'Contact form submission',
-            'Feedback' => 'Feedback form submission',
-          ];
+            $activityNames = [
+              'Contact' => 'Contact form submission',
+              'Group licence participation' => 'Course registration',
+              'Feedback' => 'Feedback form submission',
+            ];
 
-          $results = \Civi\Api4\Activity::create(false)
+            $results = \Civi\Api4\Activity::create(false)
             ->addValue('activity_type_id:name', $activityNames[$webhook])
             ->addValue('source_contact_id', $agent['id'])
             ->addValue('target_contact_id', [ $target['id'], ])
             ->addValue('subject', $request->cooked['subject'])
             ->addValue('details', $comment)
             ->addValue('status_id:name', 'Completed');
-          if ($network) {
-            $results = $results
+            if ($network) {
+              $results = $results
               ->addValue('assignee_contact_id', [ $network['id'], ])
               ->addValue('Contact_form_fields.Network:name', $network['Network_details.Network:name'] ?? $network['name']);
-          }
-          if ($ministryCentre) {
-            $results = $results
+            }
+            if ($ministryCentre) {
+              $results = $results
               ->addValue('Contact_form_fields.Ministry_Centre:name', $ministryCentre['label']);
-          }
-          if ($campaign) {
-            $results = $results
+            }
+            if ($campaign) {
+              $results = $results
               ->addValue('campaign_id', $campaign['id']);
-          }
-          if ($isLead) {
-            $results = $results
+            }
+            if ($groupLicenceToken && ($groupLicence['course'] ?? false)) {
+              $results = $results
+              ->addValue('Contact_form_fields.Course', $groupLicence['course']);
+            }
+            if ($isLead) {
+              $results = $results
               ->addValue('Contact_form_fields.Customer_value_journey_stage:name', 'Lead');
-          }
-          if ($isChristian) {
-            $results = $results
+            }
+            if ($isChristian) {
+              $results = $results
               ->addValue('Contact_form_fields.Is_Christian:name', 'Christian');
-          }
-          if ($isNonChristian) {
-            $results = $results
+            }
+            if ($isNonChristian) {
+              $results = $results
               ->addValue('Contact_form_fields.Is_Christian:name', 'Non_Christian');
-          }
-          $results = $results->execute();
-          foreach ($results as $result) {
-            $progress[] = 'Activity ' . $result['id'] . ' created';
+            }
+            $results = $results->execute();
+            foreach ($results as $result) {
+              $progress[] = 'Activity ' . $result['id'] . ' created';
+            }
           }
         }
       }
