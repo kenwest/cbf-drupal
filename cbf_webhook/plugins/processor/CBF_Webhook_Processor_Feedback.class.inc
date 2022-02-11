@@ -56,6 +56,8 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
     }
 
     $progress = [];
+    $now = strtotime('now');
+    $addActivity = true;
 
     try {
 
@@ -339,22 +341,22 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           $isNonChristian = false;
           $matchAll = '*';
           foreach (array_merge($request->cooked['options'], [$matchAll]) as $option) {
-            foreach ($request->cooked['leadIf'] as $v) {
+            foreach (array_filter($request->cooked['leadIf']) as $v) {
               if (stristr($option, $v) !== false) {
                 $isLead = true;
               }
             }
-            foreach ($request->cooked['listIf'] as $v) {
+            foreach (array_filter($request->cooked['listIf']) as $v) {
               if (stristr($option, $v) !== false) {
                 $isList = true;
               }
             }
-            foreach ($request->cooked['christianIf'] as $v) {
+            foreach (array_filter($request->cooked['christianIf']) as $v) {
               if (stristr($option, $v) !== false) {
                 $isChristian = true;
               }
             }
-            foreach ($request->cooked['nonChristianIf'] as $v) {
+            foreach (array_filter($request->cooked['nonChristianIf']) as $v) {
               if (stristr($option, $v) !== false) {
                 $isNonChristian = true;
               }
@@ -427,9 +429,8 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           /* --------------------------------------------------------------------
            * Validate the group licence token before processing the Activity
            */
-          $addActivity = true;
           $groupLicenceToken = $request->cooked['groupLicenceToken'];
-          if ($groupLicenceToken) {
+          if ($groupLicenceToken && $webhook == 'Group licence participation') {
             $groupLicence = null;
             $activities = \Civi\Api4\Activity::get(false)
               ->addSelect(
@@ -450,7 +451,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
                 'name' => $activity['Contact_form_fields.Course:label'],
                 'created' => strtotime($activity['activity_date_time']),
                 'expiry' => strtotime($activity['Group_license.Group_license_expiry']),
-                'remaining' => 'Group_license.Group_licenses_remaining',
+                'remaining' => $activity['Group_license.Group_licenses_remaining'],
               ];
             }
             $errors = [];
@@ -458,7 +459,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
               $errors[] = 'The supplied token doesn\'t match any Group Licences';
             }
             else {
-              if ($groupLicence['expiry'] < strtotime('now')) {
+              if ($groupLicence['expiry'] < $now) {
                 $errors[] = 'The Group Licence has expired';
               }
               if ($groupLicence['remaining'] == 0) {
@@ -466,16 +467,16 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
               }
             }
             if ($errors) {
+              $addActivity = false;
               cbf_course_failed_group_license_participation(
                 $firstName,
                 $lastName,
                 $email,
                 $groupLicence['name'],
                 $errors);
-              $addActivity = false;
             }
             else {
-              $expiry = new DateObject(strtotime('now') + ($groupLicence['expiry'] - $groupLicence['created']), 'UTC');
+              $expiry = new DateObject($now + ($groupLicence['expiry'] - $groupLicence['created']), 'UTC');
               $expiry = $expiry->format('Y-m-d H:i:s');
 
               cbf_course_group_license_participation(
@@ -501,7 +502,10 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
            * Process the activity
            */
           if ($addActivity) {
-            $comment = '<p><strong>Comment</strong>: ' . $request->cooked['comment'] . '</p>';
+            $comment = '';
+            if ($request->cooked['comment']) {
+              $comment .= '<p><strong>Comment</strong>: ' . $request->cooked['comment'] . '</p>';
+            }
             $options = implode('</li><li>', array_filter($request->cooked['options']));
             if ($options) {
               $comment .= '<p><strong>Options selected</strong>:</p>';
