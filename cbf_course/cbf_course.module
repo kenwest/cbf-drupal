@@ -500,16 +500,36 @@ function cbf_course_webform_submission_insert($node, $submission) {
   }
 }
 
-function cbf_course_group_license_participation($first, $last, $email, $id, $course, $courseName, $expiry) {
+/*
+ * Called to complete the participation of a contact in a Group Licence
+ */
+function cbf_course_group_license_participation($first, $last, $email, $id, $token, $course, $courseName, $expiry) {
+
   $enrolment = cbf_course_thinkific_enrolment($first, $last, $email, $id, [], [], [$course], $expiry);
 
-  $email = cbf_civicrm_send_email(
-    '"Do not reply" <do-not-reply@citybibleforum.org>',
-    format_string('@first @last', ['@first' => $first, '@last' => $last,]),
-    $email,
-    "Enrolled in '$courseName'",
-    'Course group licence participation - system use only',
-    ['@course' => $courseName,]);
+  if ($enrolment['status'] == 'Success') {
+    $emailStatus = cbf_civicrm_send_email(
+      '"Do not reply" <do-not-reply@citybibleforum.org>',
+      format_string('@first @last', ['@first' => $first, '@last' => $last,]),
+      $email,
+      "Enrolled in '$courseName'",
+      'Course group licence participation - system use only',
+      [
+        '@course' => $courseName,
+        '@link' => "https://citybible.thinkific.com/users/express_signin?email=$email",
+      ]);
+
+    if ($emailStatus) {
+      return "Contact $id now participates in Group Licence $token, and we have notified them at $email";
+    }
+    else {
+      return "Failed to email contact $id at $email that their request to participate in Group Licence $token succeeded";
+    }
+  }
+  else {
+    $errors = ["Our system failed to enrol you in the desired course - please contact City Bible Forum for help"];
+    return cbf_course_failed_group_license_participation($first, $last, $email, $token, $courseName, $errors);
+  }
 }
 
 /*
