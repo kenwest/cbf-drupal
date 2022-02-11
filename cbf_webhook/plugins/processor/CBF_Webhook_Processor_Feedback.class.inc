@@ -21,23 +21,29 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
    */
   public function process(stdClass $request) {
 
+    $webhookUrlMap = [
+      'contact' => [
+        'webhook' => 'Contact',
+        'activity' => 'Contact form submission',
+      ],
+      'course-group' => [
+        'webhook' => 'Group licence participation',
+        'activity' => 'Course registration',
+      ],
+      'feedback' => [
+        'webhook' => 'Feedback',
+        'activity' => 'Feedback form submission',
+      ],
+    ];
+
+    // The pattern for the webhook path is /webhook/NAME so look up the webhook
+    // and the Activity name
     $requestPath = explode('/', request_path());
-    $webhook = 'Unknown';
-    switch (end($requestPath)) {
-      case 'contact':
-        $webhook = 'Contact';
-        break;
+    $requestPath = end($requestPath);
+    $webhook = $webhookUrlMap[$requestPath]['webhook'] ?? 'Unknown';
+    $activityName = $webhookUrlMap[$requestPath]['activity'] ?? 'Unknown';
 
-      case 'group':
-        if (prev($requestPath) == 'course') {
-          $webhook = 'Group licence participation';
-        }
-        break;
-
-      case 'feedback':
-        $webhook = 'Feedback';
-        break;
-    }
+    civicrm_initialize();
 
     CRM_Core_Error::debug_var("$webhook webhook invoked", [
       'Agent' => $request->agent,
@@ -48,8 +54,6 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
     if ($webhook == 'Unknown') {
       return;
     }
-
-    civicrm_initialize();
 
     $progress = [];
 
@@ -511,14 +515,8 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
               $comment .= '<ul><li>' . $actions . '</li></ul>';
             }
 
-            $activityNames = [
-              'Contact' => 'Contact form submission',
-              'Group licence participation' => 'Course registration',
-              'Feedback' => 'Feedback form submission',
-            ];
-
             $results = \Civi\Api4\Activity::create(false)
-            ->addValue('activity_type_id:name', $activityNames[$webhook])
+            ->addValue('activity_type_id:name', $activityName)
             ->addValue('source_contact_id', $agent['id'])
             ->addValue('target_contact_id', [ $target['id'], ])
             ->addValue('subject', $request->cooked['subject'])
