@@ -453,6 +453,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
                 'expiry' => strtotime($activity['Group_license.Group_license_expiry']),
                 'remaining' => $activity['Group_license.Group_licenses_remaining'],
               ];
+              $progress[] = ['Group licence' => $groupLicence, 'now' => $now];
             }
             $errors = [];
             if (!$groupLicence) {
@@ -468,32 +469,35 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
             }
             if ($errors) {
               $addActivity = false;
-              cbf_course_failed_group_license_participation(
+              $progress[] = ['Group licence errors' => $errors, ];
+              $progress[] = cbf_course_failed_group_license_participation(
                 $firstName,
                 $lastName,
                 $email,
-                $groupLicence['name'],
+                $groupLicenceToken,
+                $groupLicence['name'] ?? 'Unknown',
                 $errors);
             }
             else {
               $expiry = new DateObject($now + ($groupLicence['expiry'] - $groupLicence['created']), 'UTC');
               $expiry = $expiry->format('Y-m-d H:i:s');
 
-              cbf_course_group_license_participation(
+              $progress[] = cbf_course_group_license_participation(
                 $firstName,
                 $lastName,
                 $email,
                 $target['id'],
+                $groupLicenceToken,
                 $groupLicence['course'],
                 $groupLicence['name'],
                 $expiry);
 
               $results = \Civi\Api4\Activity::update(false)
-                ->addValue('Group_license.Group_licenses_remaining', $groupLicence['remaining'] - 1)
+                ->addValue('Group_license.Group_licenses_remaining', --$groupLicence['remaining'])
                 ->addWhere('id', '=', $groupLicence['activity'])
                 ->execute();
               foreach ($results as $result) {
-                // do something
+                $progress[] = "Decremented licences remaining for Group License $groupLicenceToken to {$groupLicence['remaining']}";
               }
             }
           }
