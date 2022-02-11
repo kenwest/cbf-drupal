@@ -1,0 +1,15 @@
+
+'Group licence participation webhook progress' should say ...
+
+    groupLicenceToken is 'hellothere'
+    Agent is contact NNNNN
+    Target is contact 10222
+    Decremented licences remaining for Group Licence XXXXXXXXX to NNNNN
+    Activity NNNNN created
+
+
+A CiviCRM activity should have been created
+The Group Licence activity should have had it's remaining licences decremented
+A success email should have been sent
+
+
