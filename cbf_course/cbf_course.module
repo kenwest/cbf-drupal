@@ -13,6 +13,7 @@
  * you can use form_set_value()"
  */
 function cbf_course_node_validate($node, $form, &$form_state) {
+
   if ($node->type == 'course') {
     // Read course options from node
     $cOs = cbf_field_get_items('node', $node, 'field_course_options', 'entity', []);
@@ -113,6 +114,7 @@ function cbf_course_node_validate($node, $form, &$form_state) {
  * options.
  */
 function cbf_course_entity_presave($entity, $type) {
+
   if ($type == 'node' && $entity->type == 'course') {
     // Find webform components
     $formKeys = [
@@ -365,6 +367,7 @@ function cbf_course_entity_presave($entity, $type) {
  * Add a CAPTCHA if the price is non-zero
  */
 function cbf_course_form_alter(&$form, &$form_state, $form_id) {
+
   $nodeType = $form['#node']->type ?? false;
   if ($nodeType == 'course') {
     $price = $form_state['input']['submitted']['options_and_price']['civicrm_1_contribution_1_contribution_total_amount'] ?? 0;
@@ -386,6 +389,7 @@ function cbf_course_form_alter(&$form, &$form_state, $form_id) {
  * vary depending on whether this is a Group License registration
  */
 function cbf_course_webform_submission_presave($node, &$submission) {
+
   if ($node->type == 'course') {
     // Get the component IDs from their form keys
     $cids = [];
@@ -432,6 +436,7 @@ function cbf_course_webform_submission_presave($node, &$submission) {
  * hook_webform_submission_presave().
  */
 function cbf_course_webform_submission_insert($node, $submission) {
+
   if ($node->type == 'course') {
     // Get data from the submission
     $data = [];
@@ -507,20 +512,37 @@ function cbf_course_group_license_participation($first, $last, $email, $id, $cou
     ['@course' => $courseName,]);
 }
 
-function cbf_course_failed_group_license_participation($first, $last, $email, $courseName, $errors) {
-  $errors = implode('</li><li>', $errors);
-  $errors = '<ul><li>' . $errors . '</li></ul>';
+/*
+ * Called to announce the failure of an attempted participation by a contact in
+ * a Group Licence
+ */
+function cbf_course_failed_group_license_participation($first, $last, $email, $token, $courseName, $errors) {
 
-  $email = cbf_civicrm_send_email(
+  $errorText = implode('</li><li>', $errors);
+  $errorText = '<ul><li>' . $errorText . '</li></ul>';
+
+  $emailStatus = cbf_civicrm_send_email(
     '"Do not reply" <do-not-reply@citybibleforum.org>',
     format_string('@first @last', ['@first' => $first, '@last' => $last,]),
     $email,
     "Failed to enrol in '$courseName'",
     'Course group licence participation failed - system use only',
-    ['@course' => $courseName, '!errors' => $errors]);
+    [
+      '@course' => $courseName,
+      '!errors' => $errorText,
+    ]);
+
+  if ($emailStatus) {
+    return "Notified the contact at $email that their request to participate in the Group Licence $token failed";
+  }
+  else {
+    return "Failed to email the contact at $email that their request to participate in Group Licence $token failed with errors: "
+      . implode(', ', $errors);
+  }
 }
 
 function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bundles, $courses, $expiry) {
+
   $api = 'https://api.thinkific.com/api/public/v1/';
   $headers = [
     'X-Auth-API-Key' => variable_get('cbf_thinkific_api'),
