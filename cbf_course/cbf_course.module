@@ -527,6 +527,7 @@ function cbf_course_group_license_participation($first, $last, $email, $id, $tok
     }
   }
   else {
+    CRM_Core_Error::debug_var('Thinkific enrolment failed', $enrolment);
     $errors = ["Our system failed to enrol you in the desired course - please contact City Bible Forum for help"];
     return cbf_course_failed_group_license_participation($first, $last, $email, $token, $courseName, $errors);
   }
