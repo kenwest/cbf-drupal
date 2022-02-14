@@ -518,6 +518,13 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
   if (isset($form['field_event_date'])) {
     $form['#validate'][] = 'cbf_field_event_date_validate';
   }
+
+  /*
+   * If the form has a field_title_image element then validate it
+   */
+  if (isset($form['field_title_image'])) {
+    $form['#validate'][] = 'cbf_field_title_image_validate';
+  }
 }
 
 /*
@@ -658,6 +665,25 @@ function cbf_field_event_date_validate($form, &$form_state) {
   }
 }
 
+/*
+ * Validate field_title_image elements on forms.
+ *  - Title images are mandatory for non-Unlisted activities
+ */
+function cbf_field_title_image_validate($form, &$form_state) {
+  if (isset($form_state['node'])
+    && $form_state['node']->type == 'activity') {
+          $unlisted = '1957';
+          $fid = reset(reset($form_state['values']['field_title_image']))['fid'] ?? '0';
+          $audience = reset(reset($form_state['values']['taxonomy_vocabulary_3']))['tid'] ?? '0';
+          if ($audience != $unlisted && $fid == '0') {
+            form_set_error(
+              'field_highlight',
+              'The Title image must be supplied unless the Activity is Unlisted.');
+          }
+        }
+}
+
+/*
 /*
  * Implement the rules that assign entities to domains.
  *
