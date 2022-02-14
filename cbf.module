@@ -525,6 +525,13 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
   if (isset($form['field_title_image'])) {
     $form['#validate'][] = 'cbf_field_title_image_validate';
   }
+
+  /*
+   * If the form has a field_highlight element then validate it
+   */
+  if (isset($form['field_highlight'])) {
+    $form['#validate'][] = 'cbf_field_highlight_validate';
+  }
 }
 
 /*
@@ -684,6 +691,25 @@ function cbf_field_title_image_validate($form, &$form_state) {
 }
 
 /*
+ * Validate field_highlight elements on forms.
+ *  - Highlight images are mandatory for non-Unlisted events, episodes & blogs
+ */
+function cbf_field_highlight_validate($form, &$form_state) {
+  if ($form_state['entity_type'] == 'civicrm_event'
+    || (isset($form_state['node'])
+      && ($form_state['node']->type == 'episode'
+        || $form_state['node']->type == 'blog'))) {
+          $unlisted = '1957';
+          $fid = reset(reset($form_state['values']['field_highlight']))['fid'] ?? '0';
+          $audience = reset(reset($form_state['values']['taxonomy_vocabulary_3']))['tid'] ?? '0';
+          if ($audience != $unlisted && $fid == '0') {
+            form_set_error(
+              'field_highlight',
+              'The Highlight image must be supplied unless the article is Unlisted.');
+          }
+        }
+}
+
 /*
  * Implement the rules that assign entities to domains.
  *
