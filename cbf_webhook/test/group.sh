@@ -6,6 +6,7 @@ COMMAND=$(basename $0 .sh)
 case $# in
   ( 1 )
     DATA=$(ls $DIRECTORY/$COMMAND.$1.*.json)
+    PREP=$DIRECTORY/$(basename $DATA .json).prep
     ;;
   ( * )
     echo
@@ -31,6 +32,15 @@ case $1 in
     HEADERVALUE=5ry1Ow9KsXTuipKVV6tU1HTl
     ;;
 esac
+
+if [[ -f $PREP ]]
+then
+  echo
+  cat $PREP
+  echo
+  echo Run test ...
+  read
+fi
 
 echo
 
