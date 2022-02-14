@@ -545,7 +545,7 @@ function cbf_course_failed_group_license_participation($first, $last, $email, $t
     '"Do not reply" <do-not-reply@citybibleforum.org>',
     format_string('@first @last', ['@first' => $first, '@last' => $last,]),
     $email,
-    "Failed to enrol in '$courseName'",
+    "Failed to include you in Group Licence for '$courseName'",
     'Course group licence participation failed - system use only',
     [
       '@course' => $courseName,
