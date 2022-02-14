@@ -11,5 +11,6 @@
 A CiviCRM activity should have been created
 The Group Licence activity should have had it's remaining licences decremented
 A success email should have been sent
+Should be enrolled in Sharing Jesus at Work in Thinkific
 
 
