@@ -52,6 +52,20 @@ function cbf_init() {
     drupal_goto('civicrm-event/' . $id, [], 301);
   }
 
+  /*
+   * Redirect people away from pages that cause SEO problems
+   */
+  switch (arg(0)) {
+    case 'category':
+    case 'taxonomy':
+      drupal_goto('', [], 301);
+      break;
+
+    case 'blogs':
+      drupal_goto('articles', [], 301);
+      break;
+  }
+
   if (arg(0) == 'node') {
     if (arg(1) == 'add') {
       /*
