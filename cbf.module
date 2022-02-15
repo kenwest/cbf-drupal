@@ -61,6 +61,7 @@ function cbf_init() {
       drupal_goto('', [], 301);
       break;
 
+    case 'blog':
     case 'blogs':
       drupal_goto('articles', [], 301);
       break;
