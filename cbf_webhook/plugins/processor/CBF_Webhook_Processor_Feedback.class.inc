@@ -517,8 +517,6 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
             }
             if ($groupLicenceToken && ($groupLicence['course'] ?? false)) {
               $actions = "Registered contact in the '{$groupLicence['name']}' group licence $groupLicenceToken";
-            }
-            if ($actions) {
               $comment .= '<p><strong>System actions</strong>:</p>';
               $comment .= '<ul><li>' . $actions . '</li></ul>';
             }
