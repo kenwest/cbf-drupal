@@ -57,8 +57,15 @@ function cbf_init() {
    */
   switch (arg(0)) {
     case 'category':
-    case 'taxonomy':
       drupal_goto('', [], 301);
+      break;
+
+    case 'taxonomy':
+      switch (arg(1)) {
+        case 'term':
+          drupal_goto('', [], 301);
+          break;
+      }
       break;
 
     case 'blog':
