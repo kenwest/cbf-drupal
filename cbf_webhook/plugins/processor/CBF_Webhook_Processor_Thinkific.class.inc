@@ -125,7 +125,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               ->addValue('Percent_complete', $percent)
               ->setCheckPermissions(false)
               ->execute();
-            if ($results->first()['is_error']) {
+            if (isset($results->first()['is_error'])) {
               CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolment);
               break;
             }
@@ -142,7 +142,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               ->setLimit(25)
               ->setCheckPermissions(false)
               ->execute();
-            if ($results->first()['is_error']) {
+            if (isset($results->first()['is_error'])) {
               CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolment);
               break;
             }
