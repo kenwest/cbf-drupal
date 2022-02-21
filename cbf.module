@@ -3240,18 +3240,21 @@ function cbf_hotjar_access() {
  * An implementation of hook_views_rss_feed_alter()
  */
 function cbf_views_rss_feed_alter(&$rss_feed) {
+  $isWanted = -1;
+  $isNotWanted = -2;
+
   $indices = [
-    'title' => -1,
-    'description' => -1,
-    'link' => -1,
-    'image' => -1,
-    'itunes:subtitle' => -1,
-    'itunes:summary' => -1,
-    'itunes:image' => -1,
+    'title' => $isWanted,
+    'description' => $isWanted,
+    'link' => $isWanted,
+    'image' => $isWanted,
+    'itunes:subtitle' => $isWanted,
+    'itunes:summary' => $isWanted,
+    'itunes:image' => $isWanted,
   ];
   foreach ($rss_feed['value'][0]['value'] as $index => $value) {
-    $key = $indices[$value['key']] ?? -2;
-    if ($key === -1) {
+    $key = $indices[$value['key']] ?? $isNotWanted;
+    if ($key === $isWanted) {
       $indices[$value['key']] = $index;
     }
   }
