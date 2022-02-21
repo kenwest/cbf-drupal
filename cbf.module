@@ -3258,15 +3258,16 @@ function cbf_views_rss_feed_alter(&$rss_feed) {
       $indices[$value['key']] = $index;
     }
   }
-  $title = $rss_feed['value'][0]['value'][$indices['title']]['value'];
-  $t = explode('/', $title);
+
+  $path = $rss_feed['value'][0]['value'][$indices['title']]['value'];
+  $t = explode('/', $path);
   if (is_array($t) && count($t) == 2 && $t[0] == 'collection' && is_numeric($t[1])) {
     $result = entityform_load($t[1]);
     $field_title = reset(field_get_items('entityform', $result, 'field_title'))['safe_value'];
     $field_subtitle = reset(field_get_items('entityform', $result, 'field_subtitle'))['safe_value'];
     $field_short_form = strip_tags(reset(field_get_items('entityform', $result, 'field_short_form'))['value']);
 
-    $link = $rss_feed['value'][0]['value'][$indices['link']]['value'] . $title;
+    $link = $rss_feed['value'][0]['value'][$indices['link']]['value'] . $path;
     $image = $rss_feed['value'][0]['value'][$indices['image']]['value']['url'];
     $image = preg_replace('![^/]+$!i', $t[0].'-'.$t[1].'-rss-feed.jpg', $image) ?? $image;
 
