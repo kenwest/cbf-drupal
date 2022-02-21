@@ -3265,6 +3265,10 @@ function cbf_views_rss_feed_alter(&$rss_feed) {
 
     $result = entityform_load($t[1]);
 
+    if ($result === false) {
+      return;
+    }
+
     $field_title = cbf_field_get_items('entityform', $result, 'field_title', 'safe_value', '');
     $field_subtitle = cbf_field_get_items('entityform', $result, 'field_subtitle', 'safe_value', '');
     $field_short_form = strip_tags(cbf_field_get_items('entityform', $result, 'field_short_form', 'value', ''));
