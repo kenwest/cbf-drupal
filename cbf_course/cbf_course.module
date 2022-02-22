@@ -654,7 +654,6 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
       'id' => $email,
       'method' => 'GET',
       'endpoint' => 'users?query[email]=' . urlencode($email),
-      'data' => null,
     ],
     'create user' => [
       'action' => 'create user',
@@ -732,14 +731,14 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
         $step['data']['user_id'] = $result['thinkific']['user'] . '';
       }
 
-      $httpResult = drupal_http_request(
-        $api . $step['endpoint'],
-        [
-          'headers' => $headers,
-          'method' => $step['method'],
-          'data' => json_encode($step['data']),
-        ]
-        );
+      $httpOptions = [
+        'headers' => $headers,
+        'method' => $step['method'],
+      ];
+      if (isset($step['data'])) {
+        $httpOptions['data'] = json_encode($step['data']);
+      }
+      $httpResult = drupal_http_request($api . $step['endpoint'], $httpOptions);
       $httpResponse = json_decode($httpResult->data);
 
       switch ($httpResult->code) {
