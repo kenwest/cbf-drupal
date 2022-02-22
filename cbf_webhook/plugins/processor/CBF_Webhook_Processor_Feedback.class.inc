@@ -474,6 +474,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
                 $firstName,
                 $lastName,
                 $email,
+                $target['id'],
                 $groupLicenceToken,
                 $groupLicence['name'] ?? 'Unknown',
                 $errors);

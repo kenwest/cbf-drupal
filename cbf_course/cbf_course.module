@@ -556,6 +556,8 @@ function cbf_course_failed_enrolment($first, $last, $email, $id, $courseName, $c
   return $emailStatus;
 }
 
+/*
+ * Complete the participation of a contact in a Group Licence
  */
 function cbf_course_group_license_participation($first, $last, $email, $id, $token, $course, $courseName, $expiry) {
 
@@ -582,16 +584,16 @@ function cbf_course_group_license_participation($first, $last, $email, $id, $tok
   }
   else {
     CRM_Core_Error::debug_var('Thinkific enrolment failed', $enrolment);
-    $errors = ["Our system failed to enrol you in the desired course - please contact City Bible Forum for help"];
-    return cbf_course_failed_group_license_participation($first, $last, $email, $token, $courseName, $errors);
+    $errors = ["Unfortunately, we had a technical problem while registering you. We will complete the process manually and advise you when that is done."];
+    return cbf_course_failed_group_license_participation($first, $last, $email, $id, $token, $courseName, $errors, $enrolment['progress']);
   }
 }
 
 /*
- * Called to announce the failure of an attempted participation by a contact in
- * a Group Licence
+ * Announce the failure of an attempted participation by a contact in a Group
+ * Licence
  */
-function cbf_course_failed_group_license_participation($first, $last, $email, $token, $courseName, $errors) {
+function cbf_course_failed_group_license_participation($first, $last, $email, $id, $token, $courseName, $errors, $internalErrors = []) {
 
   $errorText = implode('</li><li>', $errors);
   $errorText = '<ul><li>' . $errorText . '</li></ul>';
@@ -603,6 +605,24 @@ function cbf_course_failed_group_license_participation($first, $last, $email, $t
     "Failed to include you in Group Licence for '$courseName'",
     'Course group licence participation failed - system use only',
     [
+      '@course' => $courseName,
+      '!errors' => $errorText,
+    ]);
+
+  $errorText = implode('</li><li>', array_merge($errors, $internalErrors));
+  $errorText = '<ul><li>' . $errorText . '</li></ul>';
+
+  cbf_civicrm_send_email(
+    '"Do not reply" <do-not-reply@citybibleforum.org>',
+    'Course support',
+    'course-support@citybibleforum.org',
+    "Failed to include contact in Group Licence for '$courseOption'",
+    'Course group licence participation failed - Course Support - system use only',
+    [
+      '@first' => $first,
+      '@last' => $last,
+      '@email' => $email,
+      '@id' => $id,
       '@course' => $courseName,
       '!errors' => $errorText,
     ]);
