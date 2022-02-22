@@ -653,8 +653,8 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
       'action' => 'find user',
       'id' => $email,
       'method' => 'GET',
-      'endpoint' => 'users?query[email]=' . $email,
-      'data' => [],
+      'endpoint' => 'users?query[email]=' . urlencode($email),
+      'data' => null,
     ],
     'create user' => [
       'action' => 'create user',
