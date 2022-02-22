@@ -451,57 +451,111 @@ function cbf_course_webform_submission_insert($node, $submission) {
     }
     $pathway = cbf_field_get_items('node', $node, 'field_training_pathway', 'entity');
 
-    $enrolment = cbf_course_thinkific_enrolment(
+    $result = cbf_course_enrolment(
       $data['civicrm_1_contact_1_contact_first_name'],
       $data['civicrm_1_contact_1_contact_last_name'],
       $data['civicrm_1_contact_1_email_email'],
       $data['civicrm_1_contact_1_contact_existing'],
-      [],
-      [],
-      [$data['civicrm_1_activity_1_cg30_custom_154']],
-      $data['expiry']);
-
-    $email = cbf_civicrm_send_email(
-      '"Do not reply" <do-not-reply@citybibleforum.org>',
-      format_string(
-        '@first @last',
-        [
-          '@first' => $data['civicrm_1_contact_1_contact_first_name'],
-          '@last' => $data['civicrm_1_contact_1_contact_last_name'],
-        ]),
-      $data['civicrm_1_contact_1_email_email'],
-      format_string('Enrolled in @title', ['@title' => $node->title]),
-      'Course registration - system use only',
-      [
-        '@title' => $node->title,
-        '@course' => $data['civicrm_1_activity_1_activity_subject'],
-        '@link' => 'https://citybible.thinkific.com/users/express_signin?email='
-        . $data['civicrm_1_contact_1_email_email'],
-        '!group' => $data['group_license_instructions'],
-        '@pathway' => $pathway->name,
-        '!pathway_description' => $pathway->description,
-      ]);
+      $data['civicrm_1_activity_1_cg30_custom_154'],
+      format_string("{$node->title}"),
+      $data['civicrm_1_activity_1_activity_subject'],
+      $data['expiry'],
+      $data['group_license_instructions'],
+      $pathway->name,
+      $pathway->description);
 
     watchdog(
       'CBF',
-      'Thinkific enrolment: ' . implode('. ', $enrolment['progress']),
+      'Thinkific enrolment: ' . implode('. ', $result['enrolment']['progress']),
       null,
-      $enrolment['status'] != 'Success' ? WATCHDOG_ERROR : WATCHDOG_INFO
+      $result['enrolment']['status'] != 'Success' ? WATCHDOG_ERROR : WATCHDOG_INFO
       );
-    if ($enrolment['status'] != 'Success') {
+    if ($result['enrolment']['status'] != 'Success') {
       drupal_set_message(
-        'Unfortunately we will need to complete your enrolment manually. Please contact us to resolve this issue.',
+        'Unfortunately we had a technical issue registering you in this course. We will complete the process manually and advise you when that is done.',
         'error'
         );
     }
-    if (!$email) {
-      drupal_set_message('Failed to send confirmation email.', 'error');
+    if (!$result['email']) {
+      drupal_set_message(
+        'We failed sending you a confirmation email containing these instructions. Please copy the instructions on this page, and visit the Start Course link to ensure you can access the course.',
+        'error');
     }
   }
 }
 
 /*
- * Called to complete the participation of a contact in a Group Licence
+ * Enrol a contact in a Course
+ */
+function cbf_course_enrolment($first, $last, $email, $id, $course, $courseName, $courseOption, $expiry, $groupLicenceInstructions, $pathwayName, $pathwayDescription) {
+
+  $result = [];
+
+  $result['enrolment'] = cbf_course_thinkific_enrolment($first, $last, $email, $id, [], [], [$course], $expiry);
+
+  if ($result['enrolment']['status'] == 'Success') {
+    $result['email'] = cbf_civicrm_send_email(
+      '"Do not reply" <do-not-reply@citybibleforum.org>',
+      format_string('@first @last', ['@first' => $first, '@last' => $last,]),
+      $email,
+      "Enrolled in '$courseName'",
+      'Course registration - system use only',
+      [
+        '@title' => $courseName,
+        '@course' => $courseOption,
+        '@link' => "https://citybible.thinkific.com/users/express_signin?email=$email",
+        '!group' => $groupLicenceInstructions,
+        '@pathway' => $pathwayName,
+        '!pathway_description' => $pathwayDescription,
+      ]);
+  }
+  else {
+    CRM_Core_Error::debug_var('Thinkific enrolment failed', $result);
+    $errors = ['Thinkific enrolment: ' . implode('. ', $result['enrolment']['progress']),];
+    $result['failure notification'] = cbf_course_failed_enrolment($first, $last, $email, $id, $courseName, $courseOption, $errors);
+  }
+
+  return $result;
+}
+
+/*
+ * Announce the failure of a Course enrolment by a contact
+ */
+function cbf_course_failed_enrolment($first, $last, $email, $id, $courseName, $courseOption, $errors) {
+
+  $errorText = implode('</li><li>', $errors);
+  $errorText = '<ul><li>' . $errorText . '</li></ul>';
+
+  $emailStatus = cbf_civicrm_send_email(
+    '"Do not reply" <do-not-reply@citybibleforum.org>',
+    format_string('@first @last', ['@first' => $first, '@last' => $last,]),
+    $email,
+    "Failed to register you for '$courseOption'",
+    'Course registration failed - system use only',
+    [
+      '@title' => $courseName,
+      '@course' => $courseOption,
+    ]);
+
+  cbf_civicrm_send_email(
+    '"Do not reply" <do-not-reply@citybibleforum.org>',
+    'Course support',
+    'course-support@citybibleforum.org',
+    "Failed to register contact for '$courseOption'",
+    'Course registration failed - Course Support - system use only',
+    [
+      '@first' => $first,
+      '@last' => $last,
+      '@email' => $email,
+      '@id' => $id,
+      '@title' => $courseName,
+      '@course' => $courseOption,
+      '!errors' => $errorText,
+    ]);
+
+  return $emailStatus;
+}
+
  */
 function cbf_course_group_license_participation($first, $last, $email, $id, $token, $course, $courseName, $expiry) {
 
