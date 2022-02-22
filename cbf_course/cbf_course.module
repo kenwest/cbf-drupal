@@ -510,7 +510,6 @@ function cbf_course_enrolment($first, $last, $email, $id, $course, $courseName, 
       ]);
   }
   else {
-    CRM_Core_Error::debug_var('Thinkific enrolment failed', $result);
     $errors = ['Thinkific enrolment: ' . implode('. ', $result['enrolment']['progress']),];
     $result['failure notification'] = cbf_course_failed_enrolment($first, $last, $email, $id, $courseName, $courseOption, $errors);
   }
@@ -583,7 +582,6 @@ function cbf_course_group_license_participation($first, $last, $email, $id, $tok
     }
   }
   else {
-    CRM_Core_Error::debug_var('Thinkific enrolment failed', $enrolment);
     $errors = ["Unfortunately, we had a technical problem while registering you. We will complete the process manually and advise you when that is done."];
     return cbf_course_failed_group_license_participation($first, $last, $email, $id, $token, $courseName, $errors, $enrolment['progress']);
   }
@@ -802,11 +800,15 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
           $result['progress'][] = "HTTP code was {$httpResult->code}";
           $result['progress'][] = "HTTP response was '" . print_r($httpResponse, true) . "'";
           $result['status'] = 'Failure';
+
+          CRM_Core_Error::debug_var('Thinkific enrolment failed', implode(', ', $result['progress']));
           return $result;
       }
     }
   }
 
   $result['status'] = 'Success';
+
+  CRM_Core_Error::debug_var('Thinkific enrolment succeeded', implode(', ', $result['progress']));
   return $result;
 }
