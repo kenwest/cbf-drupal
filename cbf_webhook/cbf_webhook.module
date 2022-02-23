@@ -94,6 +94,8 @@ function cbf_webhook_webhook_unserializer() {
 }
 
 /*
+ * Find an existing contact, either by Id or by First+Last+(EMail|Mobile). The
+ * latter emulates the CBF standard dedupe rule for individuals.
  */
 function _cbf_webhook_find_existing_contact($id, $firstName, $lastName, $email, $mobile, &$progress) {
 
@@ -102,6 +104,7 @@ function _cbf_webhook_find_existing_contact($id, $firstName, $lastName, $email, 
     $last9digits = '';
   }
 
+  $potentials = null;
   $target = null;
 
   if ($id) {
@@ -126,26 +129,33 @@ function _cbf_webhook_find_existing_contact($id, $firstName, $lastName, $email, 
     if ($last9digits) {
       if ($email) {
         $contacts = $contacts->addClause('OR', ['email.email', '=', $email], ['phone.phone_numeric', 'CONTAINS', $last9digits]);
+        $progress[] = "Searching for contacts with first/nick='$firstName', last/nick='$lastName', and email='$email' or phone digits contain '$last9digits'";
       }
       else {
         $contacts = $contacts->addWhere('phone.phone_numeric', 'CONTAINS', $last9digits);
+        $progress[] = "Searching for contacts with first/nick='$firstName', last/nick='$lastName', and phone digits contain '$last9digits'";
       }
     }
     else {
       $contacts = $contacts->addWhere('email.email', '=', $email);
+      $progress[] = "Searching for contacts with first/nick='$firstName', last/nick='$lastName', and email='$email'";
     }
-    $contacts = $contacts->execute();
+
     $potentials = [];
+    $contacts = $contacts->execute();
     foreach ($contacts as $contact) {
-      // Tighten the search conditions to avoid false positives due to use of CONTAINS
+      /*
+       * The use of CONTAINS in \Civi\Api4\Contact::get() is not specific
+       * enough. Tighten the search conditions to avoid false positives.
+       */
       if (strtolower($firstName) != strtolower($contact['first_name'])
         && !stristr(' ' . $contact['nick_name'] . ',', ' ' . $firstName . ',')) {
-          $progress[] = 'Contact ' . $contact['id'] . ' nickname doesn\'t match first name';
+          $progress[] = "Contact {$contact['id']} firstname and nickname don't match '$firstName'";
           continue;
       }
       if (strtolower($lastName) != strtolower($contact['last_name'])
         && !stristr(' ' . $contact['nick_name'] . ',', ' ' . $lastName . ',')) {
-          $progress[] = 'Contact ' . $contact['id'] . ' nickname doesn\'t match last name';
+          $progress[] = "Contact {$contact['id']} lastname and nickname don't match '$lastName'";
           continue;
       }
       $found9digits = substr(preg_replace('/[^0-9]/', '', $contact['phone.phone_numeric']), -9);
@@ -154,23 +164,33 @@ function _cbf_webhook_find_existing_contact($id, $firstName, $lastName, $email, 
       }
       if ($last9digits && $last9digits != $found9digits) {
         if (!$email || $email != $contact['email.email']) {
-          $progress[] = 'Contact ' . $contact['id'] . ' phone doesn\'t match mobile';
+          $progress[] = "Contact {$contact['id']} phone digits don't match '$last9digits'";
           continue;
         }
       }
-      // Record the $potentials in such a way that there is only one $contact per 'id'
+      /*
+       * Record the $potentials in such a way that there is only one $contact
+       * per 'id'. This \Civi\Api4\Contact::get() can return multiple $contacts
+       * with the same 'id'.
+       */
       $potentials[$contact['id']] = $contact;
     }
+
     switch (count($potentials)) {
       case 0:
+        $progress[] = 'No existing contact found';
         break;
       case 1:
         $target = reset($potentials);
         break;
       default:
-        $progress[] = 'Found ' . count($potentials) . ' matching contacts so not safe to choose one of them';
+        $progress[] = 'Found ' . count($potentials) . ' matching contacts but it is not safe to choose one of them';
         break;
     }
+  }
+
+  if (!$target && $potentials === null) {
+    $progress[] = 'Not enough information provided to find an existing contact';
   }
 
   return $target;
