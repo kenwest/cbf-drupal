@@ -95,105 +95,20 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
         $lastName = $request->cooked['last'];
         $email = $request->cooked['email'];
         $mobile = $request->cooked['mobile'];
-        $last9digits = substr(preg_replace('/[^0-9]/', '', $mobile), -9);
-        if (!is_numeric($last9digits) || $last9digits < 100000000) {
-          $last9digits = '';
-        }
 
-        $target = null;
-
-        if ($request->cooked['id']) {
-          $contacts = \Civi\Api4\Contact::get(false)
-            ->addSelect('id')
-            ->addWhere('id', '=', $request->cooked['id'])
-            ->addChain('ministryCentres', \Civi\Api4\EntityTag::get(false)
-              ->addSelect('tag.name')
-              ->addJoin('Tag AS tag', 'LEFT')
-              ->addWhere('entity_table', '=', 'civicrm_contact')
-              ->addWhere('entity_id', '=', '$id')
-              ->addWhere('tag.parent_id', 'IS NULL')
-              ->addWhere('tag.name', 'CONTAINS', 'Ministry centre'))
-            ->setLimit(1)
-            ->execute();
-          foreach ($contacts as $contact) {
-            $target = $contact;
-          }
-        }
-        else if ($firstName && $lastName && ($email || $last9digits)) {
-          CRM_Core_Error::debug_var('Contact get parameters', [
-            'first' => $firstName,
-            'last' => $lastName,
-            'email' => $email,
-            'last9digits' => $last9digits,
-          ]);
-
-          $contacts = \Civi\Api4\Contact::get(false)
-            ->addSelect('id', 'first_name', 'last_name', 'nick_name', 'email.email', 'phone.phone_numeric')
-            ->addJoin('Email AS email', 'LEFT')
-            ->addJoin('Phone AS phone', 'LEFT')
-            ->addClause('OR', ['first_name', '=', $firstName], ['nick_name', 'CONTAINS', $firstName])
-            ->addClause('OR', ['last_name', '=', $lastName], ['nick_name', 'CONTAINS', $lastName])
-            ->addChain('ministryCentres', \Civi\Api4\EntityTag::get(false)
-              ->addSelect('tag.name')
-              ->addJoin('Tag AS tag', 'LEFT')
-              ->addWhere('entity_table', '=', 'civicrm_contact')
-              ->addWhere('entity_id', '=', '$id')
-              ->addWhere('tag.parent_id', 'IS NULL')
-              ->addWhere('tag.name', 'CONTAINS', 'Ministry centre'));
-          if ($last9digits) {
-            if ($email) {
-              $contacts = $contacts->addClause('OR', ['email.email', '=', $email], ['phone.phone_numeric', 'CONTAINS', $last9digits]);
-            }
-            else {
-              $contacts = $contacts->addWhere('phone.phone_numeric', 'CONTAINS', $last9digits);
-            }
-          }
-          else {
-            $contacts = $contacts->addWhere('email.email', '=', $email);
-          }
-          $contacts = $contacts->execute();
-          $potentials = [];
-          foreach ($contacts as $contact) {
-            // Tighten the search conditions to avoid false positives due to use of CONTAINS
-            if (strtolower($firstName) != strtolower($contact['first_name'])
-              && !stristr(' ' . $contact['nick_name'] . ',', ' ' . $firstName . ',')) {
-              $progress[] = 'Contact ' . $contact['id'] . ' nickname doesn\'t match first name';
-              continue;
-            }
-            if (strtolower($lastName) != strtolower($contact['last_name'])
-              && !stristr(' ' . $contact['nick_name'] . ',', ' ' . $lastName . ',')) {
-              $progress[] = 'Contact ' . $contact['id'] . ' nickname doesn\'t match last name';
-              continue;
-            }
-            $found9digits = substr(preg_replace('/[^0-9]/', '', $contact['phone.phone_numeric']), -9);
-            if (!is_numeric($found9digits) || $found9digits < 100000000) {
-              $found9digits = '';
-            }
-            if ($last9digits && $last9digits != $found9digits) {
-              if (!$email || $email != $contact['email.email']) {
-                $progress[] = 'Contact ' . $contact['id'] . ' phone doesn\'t match mobile';
-                continue;
-              }
-            }
-            $potentials[$contact['id']] = $contact;
-          }
-          switch (count($potentials)) {
-            case 0:
-              break;
-            case 1:
-              $target = reset($potentials);
-              break;
-            default:
-              $progress[] = 'Found ' . count($potentials) . ' matching contacts';
-              break;
-          }
-        }
+        $target = _cbf_webhook_find_existing_contact(
+          $request->cooked['id'],
+          $firstName,
+          $lastName,
+          $email,
+          $mobile,
+          $progress);
         
         /* --------------------------------------------------------------------
          * Create the target contact if it couldn't be found
          */
         if (!$target) {
-          if ($firstName && $lastName && ($email || $last9digits)) {
+          if ($firstName && $lastName && ($email || $mobile)) {
 
             $progress[] = 'Unambiguous target not found';
 
@@ -207,7 +122,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
                 ->addValue('location_type_id:name', 'Main')
               );
             }
-            if ($last9digits) {
+            if ($mobile) {
               $results = $results->addChain('mobile', \Civi\Api4\Phone::create(false)
                 ->addValue('contact_id', '$id')
                 ->addValue('phone', $mobile)
