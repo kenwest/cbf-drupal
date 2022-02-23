@@ -110,7 +110,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
         if (!$target) {
           if ($firstName && $lastName && ($email || $mobile)) {
 
-            $progress[] = 'Unambiguous target not found';
+            $progress[] = 'Target not found, so create a new one using supplied details';
 
             $results = \Civi\Api4\Contact::create(false)
               ->addValue('first_name', $firstName)
@@ -141,7 +141,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
             }
           }
           else {
-            $progress[] = 'Target not found, but not enough information has been supplied to create one';
+            $progress[] = 'Not enough information has been supplied to create a contact';
           }
         }
 
