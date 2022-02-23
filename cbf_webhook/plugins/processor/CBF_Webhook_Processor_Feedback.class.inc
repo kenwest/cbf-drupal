@@ -413,7 +413,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
                 ->addWhere('id', '=', $groupLicence['activity'])
                 ->execute();
               foreach ($results as $result) {
-                $progress[] = "Decremented licences remaining for Group License $groupLicenceToken to {$groupLicence['remaining']}";
+                $progress[] = "Decremented licences remaining for Group Licence $groupLicenceToken to {$groupLicence['remaining']}";
               }
             }
           }
