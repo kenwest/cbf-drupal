@@ -148,15 +148,17 @@ function _cbf_webhook_find_existing_contact($id, $firstName, $lastName, $email, 
        * The use of CONTAINS in \Civi\Api4\Contact::get() is not specific
        * enough. Tighten the search conditions to avoid false positives.
        */
-      if (strtolower($firstName) != strtolower($contact['first_name'])
-        && !stristr(' ' . $contact['nick_name'] . ',', ' ' . $firstName . ',')) {
+      if (strcasecmp($firstName, $contact['first_name'])) {
+        if (!stristr(' ' . $contact['nick_name'] . ',', ' ' . $firstName . ',')) {
           $progress[] = "Contact {$contact['id']} firstname and nickname don't match '$firstName'";
           continue;
+        }
       }
-      if (strtolower($lastName) != strtolower($contact['last_name'])
-        && !stristr(' ' . $contact['nick_name'] . ',', ' ' . $lastName . ',')) {
+      if (strcasecmp($lastName, $contact['last_name'])) {
+        if (!stristr(' ' . $contact['nick_name'] . ',', ' ' . $lastName . ',')) {
           $progress[] = "Contact {$contact['id']} lastname and nickname don't match '$lastName'";
           continue;
+        }
       }
       $found9digits = substr(preg_replace('/[^0-9]/', '', $contact['phone.phone_numeric']), -9);
       if (!is_numeric($found9digits) || $found9digits < 100000000) {
