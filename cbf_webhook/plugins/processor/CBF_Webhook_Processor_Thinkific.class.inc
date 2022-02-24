@@ -78,15 +78,14 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
 
               // No previous enrolments by this Thinkific user, so try to find a Contact that matches
 
+              $first = $payload->user->first_name;
+              $last = $payload->user->last_name;
+              $email = $payload->user->email;
+
               $contactId = null;
               $progress = [];
-              $contact = _cbf_webhook_find_existing_contact(
-                '',
-                $payload->user->first_name,
-                $payload->user->last_name,
-                $payload->user->email,
-                '',
-                $progress);
+              $contact = _cbf_webhook_find_existing_contact('', $first, $last, $email, '', $progress);
+
               if ($progress) {
                 CRM_Core_Error::debug_var('Thinkific processing', implode(', ', $progress));
               }
@@ -94,19 +93,19 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               if ($contact) {
                 $contactId = $contact['id'];
               }
-              else {
+              else if ($first && $last && $email) {
                 CRM_Core_Error::debug_var('Thinkific processing', 'No contact record for user ' . $user);
 
                 // No matching Contact found, so create one. May need deduping later.
                 $contactAction = 'Created';
                 $contacts = \Civi\Api4\Contact::create()
-                  ->addValue('first_name', $payload->user->first_name)
-                  ->addValue('last_name', $payload->user->last_name)
+                  ->addValue('first_name', $first)
+                  ->addValue('last_name', $last)
                   ->addValue('contact_type', 'Individual')
                   ->addChain('email', \Civi\Api4\Email::create()
                     ->addValue('contact_id', '$id')
                     ->addValue('location_type_id', 6 /* Main */)
-                    ->addValue('email', $payload->user->email)
+                    ->addValue('email', $email)
                     ->addValue('is_primary', true)
                   )
                   ->setCheckPermissions(false)
