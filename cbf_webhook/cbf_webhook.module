@@ -130,10 +130,7 @@ function _cbf_webhook_format_mobile($mobile, $format = null) {
  */
 function _cbf_webhook_find_existing_contact($id, $firstName, $lastName, $email, $mobile, &$progress) {
 
-  $last9digits = substr(preg_replace('/[^0-9]/', '', $mobile), -9);
-  if (!is_numeric($last9digits) || $last9digits < 100000000) {
-    $last9digits = '';
-  }
+  $last9digits = _cbf_webhook_format_mobile($mobile, '9 digits');
 
   $potentials = null;
   $target = null;
@@ -185,22 +182,22 @@ function _cbf_webhook_find_existing_contact($id, $firstName, $lastName, $email, 
           continue;
         }
       }
+
       if (strcasecmp($lastName, $contact['last_name'])) {
         if (!stristr(' ' . $contact['nick_name'] . ',', ' ' . $lastName . ',')) {
           $progress[] = "Contact {$contact['id']} lastname and nickname don't match '$lastName'";
           continue;
         }
       }
-      $found9digits = substr(preg_replace('/[^0-9]/', '', $contact['phone.phone_numeric']), -9);
-      if (!is_numeric($found9digits) || $found9digits < 100000000) {
-        $found9digits = '';
-      }
+
+      $found9digits = _cbf_webhook_format_mobile($contact['phone.phone_numeric'], '9 digits');
       if ($last9digits && $last9digits != $found9digits) {
         if (!$email || $email != $contact['email.email']) {
           $progress[] = "Contact {$contact['id']} phone digits don't match '$last9digits'";
           continue;
         }
       }
+
       /*
        * Record the $potentials in such a way that there is only one $contact
        * per 'id'. This \Civi\Api4\Contact::get() can return multiple $contacts
