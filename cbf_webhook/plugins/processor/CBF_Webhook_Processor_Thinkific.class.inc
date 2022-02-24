@@ -91,15 +91,6 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
                 CRM_Core_Error::debug_var('Thinkific processing', implode(', ', $progress));
               }
 
-              $contacts = \Civi\Api4\Contact::get()
-                ->setJoin([['Email AS email', false],])
-                ->addWhere('first_name', '=', $payload->user->first_name)
-                ->addWhere('last_name', '=', $payload->user->last_name)
-                ->addWhere('email.email', '=', $payload->user->email)
-                ->setLimit(2)
-                ->setCheckPermissions(false)
-                ->execute();
-
               if ($contact) {
                 $contactId = $contact['id'];
               }
