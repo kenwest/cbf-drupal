@@ -9,6 +9,7 @@ To see log of tests, open a new terminal and ...
 
     Contact Id is zero
     Options is an array
+    Mobile left unformatted as '0212345678 is not a mobile'
 
 
 'Feedback webhook progress' should say ...

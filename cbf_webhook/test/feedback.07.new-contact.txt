@@ -1,4 +1,9 @@
 
+'Cooked' data should say ...
+
+    Mobile has comments removed
+
+
 'Feedback webhook progress' should say ...
 
     Target created

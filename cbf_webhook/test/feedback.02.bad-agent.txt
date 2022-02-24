@@ -2,7 +2,7 @@
 'Cooked data' includes ...
 
     Email contains no spaces
-    Mobile is not empty
+    Mobile is formatted as '+61 412 345 678'
     listIf is an array
     leadIf is an array
 
