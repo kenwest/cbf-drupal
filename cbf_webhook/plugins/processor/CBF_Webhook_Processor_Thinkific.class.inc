@@ -77,6 +77,20 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' records for user ' . $user);
 
               // No previous enrolments by this Thinkific user, so try to find a Contact that matches
+
+              $contactId = null;
+              $progress = [];
+              $contact = _cbf_webhook_find_existing_contact(
+                '',
+                $payload->user->first_name,
+                $payload->user->last_name,
+                $payload->user->email,
+                '',
+                $progress);
+              if ($progress) {
+                CRM_Core_Error::debug_var('Thinkific processing', implode(', ', $progress));
+              }
+
               $contacts = \Civi\Api4\Contact::get()
                 ->setJoin([['Email AS email', false],])
                 ->addWhere('first_name', '=', $payload->user->first_name)
@@ -85,7 +99,11 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
                 ->setLimit(2)
                 ->setCheckPermissions(false)
                 ->execute();
-              if ($contacts->count() == 0) {
+
+              if ($contact) {
+                $contactId = $contact['id'];
+              }
+              else {
                 CRM_Core_Error::debug_var('Thinkific processing', 'No contact record for user ' . $user);
 
                 // No matching Contact found, so create one. May need deduping later.
@@ -102,8 +120,10 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
                   )
                   ->setCheckPermissions(false)
                   ->execute();
+                foreach ($contacts as $contact) {
+                  $contactId = $contact['id'];
+                }
               }
-              $contactId = $contacts->first()['id'] ?? null;
             }
             else {
               $contactId = $users->first()['entity_id'];
