@@ -35,6 +35,7 @@ class CBF_Webhook_Unserializer_Zapier implements Webhook_Plugins_Unserializer_In
       ],
       'mobile' => [
         'name' => ['mobile', 'phone'],
+        'format' => '_cbf_webhook_format_mobile',
       ],
       'yearEnteredWorkforce' => [
         'name' => ['yearEnteredWorkforce', 'year_entered_workforce'],
@@ -96,6 +97,9 @@ class CBF_Webhook_Unserializer_Zapier implements Webhook_Plugins_Unserializer_In
       $t = htmlspecialchars(trim($t));
       $t = filter_var($t, $source['sanitise'] ?? FILTER_UNSAFE_RAW);
       $t = filter_var($t, $source['validate'] ?? FILTER_UNSAFE_RAW, $source['options'] ?? []);
+      if (function_exists($source['format'] ?? '')) {
+        $t = $source['format']($t) ?? $t;
+      }
       if ($source['separator'] ?? false) {
         $t = explode($source['separator'], $t);
       }
