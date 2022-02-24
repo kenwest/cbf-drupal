@@ -91,8 +91,8 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
                 // No matching Contact found, so create one. May need deduping later.
                 $contactAction = 'Created';
                 $contacts = \Civi\Api4\Contact::create()
-                ->addValue('first_name', $payload->user->first_name)
-                ->addValue('last_name', $payload->user->last_name)
+                  ->addValue('first_name', $payload->user->first_name)
+                  ->addValue('last_name', $payload->user->last_name)
                   ->addValue('contact_type', 'Individual')
                   ->addChain('email', \Civi\Api4\Email::create()
                     ->addValue('contact_id', '$id')
@@ -201,7 +201,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
           }
           $assignments = implode(', ', $assignments);
           $update = "update $table set $assignments where $where";
-          $outcome = CRM_Core_DAO::executeQuery($update);
+          $_ = CRM_Core_DAO::executeQuery($update);
 
           /*
            * End of hack
