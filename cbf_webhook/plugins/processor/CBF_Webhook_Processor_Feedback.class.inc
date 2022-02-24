@@ -483,7 +483,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
     } catch (\API_Exception $e) {
       CRM_Core_Error::debug_var("$webhook webhook exception", $e);
     }
-    
+
     CRM_Core_Error::debug_var("$webhook webhook progress", $progress);
   }
 }
