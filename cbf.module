@@ -10,7 +10,7 @@ function cbf_init() {
    * the visitor to the right one.
    */
   $event = menu_get_object('civicrm_entity_loader');
-  if (!empty($event) && $event->entityType() == 'civicrm_event') {
+  if (!empty($event) && is_object($event) && $event->entityType() == 'civicrm_event') {
     $audienceTerm = field_get_items('civicrm_event', $event, 'taxonomy_vocabulary_3');
     if ($audienceTerm === false || empty($audienceTerm[0]['tid'])) {
       $eventAudience = '';
