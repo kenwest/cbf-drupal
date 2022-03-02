@@ -823,6 +823,18 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
       );
     }
 
+    /*
+     * Scheduled Reminder uses Smarty engine by default which strips out any
+     * CSS <style> that is defined. {literal} ... {/literal} can be used to
+     * protect the CSS, but if we put this in a template, that template could
+     * be used in another context where Smarty is not used, and the {literal}
+     * tokens remain. If any remain, strip them out, as Smarty would have been
+     * invoked before we get here.
+     *
+     * See https://civicrm.stackexchange.com/questions/17643/scheduled-reminders-email-head-css-attributes-are-being-stripped-out/17962#17962
+     */
+    $htmlMessage = preg_replace('#\{[/]?literal\}#', '', $htmlMessage) ?? $htmlMessage;
+
     $params['html'] = $htmlMessage;
   }
 }
