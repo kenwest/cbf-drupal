@@ -3,9 +3,9 @@
 @@ -176,5 +176,3 @@
   *
   */
- 
--global $civicrm_root;
 -
+-global $civicrm_root;
+ 
 @@ -195,7 +193,19 @@
   *
   */
