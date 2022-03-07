@@ -33,13 +33,6 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
   public static $mailsProcessed = 0;
 
   /**
-   * Class constructor.
-   */
-  public function __construct() {
-    parent::__construct();
-  }
-
-  /**
    * Create mailing job.
    *
    * @param array $params
@@ -68,7 +61,8 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
    * Initiate all pending/ready jobs.
    *
    * @param array $testParams
-   * @param string $mode
+   * @param string|null $mode
+   *   Either 'sms' or null
    *
    * @return bool|null
    */
@@ -215,7 +209,8 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
   /**
    * Post process to determine if the parent job
    * as well as the mailing is complete after the run.
-   * @param null $mode
+   * @param string|null $mode
+   *   Either 'sms' or null
    */
   public static function runJobs_post($mode = NULL) {
 
@@ -289,7 +284,8 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
   /**
    * before we run jobs, we need to split the jobs
    * @param int $offset
-   * @param null $mode
+   * @param string|null $mode
+   *   Either 'sms' or null
    */
   public static function runJobs_pre($offset = 200, $mode = NULL) {
     $job = new CRM_Mailing_BAO_MailingJob();
@@ -986,7 +982,7 @@ AND    status IN ( 'Scheduled', 'Running', 'Paused' )
           $activityTypeID = CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_Activity', 'activity_type_id', 'Bulk Email');
         }
         if (!$activityTypeID) {
-          throw new CRM_Core_Execption(ts('No relevant activity type found when recording Mailing Event delivered Activity'));
+          throw new CRM_Core_Exception(ts('No relevant activity type found when recording Mailing Event delivered Activity'));
         }
       }
 
@@ -1124,20 +1120,11 @@ AND    record_type_id = $targetRecordID
    * Delete the mailing job.
    *
    * @param int $id
-   *   Mailing Job id.
-   *
-   * @return mixed
+   * @deprecated
+   * @return bool
    */
   public static function del($id) {
-    CRM_Utils_Hook::pre('delete', 'MailingJob', $id);
-
-    $jobDAO = new CRM_Mailing_BAO_MailingJob();
-    $jobDAO->id = $id;
-    $result = $jobDAO->delete();
-
-    CRM_Utils_Hook::post('delete', 'MailingJob', $jobDAO->id, $jobDAO);
-
-    return $result;
+    return (bool) self::deleteRecord(['id' => $id]);
   }
 
 }

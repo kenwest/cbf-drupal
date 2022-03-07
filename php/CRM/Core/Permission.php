@@ -208,25 +208,24 @@ class CRM_Core_Permission {
   }
 
   /**
+   * @param int $userId
    * @return bool
    */
-  public static function customGroupAdmin() {
-    $admin = FALSE;
-
+  public static function customGroupAdmin($userId = NULL) {
     // check if user has all powerful permission
     // or administer civicrm permission (CRM-1905)
-    if (self::check('access all custom data')) {
+    if (self::check('access all custom data', $userId)) {
       return TRUE;
     }
 
     if (
-      self::check('administer Multiple Organizations') &&
+      self::check('administer Multiple Organizations', $userId) &&
       self::isMultisiteEnabled()
     ) {
       return TRUE;
     }
 
-    if (self::check('administer CiviCRM')) {
+    if (self::check('administer CiviCRM data', $userId)) {
       return TRUE;
     }
 
@@ -236,26 +235,27 @@ class CRM_Core_Permission {
   /**
    * @param int $type
    * @param bool $reset
+   * @param int $userId
    *
    * @return array
    */
-  public static function customGroup($type = CRM_Core_Permission::VIEW, $reset = FALSE) {
+  public static function customGroup($type = CRM_Core_Permission::VIEW, $reset = FALSE, $userId = NULL) {
     $customGroups = CRM_Core_PseudoConstant::get('CRM_Core_DAO_CustomField', 'custom_group_id',
       ['fresh' => $reset]);
     $defaultGroups = [];
 
     // check if user has all powerful permission
     // or administer civicrm permission (CRM-1905)
-    if (self::customGroupAdmin()) {
-      $defaultGroups = array_keys($customGroups);
+    if (self::customGroupAdmin($userId)) {
+      return array_keys($customGroups);
     }
 
-    return CRM_ACL_API::group($type, NULL, 'civicrm_custom_group', $customGroups, $defaultGroups);
+    return CRM_ACL_API::group($type, $userId, 'civicrm_custom_group', $customGroups, $defaultGroups);
   }
 
   /**
    * @param int $type
-   * @param null $prefix
+   * @param string|null $prefix
    * @param bool $reset
    *
    * @return string
@@ -335,7 +335,7 @@ class CRM_Core_Permission {
 
   /**
    * @param int $type
-   * @param null $prefix
+   * @param string $prefix
    * @param bool $returnUFGroupIds
    *
    * @return array|string
@@ -423,9 +423,7 @@ class CRM_Core_Permission {
    *   Access to specified $module is granted.
    */
   public static function access($module, $checkPermission = TRUE, $requireAllCasesPermOnCiviCase = FALSE) {
-    $config = CRM_Core_Config::singleton();
-
-    if (!in_array($module, $config->enableComponents)) {
+    if (!CRM_Core_Component::isEnabled($module)) {
       return FALSE;
     }
 
@@ -752,6 +750,14 @@ class CRM_Core_Permission {
       'administer reserved tags' => [
         $prefix . ts('administer reserved tags'),
       ],
+      'administer queues' => [
+        $prefix . ts('administer queues'),
+        ts('Initialize, browse, and cancel background processing queues'),
+        // At time of writing, we have specifically omitted the ability to edit fine-grained
+        // data about specific queue-tasks. Tasks are usually defined as PHP callables...
+        // and one should hesitate before allowing open-ended edits of PHP callables.
+        // However, it seems fine for web-admins to browse and cancel these things.
+      ],
       'administer dedupe rules' => [
         $prefix . ts('administer dedupe rules'),
         ts('Create and edit rules, change the supervised and unsupervised rules'),
@@ -840,6 +846,10 @@ class CRM_Core_Permission {
       'administer payment processors' => [
         $prefix . ts('administer payment processors'),
         ts('Add, Update, or Disable Payment Processors'),
+      ],
+      'render templates' => [
+        $prefix . ts('render templates'),
+        ts('Render open-ended template content. (Additional constraints may apply to autoloaded records and specific notations.)'),
       ],
       'edit message templates' => [
         $prefix . ts('edit message templates'),
@@ -1135,8 +1145,13 @@ class CRM_Core_Permission {
       ],
     ];
     $permissions['line_item'] = $permissions['contribution'];
+    $permissions['product'] = $permissions['contribution'];
 
     $permissions['financial_item'] = $permissions['contribution'];
+    $permissions['financial_type']['get'] = $permissions['contribution']['get'];
+    $permissions['entity_financial_account']['get'] = $permissions['contribution']['get'];
+    $permissions['financial_account']['get'] = $permissions['contribution']['get'];
+    $permissions['financial_trxn']['get'] = $permissions['contribution']['get'];
 
     // Payment permissions
     $permissions['payment'] = [

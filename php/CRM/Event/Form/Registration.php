@@ -230,6 +230,9 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
       //retrieve event information
       $params = ['id' => $this->_eventId];
       CRM_Event_BAO_Event::retrieve($params, $this->_values['event']);
+
+      CRM_Event_BAO_Event::setOutputTimeZone($this->_values['event'], $this->_values['event']['event_tz']);
+
       // check for is_monetary status
       $isMonetary = $this->_values['event']['is_monetary'] ?? NULL;
       // check for ability to add contributions of type
@@ -495,6 +498,7 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
 
     $cid = CRM_Utils_Request::retrieve('cid', 'Positive', $this);
     $contactID = CRM_Core_Session::getLoggedInContactID();
+    $fields = [];
 
     // we don't allow conflicting fields to be
     // configured via profile
@@ -686,12 +690,6 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
       $this->set('primaryParticipant', $this->_params);
     }
 
-    CRM_Core_BAO_CustomValueTable::postProcess($this->_params,
-      'civicrm_participant',
-      $participant->id,
-      'Participant'
-    );
-
     $createPayment = (CRM_Utils_Array::value('amount', $this->_params, 0) != 0) ? TRUE : FALSE;
 
     // force to create zero amount payment, CRM-5095
@@ -826,6 +824,15 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
 
     if (!$participantParams['discount_id']) {
       $participantParams['discount_id'] = "null";
+    }
+
+    $participantParams['custom'] = [];
+    foreach ($form->_params as $paramName => $paramValue) {
+      if (strpos($paramName, 'custom_') === 0) {
+        list($customFieldID, $customValueID) = CRM_Core_BAO_CustomField::getKeyID($paramName, TRUE);
+        CRM_Core_BAO_CustomField::formatCustomField($customFieldID, $participantParams['custom'], $paramValue, 'Participant', $customValueID);
+
+      }
     }
 
     $participant = CRM_Event_BAO_Participant::create($participantParams);
@@ -1052,13 +1059,14 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
   }
 
   /**
-   * Check if template file exists.
+   * Check template file exists.
    *
-   * @param string $suffix
+   * @param string|null $suffix
    *
-   * @return null|string
+   * @return string|null
+   *   Template file path, else null
    */
-  public function checkTemplateFileExists($suffix = '') {
+  public function checkTemplateFileExists($suffix = NULL) {
     if ($this->_eventId) {
       $templateName = $this->_name;
       if (substr($templateName, 0, 12) == 'Participant_') {

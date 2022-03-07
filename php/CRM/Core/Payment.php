@@ -1671,8 +1671,7 @@ abstract class CRM_Core_Payment {
    * it is better to standardise to being here.
    *
    * @param int $invoiceId The ID to check.
-   *
-   * @param null $contributionID
+   * @param int|null $contributionID
    *   If a contribution exists pass in the contribution ID.
    *
    * @return bool
@@ -1690,8 +1689,8 @@ abstract class CRM_Core_Payment {
   /**
    * Get url for users to manage this recurring contribution for this processor.
    *
-   * @param int $entityID
-   * @param null $entity
+   * @param int|null $entityID
+   * @param string|null $entity
    * @param string $action
    *
    * @return string|null
@@ -1721,6 +1720,10 @@ abstract class CRM_Core_Payment {
         }
         $url = 'civicrm/contribute/updaterecur';
         break;
+
+      default:
+        $url = '';
+        break;
     }
 
     $userId = CRM_Core_Session::singleton()->get('userID');
@@ -1742,17 +1745,7 @@ abstract class CRM_Core_Payment {
           break;
 
         case 'recur':
-          $sql = "
-    SELECT DISTINCT con.contact_id
-      FROM civicrm_contribution_recur rec
-INNER JOIN civicrm_contribution con ON ( con.contribution_recur_id = rec.id )
-     WHERE rec.id = %1";
-          $contactID = CRM_Core_DAO::singleValueQuery($sql, [
-            1 => [
-              $entityID,
-              'Integer',
-            ],
-          ]);
+          $contactID = CRM_Core_DAO::getFieldValue("CRM_Contribute_DAO_ContributionRecur", $entityID, "contact_id");
           $entityArg = 'crid';
           break;
       }
