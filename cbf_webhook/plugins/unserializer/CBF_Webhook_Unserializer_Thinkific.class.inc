@@ -1,11 +1,6 @@
 <?php
 
 /**
- * @file
- * Example plugin class for unserializing Thinkific data.
- */
-
-/**
  * Webhook unserializer plugin for Thinkific data.
  */
 class CBF_Webhook_Unserializer_Thinkific implements Webhook_Plugins_Unserializer_Interface {

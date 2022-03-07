@@ -1,0 +1,13 @@
+
+'Group licence participation webhook progress' should say ...
+
+    groupLicenceToken is 'not valid'
+    Agent is contact NNNNN
+    Target is contact 10222
+    The supplied token doesn't match any Group Licences
+
+
+No CiviCRM activity should have been created
+A failure email should have been sent
+
+

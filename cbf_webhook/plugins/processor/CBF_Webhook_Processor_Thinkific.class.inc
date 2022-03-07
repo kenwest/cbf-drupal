@@ -1,14 +1,9 @@
 <?php
 
 /**
- * @file
- * Example plugin class for logging github pushes to watchdog
- */
-
-/**
  * CBF Webhook Processor Thinkific class.
  *
- * Records github actions in watchdog log.
+ * Processes Thinkific enrolments.
  */
 class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Interface {
 
@@ -37,6 +32,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
         'Raw Thinkific data' => $request->raw,
         'Unserialized data' => $request->cooked,
       ]);
+      return;
     }
     else {
       CRM_Core_Error::debug_var('Thinkific data', [
@@ -81,33 +77,43 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' records for user ' . $user);
 
               // No previous enrolments by this Thinkific user, so try to find a Contact that matches
-              $contacts = \Civi\Api4\Contact::get()
-                ->setJoin([['Email AS email', false],])
-                ->addWhere('first_name', '=', $payload->user->first_name)
-                ->addWhere('last_name', '=', $payload->user->last_name)
-                ->addWhere('email.email', '=', $payload->user->email)
-                ->setLimit(2)
-                ->setCheckPermissions(false)
-                ->execute();
-              if ($contacts->count() == 0) {
+
+              $first = $payload->user->first_name;
+              $last = $payload->user->last_name;
+              $email = $payload->user->email;
+
+              $contactId = null;
+              $progress = [];
+              $contact = _cbf_webhook_find_existing_contact('', $first, $last, $email, '', $progress);
+
+              if ($progress) {
+                CRM_Core_Error::debug_var('Thinkific processing', implode(', ', $progress));
+              }
+
+              if ($contact) {
+                $contactId = $contact['id'];
+              }
+              else if ($first && $last && $email) {
                 CRM_Core_Error::debug_var('Thinkific processing', 'No contact record for user ' . $user);
 
                 // No matching Contact found, so create one. May need deduping later.
                 $contactAction = 'Created';
                 $contacts = \Civi\Api4\Contact::create()
-                ->addValue('first_name', $payload->user->first_name)
-                ->addValue('last_name', $payload->user->last_name)
+                  ->addValue('first_name', $first)
+                  ->addValue('last_name', $last)
                   ->addValue('contact_type', 'Individual')
                   ->addChain('email', \Civi\Api4\Email::create()
                     ->addValue('contact_id', '$id')
                     ->addValue('location_type_id', 6 /* Main */)
-                    ->addValue('email', $payload->user->email)
+                    ->addValue('email', $email)
                     ->addValue('is_primary', true)
                   )
                   ->setCheckPermissions(false)
                   ->execute();
+                foreach ($contacts as $contact) {
+                  $contactId = $contact['id'];
+                }
               }
-              $contactId = $contacts->first()['id'] ?? null;
             }
             else {
               $contactId = $users->first()['entity_id'];
@@ -129,7 +135,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               ->addValue('Percent_complete', $percent)
               ->setCheckPermissions(false)
               ->execute();
-            if ($results->first()['is_error']) {
+            if (isset($results->first()['is_error'])) {
               CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolment);
               break;
             }
@@ -146,7 +152,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               ->setLimit(25)
               ->setCheckPermissions(false)
               ->execute();
-            if ($results->first()['is_error']) {
+            if (isset($results->first()['is_error'])) {
               CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolment);
               break;
             }
@@ -205,7 +211,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
           }
           $assignments = implode(', ', $assignments);
           $update = "update $table set $assignments where $where";
-          $outcome = CRM_Core_DAO::executeQuery($update);
+          $_ = CRM_Core_DAO::executeQuery($update);
 
           /*
            * End of hack

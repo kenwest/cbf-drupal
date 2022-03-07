@@ -1,0 +1,162 @@
+<?php
+/*
+ * Implements hook_page_build
+ *
+ *  "Add elements to a page before it is rendered."
+ *   Use this hook when you want to add elements at the page level. For your
+ *   additions to be printed, they have to be placed below a top level array
+ *   key of the $page array that has the name of a region of the active theme."
+ *
+ * Fire a PageView event if
+ *  - the user is anonymous
+ *  - there is a pixel for this domain - for implementation see function
+ *    cbf_facebook_pixel_event_cbf_facebook_pixel_event()
+ *
+ * In addition, fire any additional Facebook events if
+ *  - there is a module that implements hook_cbf_facebook_pixel_event which
+ *    returns a string containing the JS code for the event
+ */
+function cbf_facebook_pixel_page_build(&$page) {
+
+  if (!user_is_anonymous()) {
+    return;
+  }
+
+  $events = module_invoke_all(
+    'cbf_facebook_pixel_event',
+    domain_get_domain(),
+    current_path());
+  if ($events && is_array($events)) {
+    foreach ($events as $event) {
+      if ($event === false) {
+        return;
+      }
+    }
+  }
+  else {
+    return;
+  }
+
+  $baseCode = "
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');";
+
+  sort($events); // Put the fbq init first before any fbq track items
+  $code = $baseCode . implode('', $events) . _cbf_facebook_pixel_track();
+
+  $page['content']['#attached']['js']['cbf_facebook_pixel_script'] = [
+    'type' => 'inline',
+    'group' => JS_THEME,
+    'data' => $code,
+    'preprocess' => FALSE,
+  ];
+}
+
+/*
+ * Implements hook_cbf_facebook_pixel_event
+ *
+ * Generates a PageView event for any path.
+ *
+ * This is a model implementation for hook_cbf_facebook_pixel_event.
+ * Implementations should return one of the following values:
+ *  - false, indicating no Facebook Pixel JS should be added to the page
+ *  - empty string, meaning this code adds no event to the JS
+ *  - a string in the form "fbq(...);" that adds an event to the JS
+ */
+function cbf_facebook_pixel_cbf_facebook_pixel_event($domain, $path) {
+
+  $pixel = variable_get('cbf_facebook_pixel_domain_' . $domain['domain_id'], false);
+
+  if (!$pixel) {
+    return false;
+  }
+
+  _cbf_facebook_pixel_add_no_script($pixel);
+
+  $code = format_string(
+    "fbq('init', '@pixel');fbq('track', 'PageView');",
+    ['@pixel' => $pixel]);
+
+  return $code;
+}
+
+/*
+ * Implements hook_webform_submission_insert()
+ *
+ *  "Respond to a Webform submission being inserted. Note that this hook is
+ *   called after a submission has already been saved to the database."
+ *
+ * If the $submission has a component called "Facebook Pixel Event" then record
+ * the appropriate code.
+ *
+ * For example, to fire a Contact event on a webform submission, add a hidden
+ * component named "Facebook Pixel Event" with value "Contact".
+ */
+function cbf_facebook_pixel_webform_submission_insert($node, $submission) {
+  foreach ($node->webform['components'] as $i => $component) {
+    if ($component['name'] == 'Facebook Pixel Event') {
+      _cbf_facebook_pixel_track(reset($submission->data[$i]) ?? '');
+    }
+  }
+}
+
+/*
+ * Add the noscript markup for the $pixel to the page header
+ */
+function _cbf_facebook_pixel_add_no_script($pixel) {
+
+  $noScript='
+    <noscript>
+      <img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=@pixel&ev=PageView&noscript=1"/>
+    </noscript>';
+  drupal_add_html_head(
+    [
+      '#type' => 'markup',
+      '#markup' => format_string($noScript, ['@pixel' => $pixel]),
+      '#weight' => 150,
+    ],
+    'cbf_facebook_pixel_no_script');
+}
+
+/*
+ * Remember or recall Facebook Pixel events to track.
+ *
+ * To add an event, pass in it's $name. Not all events are supported as we
+ * need to track which events need arguments.
+ * To retrieve the code, and clear its value, don't pass in $name
+ */
+function _cbf_facebook_pixel_track($name = null, $value = 10) {
+  $code = $_SESSION[__FUNCTION__] ?? '';
+
+  if (isset($name)) {
+
+    switch ($name) {
+      case 'Contact':
+      case 'InitiateCheckout':
+        $code .= format_string("fbq('track', '@name');", ['@name' => $name]);
+        break;
+
+      case 'Purchase':
+      case 'Donate':
+      case 'CompleteRegistration':
+        $code .= format_string(
+          "fbq('track', '@name', {value: '@value', currency: 'AUD'});",
+          ['@name' => $name, '@value' => sprintf('%.2f', $value)]);
+        break;
+    }
+    $_SESSION[__FUNCTION__] = $code;
+  }
+  else {
+
+    unset($_SESSION[__FUNCTION__]);
+  }
+
+  return $code;
+}

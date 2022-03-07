@@ -1,0 +1,813 @@
+<?php
+/*
+ * Implements hook_node_validate()
+ *
+ * "Perform node validation before a node is created or updated. This hook is
+ * invoked from node_validate(), after a user has finished editing the node and
+ * is previewing or submitting it. It is invoked at the end of all the standard
+ * validation steps, and after the type-specific hook_validate() is invoked. To
+ * indicate a validation error, use form_set_error(). Note: Changes made to the
+ * $node object within your hook implementation will have no effect. The
+ * preferred method to change a node's content is to use hook_node_presave()
+ * instead. If it is really necessary to change the node at the validate stage,
+ * you can use form_set_value()"
+ */
+function cbf_course_node_validate($node, $form, &$form_state) {
+
+  if ($node->type == 'course') {
+    // Read course options from node
+    $cOs = cbf_field_get_items('node', $node, 'field_course_options', 'entity', []);
+    $courseOptions = [];
+    foreach ($cOs as $cO) {
+      if (is_object($cO)) {
+        $courseOptions[] = [
+          'name' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_name', 'value'),
+          'price' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_price', 'amount'),
+          'id' => cbf_field_get_items('paragraphs_item', $cO, 'field_thinkific_course_id', 'value'),
+          'sessions' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_sessions', 'value'),
+          'expiry' => cbf_field_get_items('paragraphs_item', $cO, 'field_thinkific_expiry_period', 'value'),
+          'code' => cbf_field_get_items('paragraphs_item', $cO, 'field_promotional_code', 'value'),
+          'discounted' => cbf_field_get_items('paragraphs_item', $cO, 'field_promotional_price', 'amount'),
+          'group' => cbf_field_get_items('paragraphs_item', $cO, 'field_group_license_count', 'value'),
+        ];
+      }
+    }
+
+    $first = true;
+    foreach ($courseOptions as $i => $cO) {
+
+      // Validate price
+      if (!is_numeric($cO['price']) || $cO['price'] < 0) {
+        $element = "field_course_options][und][$i][field_training_option_price][und][0][value";
+        form_set_error($element, 'Price must be a zero or a positive number');
+      }
+      else if ($cO['price'] == 0 && $cO['discounted']) {
+        $element = "field_course_options][und][$i][field_training_option_price][und][0][value";
+        form_set_error($element, 'Cannot discount a free option');
+      }
+
+      // Validate discounts
+      if (is_numeric($cO['discounted'])) {
+        if (!$cO['code']) {
+          $element = "field_course_options][und][$i][field_promotional_code][und][0][value";
+          form_set_error($element, 'Discounted price requires a promotional code');
+        }
+
+        if ($cO['discounted'] < 0) {
+          $element = "field_course_options][und][$i][field_promotional_price][und][0][value";
+          form_set_error($element, 'Discounted price must be zero or a positive number');
+        }
+        else if ($cO['price'] <= $cO['discounted']) {
+          $element = "field_course_options][und][$i][field_promotional_price][und][0][value";
+          form_set_error($element, 'Discounted price is more than regular price');
+        }
+      }
+
+      // Validate expiry date
+      if ($cO['expiry'] && strtotime($cO['expiry']) === false) {
+        $element = "field_course_options][und][$i][field_thinkific_expiry_period][und][0][value";
+        form_set_error($element, 'Expiry dates take the form "6 months" etc and should evaluate to a future date');
+      }
+
+      // Validate promotional code
+      if ($cO['code']) {
+        if (!is_numeric($cO['discounted'])) {
+          $element = "field_course_options][und][$i][field_promotional_price][und][0][value";
+          form_set_error($element, 'Promotional codes require a discount price');
+        }
+
+        if (preg_match('/^[a-z0-9 ]+$/i', $cO['code']) !== 1) {
+          $element = "field_course_options][und][$i][field_promotional_code][und][0][value";
+          form_set_error($element, 'Promotional codes are limited to alphanumeric characters and spaces');
+        }
+      }
+
+      if ($first) {
+        // The first option must specify a Course Id, #sessions and expiry date so other options can use it
+        if (!$cO['id'] || !$cO['sessions'] || !$cO['expiry']) {
+          $element = "field_course_options][und][$i";
+          form_set_error($element, 'The first option must have Course, id, sessions and expiry so other options can use them');
+        }
+        $first = false;
+      }
+    }
+
+    if ($first) {
+      // There must be at least one option
+      form_set_error('field_course_options', 'There must be at least one course option');
+    }
+
+    // Validate course is known to CiviCRM etc
+    module_invoke_all(
+      'cbf_course_node_validate',
+      $node, $form, $form_state, $courseOptions);
+  }
+}
+
+/*
+ * Implements hook_entity_presave()
+ *
+ * "Act on an entity before it is about to be created or updated."
+ *
+ * Set the items on the 'course_selection' webform component to match the
+ * field_course_options. Build the webform conditionals to implement these
+ * options.
+ */
+function cbf_course_entity_presave($entity, $type) {
+
+  if ($type == 'node' && $entity->type == 'course') {
+    // Find webform components
+    $formKeys = [
+      'course_selection',
+      'civicrm_1_contribution_1_contribution_total_amount',
+      'civicrm_1_activity_1_cg30_custom_154',
+      'civicrm_1_contribution_1_contribution_source',
+      'civicrm_1_activity_1_activity_subject',
+      'promotional_code',
+      'expiry',
+      'civicrm_1_activity_1_cg32_custom_163',
+    ];
+    $cids = [];
+    foreach ($formKeys as $formKey) {
+      $cid = webform_get_cid($entity, $formKey);
+      if (is_array($cid) && count($cid) == 1) {
+        $cids[$formKey] = reset($cid);
+      }
+      else {
+        $cids[$formKey] = $cid;
+      }
+    }
+
+    // Read course options from node
+    // Some details from the $first option can be reused by later options
+    $cOs = cbf_field_get_items('node', $entity, 'field_course_options', 'value', []);
+    $cOs = entity_load('paragraphs_item', $cOs);
+    $courseOptions = [];
+    $first = null;
+    foreach ($cOs as $cO) {
+      $courseOptions[] = [
+        'name' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_name', 'value'),
+        'price' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_price', 'amount'),
+        'id' => cbf_field_get_items('paragraphs_item', $cO, 'field_thinkific_course_id', 'value') ?? $first['id'],
+        'sessions' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_sessions', 'value') ?? $first['sessions'],
+        'expiry' => cbf_field_get_items('paragraphs_item', $cO, 'field_thinkific_expiry_period', 'value') ?? $first['expiry'],
+        'code' => cbf_field_get_items('paragraphs_item', $cO, 'field_promotional_code', 'value'),
+        'discounted' => cbf_field_get_items('paragraphs_item', $cO, 'field_promotional_price', 'amount'),
+        'group' => cbf_field_get_items('paragraphs_item', $cO, 'field_group_license_count', 'value'),
+      ];
+      if (!$first) {
+        $first = $courseOptions[0];
+      }
+    }
+
+    // Set course options webform component to match node
+    $items = [];
+    foreach ($courseOptions as $i => $cO) {
+      $item = format_string('@i|@name', ['@i' => $i, '@name' => $cO['name'], ]);
+      if ($cO['price']) {
+        $item .= ' - $' . str_replace('.00', '', number_format(((float) $cO['price'])/100, 2));
+      }
+      $items[] = $item;
+    }
+    $entity->webform['components'][$cids['course_selection']]['extra']['items'] = implode("\n", $items);
+    $entity->webform['components'][$cids['course_selection']]['value'] = '0';
+
+    // Create webform conditionals from course options
+    $conditionals = [];
+    $promoted = [];
+    foreach ($courseOptions as $i => $cO) {
+      // Add a conditional for this course option
+      $fullName = format_string(
+        '@course - @option',
+        [
+          '@course' => $entity->title,
+          '@option' => $cO['name'],
+        ]);
+      $conditional = [
+        'nid' => $entity->nid,
+        'rgid' => '' . count($conditionals),
+        'andor' => null,
+        'weight' => '' . count($conditionals),
+        'rules' => [
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'rid' => '0',
+            'source_type' => 'component',
+            'source' => '' . $cids['course_selection'],
+            'operator' => 'equal',
+            'value' => '' . $i,
+          ],
+        ],
+        'actions' => [
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '0',
+            'target_type' => 'component',
+            'target' => '' . $cids['civicrm_1_contribution_1_contribution_total_amount'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => number_format(((float) $cO['price'])/100, 2),
+          ],
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '1',
+            'target_type' => 'component',
+            'target' => '' . $cids['civicrm_1_contribution_1_contribution_source'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => $fullName,
+          ],
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '2',
+            'target_type' => 'component',
+            'target' => '' . $cids['civicrm_1_activity_1_activity_subject'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => $fullName,
+          ],
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '3',
+            'target_type' => 'component',
+            'target' => '' . $cids['civicrm_1_activity_1_cg30_custom_154'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => $cO['id'],
+          ],
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '4',
+            'target_type' => 'component',
+            'target' => '' . $cids['expiry'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => $cO['expiry'],
+          ],
+          [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'aid' => '5',
+            'target_type' => 'component',
+            'target' => '' . $cids['civicrm_1_activity_1_cg32_custom_163'],
+            'invert' => '0',
+            'action' => 'set',
+            'argument' => '' . $cO['group'],
+          ],
+        ],
+      ];
+      if ($cO['code']) {
+        $promoted[] = $i;
+        // Add a conditional for the promotional price
+        $conditionals[] = $conditional;
+        $conditional = [
+          'nid' => $entity->nid,
+          'rgid' => '' . count($conditionals),
+          'andor' => 'and',
+          'weight' => '' . count($conditionals),
+          'rules' => [
+            [
+              'nid' => $entity->nid,
+              'rgid' => '' . count($conditionals),
+              'rid' => '0',
+              'source_type' => 'component',
+              'source' => '' . $cids['course_selection'],
+              'operator' => 'equal',
+              'value' => '' . $i,
+            ],
+            [
+              'nid' => $entity->nid,
+              'rgid' => '' . count($conditionals),
+              'rid' => '1',
+              'source_type' => 'component',
+              'source' => '' . $cids['promotional_code'],
+              'operator' => 'equal',
+              'value' => '' . check_plain($cO['code']),
+            ],
+          ],
+          'actions' => [
+            [
+              'nid' => $entity->nid,
+              'rgid' => '' . count($conditionals),
+              'aid' => '0',
+              'target_type' => 'component',
+              'target' => '' . $cids['civicrm_1_contribution_1_contribution_total_amount'],
+              'invert' => '0',
+              'action' => 'set',
+              'argument' => number_format(((float) $cO['discounted'])/100, 2),
+            ],
+          ],
+        ];
+      }
+      $conditionals[] = $conditional;
+    }
+    // Add a conditional to show the promotional code component
+    $conditional = [
+      'nid' => $entity->nid,
+      'rgid' => '' . count($conditionals),
+      'andor' => (count($promoted) > 1) ? 'or' : '',
+      'weight' => '' . count($conditionals),
+      'rules' => [],
+      'actions' => [
+        [
+          'nid' => $entity->nid,
+          'rgid' => '' . count($conditionals),
+          'aid' => '0',
+          'target_type' => 'component',
+          'target' => '' . $cids['promotional_code'],
+          'invert' => '0',
+          'action' => 'show',
+          'argument' => '',
+        ],
+      ],
+    ];
+    if ($promoted) {
+      // Add a condition for each $promoted option
+      foreach ($promoted as $i) {
+        $conditional['rules'][] = [
+          'nid' => $entity->nid,
+          'rgid' => '' . count($conditionals),
+          'rid' => '' . count($conditional['rules']),
+          'source_type' => 'component',
+          'source' => '' . $cids['course_selection'],
+          'operator' => 'equal',
+          'value' => '' . $i,
+        ];
+      }
+    }
+    else {
+      // Add a condition for the empty option - hiding the promotional code always
+      $conditional['rules'][] = [
+        'nid' => $entity->nid,
+        'rgid' => '' . count($conditionals),
+        'rid' => '0',
+        'source_type' => 'component',
+        'source' => '' . $cids['course_selection'],
+        'operator' => 'empty',
+        'value' => '',
+      ];
+    }
+    $conditionals[] = $conditional;
+
+    $entity->webform['conditionals'] = $conditionals;
+  }
+}
+
+/*
+ * Implements hook_form_alter().
+ *
+ * "Perform alterations before a form is rendered"
+ *
+ * Add a CAPTCHA if the price is non-zero
+ */
+function cbf_course_form_alter(&$form, &$form_state, $form_id) {
+
+  $nodeType = $form['#node']->type ?? false;
+  if ($nodeType == 'course') {
+    $price = $form_state['input']['submitted']['options_and_price']['civicrm_1_contribution_1_contribution_total_amount'] ?? 0;
+    if ($price > 0) {
+      $form['payment_captcha_protection'] = [
+        '#type' => 'captcha',
+        '#captcha_type' => 'default',
+      ];
+    }
+  }
+}
+
+/*
+ * Implements hook_webform_submission_presave()
+ *
+ * "Modify a Webform submission, prior to saving it in the database."
+ *
+ * Group Licenses: the instructions and data saved into the CiviCRM Activity
+ * vary depending on whether this is a Group License registration
+ */
+function cbf_course_webform_submission_presave($node, &$submission) {
+
+  if ($node->type == 'course') {
+    // Get the component IDs from their form keys
+    $cids = [];
+    foreach ($submission->data as $cid => $_) {
+      $formKey = $node->webform['components'][$cid]['form_key'];
+      $cids[$formKey] = $cid;
+    }
+
+    $group = reset($submission->data[$cids['civicrm_1_activity_1_cg32_custom_163']]);
+    if ($group) {
+
+      $expiry = reset($submission->data[$cids['expiry']]);
+      $expiryDate = date('Y-m-d H:i:s', strtotime($expiry));
+
+      $token = drupal_random_key(16);
+      $courseArg = preg_replace('/[ "]+/', '+', $node->title);
+      $groupText = format_string(
+        reset($submission->data[$cids['group_license_instructions']]),
+        [
+          '@course' => $courseArg,
+          '@group' => $token,
+          '@expiry' => $expiry,
+        ]);
+    }
+    else {
+      $expiryDate = '';
+      $token = '';
+      $groupText = '';
+    }
+
+    $submission->data[$cids['civicrm_1_activity_1_cg32_custom_162']] = [$expiryDate];
+    $submission->data[$cids['civicrm_1_activity_1_cg32_custom_161']] = [$token];
+    $submission->data[$cids['group_license_instructions']] = [$groupText];
+  }
+}
+
+/*
+ * Implements hook_webform_submission_insert()
+ *
+ * Respond to a Webform submission being inserted.
+ *
+ * Note that this hook is called after a submission has already been saved to
+ * the database. If needing to modify the submission prior to insertion, use
+ * hook_webform_submission_presave().
+ */
+function cbf_course_webform_submission_insert($node, $submission) {
+
+  if ($node->type == 'course') {
+    // Get data from the submission
+    $data = [];
+    foreach ($submission->data as $cid => $value) {
+      $formKey = $node->webform['components'][$cid]['form_key'];
+      if (!is_array($value) || count($value) != 1) {
+        $data[$formKey] = $value;
+      }
+      else {
+        $data[$formKey] = reset($value);
+      }
+    }
+    $pathway = cbf_field_get_items('node', $node, 'field_training_pathway', 'entity');
+
+    $result = cbf_course_enrolment(
+      $data['civicrm_1_contact_1_contact_first_name'],
+      $data['civicrm_1_contact_1_contact_last_name'],
+      $data['civicrm_1_contact_1_email_email'],
+      $data['civicrm_1_contact_1_contact_existing'],
+      $data['civicrm_1_activity_1_cg30_custom_154'],
+      format_string("{$node->title}"),
+      $data['civicrm_1_activity_1_activity_subject'],
+      $data['expiry'],
+      $data['group_license_instructions'],
+      $pathway->name,
+      $pathway->description);
+
+    watchdog(
+      'CBF',
+      'Thinkific enrolment: ' . implode('. ', $result['enrolment']['progress']),
+      null,
+      $result['enrolment']['status'] != 'Success' ? WATCHDOG_ERROR : WATCHDOG_INFO
+      );
+    if ($result['enrolment']['status'] != 'Success') {
+      drupal_set_message(
+        'Unfortunately we had a technical issue registering you in this course. We will complete the process manually and advise you when that is done.',
+        'error'
+        );
+    }
+    if (!$result['email']) {
+      drupal_set_message(
+        'We failed sending you a confirmation email containing these instructions. Please copy the instructions on this page, and visit the Start Course link to ensure you can access the course.',
+        'error');
+    }
+  }
+}
+
+/*
+ * Enrol a contact in a Course
+ */
+function cbf_course_enrolment($first, $last, $email, $id, $course, $courseName, $courseOption, $expiry, $groupLicenceInstructions, $pathwayName, $pathwayDescription) {
+
+  $result = [];
+
+  $result['enrolment'] = cbf_course_thinkific_enrolment($first, $last, $email, $id, [], [], [$course], $expiry);
+
+  if ($result['enrolment']['status'] == 'Success') {
+    $result['email'] = cbf_civicrm_send_email(
+      '"Do not reply" <do-not-reply@citybibleforum.org>',
+      format_string('@first @last', ['@first' => $first, '@last' => $last,]),
+      $email,
+      "Enrolled in '$courseName'",
+      'Course registration - system use only',
+      [
+        '@title' => $courseName,
+        '@course' => $courseOption,
+        '@link' => "https://citybible.thinkific.com/users/express_signin?email=$email",
+        '!group' => $groupLicenceInstructions,
+        '@pathway' => $pathwayName,
+        '!pathway_description' => $pathwayDescription,
+      ]);
+  }
+  else {
+    $errors = ['Thinkific enrolment: ' . implode('. ', $result['enrolment']['progress']),];
+    $result['failure notification'] = cbf_course_failed_enrolment($first, $last, $email, $id, $courseName, $courseOption, $errors);
+  }
+
+  return $result;
+}
+
+/*
+ * Announce the failure of a Course enrolment by a contact
+ */
+function cbf_course_failed_enrolment($first, $last, $email, $id, $courseName, $courseOption, $errors) {
+
+  $errorText = implode('</li><li>', $errors);
+  $errorText = '<ul><li>' . $errorText . '</li></ul>';
+
+  $emailStatus = cbf_civicrm_send_email(
+    '"Do not reply" <do-not-reply@citybibleforum.org>',
+    format_string('@first @last', ['@first' => $first, '@last' => $last,]),
+    $email,
+    "Failed to register you for '$courseOption'",
+    'Course registration failed - system use only',
+    [
+      '@title' => $courseName,
+      '@course' => $courseOption,
+    ]);
+
+  cbf_civicrm_send_email(
+    '"Do not reply" <do-not-reply@citybibleforum.org>',
+    'Course support',
+    'course-support@citybibleforum.org',
+    "Failed to register contact for '$courseOption'",
+    'Course registration failed - Course Support - system use only',
+    [
+      '@first' => $first,
+      '@last' => $last,
+      '@email' => $email,
+      '@id' => $id,
+      '@title' => $courseName,
+      '@course' => $courseOption,
+      '!errors' => $errorText,
+    ]);
+
+  return $emailStatus;
+}
+
+/*
+ * Complete the participation of a contact in a Group Licence
+ */
+function cbf_course_group_license_participation($first, $last, $email, $id, $token, $course, $courseName, $expiry) {
+
+  $enrolment = cbf_course_thinkific_enrolment($first, $last, $email, $id, [], [], [$course], $expiry);
+
+  if ($enrolment['status'] == 'Success') {
+    $emailStatus = cbf_civicrm_send_email(
+      '"Do not reply" <do-not-reply@citybibleforum.org>',
+      format_string('@first @last', ['@first' => $first, '@last' => $last,]),
+      $email,
+      "Enrolled in '$courseName'",
+      'Course group licence participation - system use only',
+      [
+        '@course' => $courseName,
+        '@link' => "https://citybible.thinkific.com/users/express_signin?email=$email",
+      ]);
+
+    if ($emailStatus) {
+      return "Contact $id now participates in Group Licence $token, and we have notified them at $email";
+    }
+    else {
+      return "Failed to email contact $id at $email that their request to participate in Group Licence $token succeeded";
+    }
+  }
+  else {
+    $errors = ["Unfortunately, we had a technical problem while registering you. We will complete the process manually and advise you when that is done."];
+    return cbf_course_failed_group_license_participation($first, $last, $email, $id, $token, $courseName, $errors, $enrolment['progress']);
+  }
+}
+
+/*
+ * Announce the failure of an attempted participation by a contact in a Group
+ * Licence
+ */
+function cbf_course_failed_group_license_participation($first, $last, $email, $id, $token, $courseName, $errors, $internalErrors = []) {
+
+  $errorText = implode('</li><li>', $errors);
+  $errorText = '<ul><li>' . $errorText . '</li></ul>';
+
+  $emailStatus = cbf_civicrm_send_email(
+    '"Do not reply" <do-not-reply@citybibleforum.org>',
+    format_string('@first @last', ['@first' => $first, '@last' => $last,]),
+    $email,
+    "Failed to include you in Group Licence for '$courseName'",
+    'Course group licence participation failed - system use only',
+    [
+      '@course' => $courseName,
+      '!errors' => $errorText,
+    ]);
+
+  $errorText = implode('</li><li>', array_merge($errors, $internalErrors));
+  $errorText = '<ul><li>' . $errorText . '</li></ul>';
+
+  cbf_civicrm_send_email(
+    '"Do not reply" <do-not-reply@citybibleforum.org>',
+    'Course support',
+    'course-support@citybibleforum.org',
+    "Failed to include contact in Group Licence for '$courseOption'",
+    'Course group licence participation failed - Course Support - system use only',
+    [
+      '@first' => $first,
+      '@last' => $last,
+      '@email' => $email,
+      '@id' => $id,
+      '@course' => $courseName,
+      '!errors' => $errorText,
+    ]);
+
+  if ($emailStatus) {
+    return "Notified the contact at $email that their request to participate in the Group Licence $token failed";
+  }
+  else {
+    return "Failed to email the contact at $email that their request to participate in Group Licence $token failed with errors: "
+      . implode(', ', $errors);
+  }
+}
+
+function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bundles, $courses, $expiry) {
+
+  $api = 'https://api.thinkific.com/api/public/v1/';
+  $headers = [
+    'X-Auth-API-Key' => variable_get('cbf_thinkific_api'),
+    'X-Auth-Subdomain' => variable_get('cbf_thinkific_subdomain'),
+    'Content-Type' => 'application/json',
+  ];
+  $thinkificDateFormat = 'Y-m-d\TH:i:s\Z';
+  $activation_time = new DateObject(strtotime('now'), 'UTC');
+  $activation_time = $activation_time->format($thinkificDateFormat);
+  $expiry_time = new DateObject(strtotime($expiry), 'UTC');
+  $expiry_time = $expiry_time->format($thinkificDateFormat);
+
+  $steps = [
+    'find user' => [
+      'action' => 'find user',
+      'id' => $email,
+      'method' => 'GET',
+      'endpoint' => 'users?query[email]=' . urlencode($email),
+    ],
+    'create user' => [
+      'action' => 'create user',
+      'id' => $email,
+      'method' => 'POST',
+      'endpoint' => 'users',
+      'data' => [
+        'first_name' => $first,
+        'last_name' => $last,
+        'email' => $email,
+      ],
+    ],
+  ];
+  foreach ($groups as $group) {
+    $steps["add user to group '$group'"] = [
+      'action' => 'add user to group',
+      'id' => $group,
+      'method' => 'POST',
+      'endpoint' => 'group_users',
+      'data' => [
+        'user_id' => '',
+        'group_names' => [$group],
+      ],
+    ];
+  }
+  foreach ($bundles as $bundle) {
+    $steps["enrol user in bundle $bundle"] = [
+      'action' => 'enrol user in bundle',
+      'id' => $bundle,
+      'method' => 'POST',
+      'endpoint' => 'bundles/' . $bundle . '/enrollments',
+      'data' => [
+        'user_id' => '',
+        'activated_at' => $activation_time,
+        'expiry_date' => $expiry_time,
+      ],
+    ];
+  }
+  foreach ($courses as $course) {
+    $steps["enrol user in course $course"] = [
+      'action' => 'enrol user in course',
+      'id' => $course,
+      'method' => 'POST',
+      'endpoint' => 'enrollments',
+      'data' => [
+        'course_id' => $course . '',
+        'user_id' => '',
+        'activated_at' => $activation_time,
+        'expiry_date' => $expiry_time,
+      ],
+    ];
+  }
+  if (is_numeric($id)) {
+    $steps['create user']['data']['external_id'] = $id . '';
+  }
+
+  $result = [
+    'progress' => [],
+    'thinkific' => [
+      'user' => '',
+      'groups' => [],
+      'bundles' => [],
+      'courses' => [],
+    ],
+  ];
+
+  foreach ($steps as $stepName => $step) {
+
+    if ($step['action'] == 'create user' && $result['thinkific']['user']) {
+      // Skip creating a user if we have found one
+    }
+    else {
+
+      if (isset($step['data']['user_id']) && $result['thinkific']['user']) {
+        $step['data']['user_id'] = $result['thinkific']['user'] . '';
+      }
+
+      $httpOptions = [
+        'headers' => $headers,
+        'method' => $step['method'],
+      ];
+      if (isset($step['data'])) {
+        $httpOptions['data'] = json_encode($step['data']);
+      }
+      $httpResult = drupal_http_request($api . $step['endpoint'], $httpOptions);
+      $httpResponse = json_decode($httpResult->data);
+
+      switch ($httpResult->code) {
+        case 200: // OK
+        case 201: // Created
+        case 202: // Created asynchronously
+          switch ($step['action']) {
+            case 'find user':
+              if (empty($httpResponse->items)) {
+                $result['progress'][] = "No existing user for {$email}";
+              }
+              else {
+                $result['thinkific']['user'] = $httpResponse->items[0]->id;
+                $result['progress'][] = "User {$email} found";
+              }
+              break;
+
+            case 'create user':
+              $result['thinkific']['user'] = $httpResponse->id;
+              $result['progress'][] = "User {$email} created";
+              break;
+
+            case 'add user to group':
+              $result['thinkific']['groups'][] = $step['id'];
+              $result['progress'][] = "User {$email} added to group '{$step['id']}'";
+              break;
+
+            case 'enrol user in bundle':
+              $result['thinkific']['bundles'][] = $step['id'];
+              $result['progress'][] = "User {$email} enrolled in bundle {$step['id']}";
+              break;
+
+            case 'enrol user in course':
+              $result['thinkific']['courses'][] = $httpResponse->course_name;
+              $result['progress'][] = "User {$email} enrolled in course '{$httpResponse->course_name}'";
+              break;
+          }
+          break;
+
+        case 400: // Bad request
+        case 403: // Access forbidden
+        case 404: // Not found
+        case 422: // Validation error
+        case 500: // Internal server error
+        default:  // Unexpected error
+          switch ($step['action']) {
+            case 'add user to group':
+              if (
+              $httpResult->code == 400 &&
+              stripos($httpResponse->error ?? '', 'already a part of this group') !== false) {
+                $result['thinkific']['groups'][] = $step['id'];
+                $result['progress'][] = "User {$email} already a part of group '{$step['id']}'";
+                break 2; // break from switch on $httpResult->code
+              }
+              break;
+          }
+          $result['progress'][] = "Failed to $stepName";
+          $result['progress'][] = "HTTP code was {$httpResult->code}";
+          $result['progress'][] = "HTTP response was '" . print_r($httpResponse, true) . "'";
+          $result['status'] = 'Failure';
+
+          CRM_Core_Error::debug_var('Thinkific enrolment failed', implode(', ', $result['progress']));
+          return $result;
+      }
+    }
+  }
+
+  $result['status'] = 'Success';
+
+  CRM_Core_Error::debug_var('Thinkific enrolment succeeded', implode(', ', $result['progress']));
+  return $result;
+}

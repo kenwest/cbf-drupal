@@ -17,6 +17,7 @@ function _cbf_civicrm_email_audience($params, $context) {
           'colour' => '#1c9cd6',
         ],
       ],
+      'cache' => [],
     ];
 
     foreach (domain_list_by_machine_name() as $domain) {
@@ -36,8 +37,8 @@ function _cbf_civicrm_email_audience($params, $context) {
         $h = str_replace('.', '\.', $h);
         $audienceData['audiences'][$domainAudience]['patterns'] = [
           'colour' =>        '!' . '(color: |")' . $audienceData['audiences'][$domainAudience]['colour'] . '(;|")' . '!i',
-          '2' =>             '!' . ' href=("|\')(http(s)?:)?//' . $h . '("|\'|/)' . '!i',
-          '3' =>             '!' . '^' . $h . '$' . '!i',
+          '20' =>            '!' . ' href=("|\')(http(s)?:)?//' . $h . '("|\'|/)' . '!i',
+          '30' =>            '!' . '^' . $h . '$' . '!i',
           'email domain' =>  '!' . '(@)' . $h . '(>|$)' . '!i',
           'email name' =>    '!' . '(".*)(' . $audienceData['audiences'][$domainAudience]['name'] . ')(.*")' . '!i',
           'html' =>          '!' . ' (href|src)=("|\')(http(s)?:)?//' . $h . '("|\'|/)' . '!i',
@@ -49,18 +50,22 @@ function _cbf_civicrm_email_audience($params, $context) {
     /*
      * We can determine the $audience for the email using one of the following
      * rules ...
-     *  1 - Inspect the Campaign associated with the email for an Audience
-     *       a - For a CiviMail use MailingJob > Mailing > Campaign > Audience
-     *       b - For a Send Email action use Activity > Campaign > Audience
-     *  2 - Inspect the email for HREF links that select an Audience
-     *  3 - Inspect the current domain to see if that selects an Audience
-     *  4 - If the previous rules fail to set an $audience, set it to 'general'
+     *  1   - Inspect the Audience of the Drupal CiviCRM Event
+     *         a - For a Scheduled Reminder sent to a Participant
+     *  2   - Inspect the Campaign associated with the email for an Audience
+     *         a - For a Send Email action use Activity > Campaign > Audience
+     *         b - For a CiviMail use MailingJob > Mailing > Campaign > Audience
+     *         c - For a Scheduled Reminder use Event > Campaign > Audience
+     *  20  - Inspect the email for HREF links that select an Audience
+     *  30  - Inspect the current domain to see if that selects an Audience
+     *  99 - If the previous rules fail to set an $audience, set it to 'general'
      */
 
     /*
      * The $context and $params guide which $audience rules are applicable
      */
     $audienceRule = [];
+    $workflow = $params['workflow'] ?? $params['valueName'] ?? $params['groupName'] ?? '';
     if (empty($context)) {
       /*
        * This function can be called from cbf_civicrm_civicrm_alterMailContent
@@ -70,32 +75,33 @@ function _cbf_civicrm_email_audience($params, $context) {
       if (isset($params['mailingID'])) {
         $context = 'civimail';
       }
+      else if ($workflow) {
+        $context = 'singleEmail';
+      }
       else if (!empty($params['messageTemplateID'])) {
         $context = 'messageTemplate';
-      }
-      else if (!empty($params['valueName'])) {
-        $context = 'singleEmail';
       }
       else {
         $context = 'civimail';
       }
     }
     switch ($context) {
-      case 'civimail':
-        $audienceRule['1.a'] = true;
-        $audienceRule['2'] = true;
-        break;
-
       case 'singleEmail':
-        switch ($params['groupName']) {
-          case 'Activity Email Sender':
-            $audienceRule['1.b'] = true;
-            $audienceRule['2'] = true;
-            $audienceRule['3'] = true;
+        switch ($workflow) {
+          // Scheduled Reminder
+          case 'Scheduled Reminder Sender':
+            $audienceRule['1.a'] = true;
+            $audienceRule['2.c'] = true;
+            $audienceRule['20'] = true;
             break;
-        }
 
-        switch ($params['valueName']) {
+          // Send Email action
+          case 'Activity Email Sender':
+            $audienceRule['2.a'] = true;
+            $audienceRule['20'] = true;
+            $audienceRule['30'] = true;
+            break;
+
           // Non-batch actions
           case 'case_activity':
           case 'contribution_dupalert':
@@ -113,7 +119,7 @@ function _cbf_civicrm_email_audience($params, $context) {
           case 'pcp_supporter_notify':
           case 'pledge_acknowledge':
           case 'uf_notify':
-            $audienceRule['3'] = true;
+            $audienceRule['30'] = true;
             break;
 
           // Batch actions where 'christian' can be assumed
@@ -123,7 +129,7 @@ function _cbf_civicrm_email_audience($params, $context) {
           case 'membership_autorenew_billing':
           case 'membership_autorenew_cancelled':
           case 'pledge_reminder':
-            $audienceRule['3'] = true;
+            $audienceRule['30'] = true;
             break;
 
           // Offline actions where 'christian' is not offensive if chosen
@@ -132,63 +138,84 @@ function _cbf_civicrm_email_audience($params, $context) {
           case 'event_offline_receipt':
           case 'membership_offline_receipt':
           case 'payment_or_refund_notification':
-            $audienceRule['3'] = true;
+            $audienceRule['30'] = true;
+            break;
+
+          // CBF-generated online action
+          case 'cbf_civicrm_send_email':
+            $audienceRule['30'] = true;
             break;
         }
         break;
 
+      case 'civimail':
+        $audienceRule['2.b'] = true;
+        $audienceRule['20'] = true;
+        break;
+
       case 'messageTemplate':
         /*
-         * No staff involvement so just use Rule 3
+         * It's too early to set an $audience, knowing that we'll return here
+         * later with context 'singleEmail'.
          */
-        $audienceRule['3'] = true;
-        break;
+        $audienceData = null;
+        return $audienceData;
     }
 
     $audience = '';
 
     /*
      * If applicable, try $audience rule 1.a:
-     * For a CiviMail use MailingJob > Mailing > Campaign > Audience
+     * Inspect the Audience of the Drupal CiviCRM Event
+     * For a Scheduled Reminder sent to a Participant
      */
     if (empty($audience) && isset($audienceRule['1.a'])) {
-      if (!empty($params['campaign_id'])) {
-        $audienceRule['1'] = [
-          'key' => 'campaign_type_id.name',
-          'entity' => 'Campaign',
-          'id' => $params['campaign_id'],
-        ];
-      }
-      else if (!empty($params['mailingID'])) {
-        $audienceRule['1'] = [
-          'key' => 'campaign_id.campaign_type_id.name',
-          'entity' => 'Mailing',
-          'id' => $params['mailingID'],
-        ];
-      }
-      else if (!empty($params['job_id'])) {
-        $audienceRule['1'] = [
-          'key' => 'mailing_id.campaign_id.campaign_type_id.name',
-          'entity' => 'MailingJob',
-          'id' => $params['job_id'],
-        ];
+      $entityType = $params['entity'] ?? '';
+      $entityId = $params['entity_id'] ?? '';
+      if ($entityType == 'action_schedule' && $entityId) {
+        try {
+          $actionSchedules = \Civi\Api4\ActionSchedule::get(FALSE)
+          ->addSelect('entity_value')
+          ->addWhere('id', '=', $entityId)
+          ->addWhere('mapping_id', '=', 3) // Event
+          ->setLimit(1)
+          ->execute();
+          foreach ($actionSchedules as $actionSchedule) {
+            $events = entity_load('civicrm_event', $actionSchedule['entity_value']);
+            foreach ($events as $event) {
+              $audienceTerm = field_get_items('civicrm_event', $event, 'taxonomy_vocabulary_3');
+              $tid = $audienceTerm[0]['tid'] ?? '';
+              switch ($tid) {
+                case '47':
+                  $audience = 'christian';
+                  break;
+                case '48':
+                  $audience = 'general';
+                  break;
+              }
+              $audienceData['cache']['event'] = $event->id;
+            }
+          }
+        } catch (\API_Exception $e) {
+          ;
+        }
       }
     }
 
     /*
-     * If applicable, try $audience rule 1.b:
+     * If applicable, try $audience rule 2.a:
      * For a Send Email action use Activity > Campaign > Audience
      */
-    if (empty($audience) && isset($audienceRule['1.b'])) {
+    if (empty($audience) && isset($audienceRule['2.a'])) {
       if (!empty($params['campaign_id'])) {
-        $audienceRule['1'] = [
+        $audienceRule['2'] = [
           'key' => 'campaign_type_id.name',
           'entity' => 'Campaign',
           'id' => $params['campaign_id'],
         ];
       }
       else if (!empty($params['activityId'])) {
-        $audienceRule['1'] = [
+        $audienceRule['2'] = [
           'key' => 'campaign_id.campaign_type_id.name',
           'entity' => 'Activity',
           'id' => $params['activityId'],
@@ -197,17 +224,59 @@ function _cbf_civicrm_email_audience($params, $context) {
     }
 
     /*
-     * If applicable, try $audience rule 1:
+     * If applicable, try $audience rule 2.b:
+     * For a CiviMail use MailingJob > Mailing > Campaign > Audience
+     */
+    if (empty($audience) && isset($audienceRule['2.b'])) {
+      if (!empty($params['campaign_id'])) {
+        $audienceRule['2'] = [
+          'key' => 'campaign_type_id.name',
+          'entity' => 'Campaign',
+          'id' => $params['campaign_id'],
+        ];
+      }
+      else if (!empty($params['mailingID'])) {
+        $audienceRule['2'] = [
+          'key' => 'campaign_id.campaign_type_id.name',
+          'entity' => 'Mailing',
+          'id' => $params['mailingID'],
+        ];
+      }
+      else if (!empty($params['job_id'])) {
+        $audienceRule['2'] = [
+          'key' => 'mailing_id.campaign_id.campaign_type_id.name',
+          'entity' => 'MailingJob',
+          'id' => $params['job_id'],
+        ];
+      }
+    }
+
+    /*
+     * If applicable, try $audience rule 2.c:
+     * For a Scheduled Reminder use Event > Campaign > Audience
+     */
+    if (empty($audience) && isset($audienceRule['2.c'])) {
+      if (!empty($audienceData['cache']['event'])) {
+        $audienceRule['2'] = [
+          'key' => 'campaign_id.campaign_type_id.name',
+          'entity' => 'Event',
+          'id' => $audienceData['cache']['event'],
+        ];
+      }
+    }
+
+    /*
+     * If applicable, try $audience rule 2:
      * Inspect the Campaign associated with the email for an Audience
      */
-    if (empty($audience) && isset($audienceRule['1'])) {
+    if (empty($audience) && isset($audienceRule['2'])) {
       try {
-        $result = civicrm_api3($audienceRule['1']['entity'], 'get', [
+        $result = civicrm_api3($audienceRule['2']['entity'], 'get', [
           'sequential' => 1,
-          'return' => [ $audienceRule['1']['key'] ],
-          'id' => $audienceRule['1']['id'],
+          'return' => [ $audienceRule['2']['key'] ],
+          'id' => $audienceRule['2']['id'],
         ]);
-        $campaignType = $result['values'][0][$audienceRule['1']['key']] ?? '';
+        $campaignType = $result['values'][0][$audienceRule['2']['key']] ?? '';
         switch ($campaignType) {
           case 'Mobilising':
           case 'Equipping':
@@ -226,13 +295,13 @@ function _cbf_civicrm_email_audience($params, $context) {
     }
 
     /*
-     * If applicable, try $audience rule 2:
+     * If applicable, try $audience rule 20:
      * Inspect the email for HREF links that select an Audience
      */
-    if (empty($audience) && isset($audienceRule['2'])) {
+    if (empty($audience) && isset($audienceRule['20'])) {
       $audienceMatches = [];
       foreach ($audienceData['audiences'] as $a => $data) {
-        $audienceMatches[$a] = preg_match($data['patterns']['2'], $params['html']);
+        $audienceMatches[$a] = preg_match($data['patterns']['20'], $params['html']);
       }
 
       foreach ($audienceMatches as $a => $match) {
@@ -249,13 +318,13 @@ function _cbf_civicrm_email_audience($params, $context) {
     }
 
     /*
-     * If applicable, try $audience rule 3:
+     * If applicable, try $audience rule 30:
      * Inspect the current domain to see if that selects an Audience
      */
-    if (empty($audience) && isset($audienceRule['3'])) {
+    if (empty($audience) && isset($audienceRule['30'])) {
       $audienceMatches = [];
       foreach ($audienceData['audiences'] as $a => $data) {
-        $audienceMatches[$a] = preg_match($data['patterns']['3'], $_SERVER['HTTP_HOST']);
+        $audienceMatches[$a] = preg_match($data['patterns']['30'], $_SERVER['HTTP_HOST']);
       }
 
       foreach ($audienceMatches as $a => $match) {
@@ -272,7 +341,7 @@ function _cbf_civicrm_email_audience($params, $context) {
     }
 
     /*
-     * If applicable, try $audience rule 4:
+     * If applicable, try $audience rule 99:
      * If $audience is not set, set it to 'general'
      */
     if (empty($audience)) {
@@ -441,7 +510,9 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
  */
 function cbf_civicrm_civicrm_alterMailContent(&$content) {
   $audienceData = _cbf_civicrm_email_audience($content, null);
-  _cbf_civicrm_amend_email($content['html'], $content['text'], $audienceData);
+  if ($audienceData) {
+    _cbf_civicrm_amend_email($content['html'], $content['text'], $audienceData);
+  }
 }
 
 /*
@@ -451,12 +522,15 @@ function cbf_civicrm_civicrm_alterMailContent(&$content) {
  *  left off so CiviMail can add a tracking token to the email.
  */
 function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
+
+  $workflow = $params['workflow'] ?? $params['valueName'] ?? $params['groupName'] ?? '';
+
   // Don't send event confirmations when a Pending attendee is marked as Attended after the event
   $now = date('Y-m-d G:i:s');
-  if (isset($params['valueName']) && $params['valueName'] == 'event_online_receipt'
-    && isset($params['tplParams']['participant_status']) && $params['tplParams']['participant_status'] == 'Attended'
-    && isset($params['tplParams']['event']['is_pay_later']) && $params['tplParams']['event']['is_pay_later'] == 1
-    && isset($params['tplParams']['event']['end_date']) && $params['tplParams']['event']['end_date'] < $now) {
+  if ($workflow == 'event_online_receipt'
+      && isset($params['tplParams']['participant_status']) && $params['tplParams']['participant_status'] == 'Attended'
+      && isset($params['tplParams']['event']['is_pay_later']) && $params['tplParams']['event']['is_pay_later'] == 1
+      && isset($params['tplParams']['event']['end_date']) && $params['tplParams']['event']['end_date'] < $now) {
     $params['abortMailSend'] = 1;
     return;
   }
@@ -568,8 +642,8 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
    * An example of this is the Staff Contact form which sends a case_activity
    * singleEmail to the staff member addressed by the form.
    */
-  if ($context == 'singleEmail' && $params['valueName'] == 'case_activity' && $params['contactId']) {
-    $email = \Civi\Api4\Email::get()
+  if ($context == 'singleEmail' && $workflow == 'case_activity' && $params['contactId']) {
+    $email = \Civi\Api4\Email::get(false)
       ->addWhere('contact_id', '=', $params['contactId'])
       ->addWhere('location_type_id:name', '=', 'Staff')
       ->setLimit(1)
@@ -606,7 +680,7 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
       if (isset($params['tplParams'])) {
         if (!isset($params['tplParams']['title'])) {
           $htmlMessage = preg_replace('!class="title-field">  </p>!i', 'class="title-field"> ' . $params['subject'] . ' </p>', $htmlMessage);
-        } elseif ($params['tplParams']['title'] == 'Contribution' && isset($params['valueName']) && $params['valueName'] == 'contribution_online_receipt') {
+        } elseif ($params['tplParams']['title'] == 'Contribution' && $workflow == 'contribution_online_receipt') {
           $htmlMessage = preg_replace('!class="title-field"> Contribution </p>!i', 'class="title-field"> ' . $params['subject'] . ' </p>', $htmlMessage);
         }
       }
@@ -619,48 +693,46 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
      */
     $taxInvoice = '<tr><td>This email serves as a Tax Invoice. Amounts quoted include GST.</td></tr>';
     $isTaxInvoice = false;
-    if (isset($params['valueName'])) {
-      switch ($params['valueName']) {
-        case 'contribution_offline_receipt':
-        case 'contribution_online_receipt':
-          if (isset($params['tplParams']['contributionTypeName'])) {
-            $financialType = $params['tplParams']['contributionTypeName'];
-            $nonZero = !empty($params['tplParams']['amount']);
+    switch ($workflow) {
+      case 'contribution_offline_receipt':
+      case 'contribution_online_receipt':
+        if (isset($params['tplParams']['contributionTypeName'])) {
+          $financialType = $params['tplParams']['contributionTypeName'];
+          $nonZero = !empty($params['tplParams']['amount']);
+        }
+        else {
+          try {
+            $contribution = civicrm_api3('Contribution', 'get', array(
+              'sequential' => 1,
+              'id' => $params['contributionId'],
+            ));
+            $financialType = $contribution['values'][0]['financial_type'];
+            $nonZero = !empty(floatval($contribution['values'][0]['total_amount']));
+          } catch (CiviCRM_API3_Exception $e) {
+            $financialType = '';
+            $nonZero = false;
           }
-          else {
-            try {
-              $contribution = civicrm_api3('Contribution', 'get', array(
-                'sequential' => 1,
-                'id' => $params['contributionId'],
-              ));
-              $financialType = $contribution['values'][0]['financial_type'];
-              $nonZero = !empty(floatval($contribution['values'][0]['total_amount']));
-            } catch (CiviCRM_API3_Exception $e) {
-              $financialType = '';
-              $nonZero = false;
-            }
-          }
-          switch ($financialType) {
-            case 'Event Fee':
-            case 'Sales':
-              $isTaxInvoice = $nonZero;
-              break;
-          }
-          break;
+        }
+        switch ($financialType) {
+          case 'Event Fee':
+          case 'Sales':
+            $isTaxInvoice = $nonZero;
+            break;
+        }
+        break;
 
-        case 'event_offline_receipt':
-        case 'event_online_receipt':
-          if (isset($params['tplParams']['amount'])) {
-            $isTaxInvoice = !empty($params['tplParams']['amount']);
-          }
-          elseif (isset($params['tplParams']['fee'])) {
-            $isTaxInvoice = !empty($params['tplParams']['fee']);
-          }
-          else {
-            $isTaxInvoice = true;
-          }
-          break;
-      }
+      case 'event_offline_receipt':
+      case 'event_online_receipt':
+        if (isset($params['tplParams']['amount'])) {
+          $isTaxInvoice = !empty($params['tplParams']['amount']);
+        }
+        elseif (isset($params['tplParams']['fee'])) {
+          $isTaxInvoice = !empty($params['tplParams']['fee']);
+        }
+        else {
+          $isTaxInvoice = true;
+        }
+        break;
     }
     $htmlMessage = preg_replace('!<tax-invoice/>!i', $isTaxInvoice ? $taxInvoice : '', $htmlMessage);
 
@@ -673,15 +745,13 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
      * Since the contribution was not made through a contribution page, certain
      * items won't appear on the receipt. The HTML for these needs to be generated.
      */
-    if (isset($params['valueName'])) {
-      switch ($params['valueName']) {
-        case 'contribution_online_receipt':
-          if (stripos($htmlMessage, '<no-contribution-page/>') !== false) {
-            $noContributionPage = _cbf_civicrm_civicrm_no_contribution_page($params);
-            $htmlMessage = preg_replace('!<no-contribution-page/>!i', $noContributionPage, $htmlMessage);
-          }
-          break;
-      }
+    switch ($workflow) {
+      case 'contribution_online_receipt':
+        if (stripos($htmlMessage, '<no-contribution-page/>') !== false) {
+          $noContributionPage = _cbf_civicrm_civicrm_no_contribution_page($params);
+          $htmlMessage = preg_replace('!<no-contribution-page/>!i', $noContributionPage, $htmlMessage);
+        }
+        break;
     }
 
     /*
@@ -697,12 +767,73 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
      * replace 'THINKIFIC_EMAIL' with the email address. This will personalise
      * the user's Express Sign On link.
      */
-    switch ($params['valueName'] ?? '') {
+    switch ($workflow) {
       case 'contribution_offline_receipt':
       case 'contribution_online_receipt':
-        $htmlMessage = preg_replace('#THINKIFIC_EMAIL#', $params['toEmail'], $htmlMessage);
+        $htmlMessage = preg_replace('#THINKIFIC_EMAIL#', $params['toEmail'], $htmlMessage) ?? $htmlMessage;
+        if (isset($params['text'])) {
+          $params['text'] = preg_replace('#THINKIFIC_EMAIL#', $params['toEmail'], $params['text']) ?? $params['text'];
+        }
         break;
     }
+
+    /*
+     * When sending a Scheduled Reminder to a Zoom registrant, replace
+     * 'ZOOM_PARTICIPANT_JOIN_LINK' with the link provided by Zoom. Note that
+     * the Event Id will have been cached in this case.
+     */
+    if ($workflow == 'Scheduled Reminder Sender') {
+      $needle = 'ZOOM_PARTICIPANT_JOIN_LINK';
+      $select = 'zoom_data_sync.Zoom_Participant_Join_Link';
+      $contactId = $params['contactId'] ?? '';
+      $eventId = $audienceData['cache']['event'] ?? '';
+      if ($contactId && $eventId && strpos($htmlMessage, $needle) !== false) {
+        try {
+          $participants = \Civi\Api4\Participant::get(false)
+          ->addSelect($select)
+          ->addWhere('contact_id', '=', $contactId)
+          ->addWhere('event_id', '=', $eventId)
+          ->addOrderBy('id', 'DESC') // Assume more recent regos are better
+          ->setLimit(25)
+          ->execute();
+          foreach ($participants as $participant) {
+            if ($participant[$select]) {
+              $htmlMessage = preg_replace("#$needle#", $participant[$select], $htmlMessage) ?? $htmlMessage;
+              if (isset($params['text'])) {
+                $params['text'] = preg_replace("#$needle#", $participant[$select], $params['text']) ?? $params['text'];
+              }
+            }
+            else {
+              $params['abortMailSend'] = 1;
+            }
+            break; // Ignore any other participant records
+          }
+        } catch (\API_Exception $e) {
+          ;
+        }
+      }
+      CRM_Core_Error::debug_var(
+        'Scheduled Reminder Sender',
+        [
+          'contact' => $contactId,
+          'event' => $eventId,
+          'participant' => $participant['id'] ?? 'not set',
+          'zoom link' => $participant[$select] ?? 'not set',
+        ]
+      );
+    }
+
+    /*
+     * Scheduled Reminder uses Smarty engine by default which strips out any
+     * CSS <style> that is defined. {literal} ... {/literal} can be used to
+     * protect the CSS, but if we put this in a template, that template could
+     * be used in another context where Smarty is not used, and the {literal}
+     * tokens remain. If any remain, strip them out, as Smarty would have been
+     * invoked before we get here.
+     *
+     * See https://civicrm.stackexchange.com/questions/17643/scheduled-reminders-email-head-css-attributes-are-being-stripped-out/17962#17962
+     */
+    $htmlMessage = preg_replace('#\{[/]?literal\}#', '', $htmlMessage) ?? $htmlMessage;
 
     $params['html'] = $htmlMessage;
   }
@@ -1048,66 +1179,99 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
        */
       if ($formName == 'CRM_Contribute_Form_Contribution_ThankYou') {
         $thinkificCourses = [
-          10 => null, // Contribution page was used in testing
           15 => [     // Sharing Jesus at Work
             'free' => [
-              'course' => 1150926,
+              'courses' => [1150926],
               'expiry' => '1 month',
             ],
             'paid' => [
-              'course' => 871216,
+              'courses' => [871216],
               'expiry' => '6 months',
             ],
           ],
           18 => [     // Sharing Jesus at Work - group license
-            'course' => 871216,
+            'courses' => [871216],
             'expiry' => '6 months',
           ],
           20 => [     // I am what I do
             'free' => [
-              'course' => 1383094,
+              'courses' => [1383094],
               'expiry' => '1 month',
             ],
             'paid' => [
-              'course' => 990121,
+              'courses' => [990121],
               'expiry' => '6 months',
             ],
           ],
           21 => [     // I am what I do - group license
-            'course' => 990121,
+            'courses' => [990121],
             'expiry' => '6 months',
           ],
           22 => [     // Never more hostile, never more open
             'free' => [
-              'course' => 1447564,
+              'courses' => [1447564],
               'expiry' => '1 month',
             ],
             'paid' => [
-              'course' => 857232,
+              'courses' => [857232],
               'expiry' => '6 months',
             ],
           ],
           23 => [     // Never more hostile, never more open - group license
-            'course' => 857232,
+            'courses' => [857232],
             'expiry' => '6 months',
           ],
+          24 => [     // The Post Covid Playbook
+            'free' => [
+              'courses' => [1575723],
+              'expiry' => '1 month',
+            ],
+            'paid' => [
+              'courses' => [1547489],
+              'expiry' => '6 months',
+            ],
+          ],
+          25 => [     // The Post Covid Playbook - group license
+            'courses' => [1547489],
+            'expiry' => '6 months',
+          ],
+          26 => [     // Finding God in Film
+            'courses' => [857428],
+            'expiry' => '6 months',
+          ],
+          27 => [     // Finding God in Film - group license
+            'courses' => [857428],
+            'expiry' => '6 months',
+          ],
+          1000 => [   // Test data
+            'groups' => ['The Keg'],
+            'bundles' => [50405, 79135],
+            'courses' => [857428, 1547489],
+            'expiry' => '12 months'
+          ],
         ];
-        $thinkificCourse = $thinkificCourses[$form->_id] ?? null;
-        if (isset($thinkificCourse)) {
+        $thinkificCourse = $thinkificCourses[$form->_id] ?? false;
+        if ($form->_amount == 0) {
+          if (isset($thinkificCourse['free'])) {
+            $thinkificCourse = $thinkificCourse['free'];
+          }
+        }
+        else {
+          if (isset($thinkificCourse['paid'])) {
+            $thinkificCourse = $thinkificCourse['paid'];
+          }
+        }
+        if ($thinkificCourse) {
           $bltID = $form->_bltID ?? 5;
           $enrolment = _cbf_civicrm_thinkific_enrolment(
             $form->_params['first_name'],
             $form->_params['last_name'],
             $form->_params["email-{$bltID}"],
             $_SESSION['CiviCRM']['transaction.userID'] ?? $form->_contactID,
-            $thinkificCourse['course'] ?? (
-              $form->_amount == 0
-                ? $thinkificCourse['free']['course']
-                : $thinkificCourse['paid']['course']),
-            $thinkificCourse['expiry'] ?? (
-              $form->_amount == 0
-                ? $thinkificCourse['free']['expiry']
-                : $thinkificCourse['paid']['expiry'])
+            $thinkificCourse['groups'] ?? [],
+            $thinkificCourse['bundles'] ?? [],
+            $thinkificCourse['courses'] ?? [],
+            $thinkificCourse['expiry'] ?? '6 months'
           );
           foreach (['thankyou_text', 'thankyou_footer'] as $tplVar) {
             $form->assign(
@@ -1147,6 +1311,41 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         $fromAddress->setSelected(0);
       }
       break;
+  }
+
+  /*
+   * Add Facebook Pixel events as follows:
+   *  - Donate - on thankyou page of Contributions which are Donations
+   *  - Purchase - on thankyou page of Contributions which are not Donations
+   *  - InitiateCheckout - on register page of Event registrations
+   *  - CompleteRegistration - on thankyou page of Event registrations
+   */
+  if (function_exists('_cbf_facebook_pixel_track')) {
+    switch ($formName) {
+
+      case 'CRM_Contribute_Form_Contribution_ThankYou':
+        $financialTypeId = $form->_values['financial_type_id'];
+        $financialTypes = \Civi\Api4\FinancialType::get(false)
+        ->addSelect('name')
+        ->addWhere('id', '=', $financialTypeId)
+        ->setLimit(1)
+        ->execute();
+        foreach ($financialTypes as $financialType) {
+          if ($financialType['name'] == 'Donation')
+            _cbf_facebook_pixel_track('Donate', $form->_amount);
+            else
+              _cbf_facebook_pixel_track('Purchase', $form->_amount);
+        }
+        break;
+
+      case 'CRM_Event_Form_Registration_Register':
+        _cbf_facebook_pixel_track('InitiateCheckout');
+        break;
+
+      case 'CRM_Event_Form_Registration_ThankYou':
+        _cbf_facebook_pixel_track('CompleteRegistration', $form->_totalAmount);
+        break;
+    }
   }
 }
 
@@ -1928,6 +2127,34 @@ function cbf_civicrm_civicrm_accountPullPreSave($entity, &$data, &$save, &$param
 function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$params) {
   switch ($entity) {
     case 'contact':
+      /* Baulk if all the Contributions for this Contact have
+       *  - the Suppress Xero Invoice is set
+       *  - the contribution is a test
+       *  - the contribution is zero-valued
+       */
+      try {
+        $contributions = \Civi\Api4\Contribution::get(FALSE)
+          ->addWhere('contact_id', '=', $data['contact_id'])
+          ->addClause(
+            'OR',
+            ['Xero_invoice.Suppress_Xero_invoice', '=', 0],
+            ['Xero_invoice.Suppress_Xero_invoice', 'IS NULL'])
+          ->addWhere('is_test', '=', FALSE)
+          ->addWhere('total_amount', '>', 0)
+          ->setLimit(1)
+          ->execute();
+          $save = false;
+        foreach ($contributions as $_) {
+          $save = true;
+        }
+        CRM_Core_Error::debug_var('cbf_civicrm_civicrm_accountPushAlterMapped', [
+          'contact' => $data['contact_id'],
+          'push to Xero' => $save,
+        ]);
+      } catch (\API_Exception $e) {
+        CRM_Core_Error::debug_var('cbf_civicrm_civicrm_accountPushAlterMapped exception', $e);
+      }
+
       // Remove prefixes etc from Contact name
       if ($data['contact_type'] == 'Individual') {
         $params['Name'] = $data['first_name'] . ' ' . $data['last_name'] . ' - ' . $data['contact_id'];
@@ -2347,7 +2574,7 @@ function cbf_civicrm_ministry_team_viewable_fields($team) {
   return $result;
 }
 
-function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $course, $expiry) {
+function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $groups, $bundles, $courses, $expiry) {
   $api = 'https://api.thinkific.com/api/public/v1/';
   $headers = [
     'X-Auth-API-Key' => variable_get('cbf_thinkific_api'),
@@ -2360,109 +2587,165 @@ function _cbf_civicrm_thinkific_enrolment($first, $last, $email, $id, $course, $
   $expiry_time = new DateObject(strtotime($expiry), 'UTC');
   $expiry_time = $expiry_time->format($thinkificDateFormat);
 
+  $steps = [
+    'find user' => [
+      'action' => 'find user',
+      'id' => $email,
+      'method' => 'GET',
+      'endpoint' => 'users?query[email]=' . $email,
+      'data' => [],
+    ],
+    'create user' => [
+      'action' => 'create user',
+      'id' => $email,
+      'method' => 'POST',
+      'endpoint' => 'users',
+      'data' => [
+        'first_name' => $first,
+        'last_name' => $last,
+        'email' => $email,
+      ],
+    ],
+  ];
+  foreach ($groups as $group) {
+    $steps["add user to group '$group'"] = [
+      'action' => 'add user to group',
+      'id' => $group,
+      'method' => 'POST',
+      'endpoint' => 'group_users',
+      'data' => [
+        'user_id' => '',
+        'group_names' => [$group],
+      ],
+    ];
+  }
+  foreach ($bundles as $bundle) {
+    $steps["enrol user in bundle $bundle"] = [
+      'action' => 'enrol user in bundle',
+      'id' => $bundle,
+      'method' => 'POST',
+      'endpoint' => 'bundles/' . $bundle . '/enrollments',
+      'data' => [
+        'user_id' => '',
+        'activated_at' => $activation_time,
+        'expiry_date' => $expiry_time,
+      ],
+    ];
+  }
+  foreach ($courses as $course) {
+    $steps["enrol user in course $course"] = [
+      'action' => 'enrol user in course',
+      'id' => $course,
+      'method' => 'POST',
+      'endpoint' => 'enrollments',
+      'data' => [
+        'course_id' => $course . '',
+        'user_id' => '',
+        'activated_at' => $activation_time,
+        'expiry_date' => $expiry_time,
+      ],
+    ];
+  }
+  if (is_numeric($id)) {
+    $steps['create user']['data']['external_id'] = $id . '';
+  }
+
   $result = [
-    'status' => 'find user',
     'progress' => [],
     'thinkific' => [
       'user' => '',
-      'course' => '',
+      'groups' => [],
+      'bundles' => [],
+      'courses' => [],
     ],
   ];
 
-  while (true) {
-    $steps = [
-      'find user' => [
-        'method' => 'GET',
-        'endpoint' => 'users?query[email]=' . $email,
-        'data' => [],
-      ],
-      'create user' => [
-        'method' => 'POST',
-        'endpoint' => 'users',
-        'data' => [
-          'first_name' => $first,
-          'last_name' => $last,
-          'email' => $email,
-        ],
-      ],
-      'find course' => [
-        'method' => 'GET',
-        'endpoint' => 'courses/' . $course,
-        'data' => [],
-      ],
-      'enrol user' => [
-        'method' => 'POST',
-        'endpoint' => 'enrollments',
-        'data' => [
-          'course_id' => $course . '',
-          'user_id' => $result['thinkific']['user'] . '',
-          'activated_at' => $activation_time,
-          'expiry_date' => $expiry_time,
-        ],
-      ],
-    ];
-    if (is_numeric($id)) {
-      $steps['create user']['data']['external_id'] = $id . '';
+  foreach ($steps as $stepName => $step) {
+
+    if ($step['action'] == 'create user' && $result['thinkific']['user']) {
+      // Skip creating a user if we have found one
     }
+    else {
 
-    $step = $steps[$result['status']];
-    $httpResult = drupal_http_request(
-      $api . $step['endpoint'],
-      [
-        'headers' => $headers,
-        'method' => $step['method'],
-        'data' => json_encode($step['data']),
-      ]
-    );
+      if (isset($step['data']['user_id']) && $result['thinkific']['user']) {
+        $step['data']['user_id'] = $result['thinkific']['user'] . '';
+      }
 
-    switch ($httpResult->code) {
-      case 200: // OK
-      case 201: // Created
-        $httpResponse = json_decode($httpResult->data);
-        switch ($result['status']) {
-          case 'find user':
-            if (empty($httpResponse->items)) {
-              $result['progress'][] = "No existing user for {$email}";
-              $result['status'] = 'create user';
-            }
-            else {
-              $result['thinkific']['user'] = $httpResponse->items[0]->id;
-              $result['progress'][] = "User {$email} found";
-              $result['status'] = 'find course';
-            }
-            break;
+      $httpResult = drupal_http_request(
+        $api . $step['endpoint'],
+        [
+          'headers' => $headers,
+          'method' => $step['method'],
+          'data' => json_encode($step['data']),
+        ]
+      );
+      $httpResponse = json_decode($httpResult->data);
 
-          case 'create user':
-            $result['thinkific']['user'] = $httpResponse->id;
-            $result['progress'][] = "User {$email} created";
-            $result['status'] = 'find course';
-            break;
+      switch ($httpResult->code) {
+        case 200: // OK
+        case 201: // Created
+        case 202: // Created asynchronously 
+          switch ($step['action']) {
+            case 'find user':
+              if (empty($httpResponse->items)) {
+                $result['progress'][] = "No existing user for {$email}";
+              }
+              else {
+                $result['thinkific']['user'] = $httpResponse->items[0]->id;
+                $result['progress'][] = "User {$email} found";
+              }
+              break;
 
-          case 'find course':
-            $result['thinkific']['course'] = $httpResponse->name;
-            $result['progress'][] = "Course '{$result['thinkific']['course']}' found";
-            $result['status'] = 'enrol user';
-            break;
+            case 'create user':
+              $result['thinkific']['user'] = $httpResponse->id;
+              $result['progress'][] = "User {$email} created";
+              break;
 
-          case 'enrol user':
-            $result['progress'][] = "User {$email} enrolled in course";
-            $result['status'] = 'Success';
-            return $result;
-        }
-        break;
+            case 'add user to group':
+              $result['thinkific']['groups'][] = $step['id'];
+              $result['progress'][] = "User {$email} added to group '{$step['id']}'";
+              break;
 
-      case 400: // Bad request
-      case 403: // Access forbidden
-      case 404: // Not found
-      case 422: // Validation error
-      case 500: // Internal server error
-      default:  // Unexpected error
-        $result['progress'][] = "Failed to {$result['status']}";
-        $result['progress'][] = "HTTP code was {$httpResult->code}";
-        $result['status'] = 'Failure';
-        return $result;
+            case 'enrol user in bundle':
+              $result['thinkific']['bundles'][] = $step['id'];
+              $result['progress'][] = "User {$email} enrolled in bundle {$step['id']}";
+              break;
+
+            case 'enrol user in course':
+              $result['thinkific']['courses'][] = $httpResponse->course_name;
+              $result['progress'][] = "User {$email} enrolled in course '{$httpResponse->course_name}'";
+              break;
+          }
+          break;
+
+        case 400: // Bad request
+        case 403: // Access forbidden
+        case 404: // Not found
+        case 422: // Validation error
+        case 500: // Internal server error
+        default:  // Unexpected error
+          switch ($step['action']) {
+            case 'add user to group':
+              if (
+                  $httpResult->code == 400 &&
+                  stripos($httpResponse->error ?? '', 'already a part of this group') !== false) {
+                $result['thinkific']['groups'][] = $step['id'];
+                $result['progress'][] = "User {$email} already a part of group '{$step['id']}'";
+                break 2; // break from switch on $httpResult->code
+              }
+              break;
+          }
+          $result['progress'][] = "Failed to $stepName";
+          $result['progress'][] = "HTTP code was {$httpResult->code}";
+          $result['progress'][] = "HTTP response was '" . print_r($httpResponse, true) . "'";
+          $result['status'] = 'Failure';
+          return $result;
+      }
     }
   }
+
+  $result['status'] = 'Success';
+  return $result;
 }
 
 /*
@@ -2841,7 +3124,7 @@ function _cbf_civicrm_staff_is_contactable($id) {
   $mobile = 'Staff.Staff_mobile_on_website';
   $phone = 'Staff.Staff_phone_on_website';
 
-  $contact = \Civi\Api4\Contact::get()
+  $contact = \Civi\Api4\Contact::get(false)
   ->addSelect($contactable, $email, $mobile, $phone)
     ->addWhere('id', '=', $id)
     ->addWhere('contact_sub_type', '=', 'Staff')
@@ -2856,4 +3139,55 @@ function _cbf_civicrm_staff_is_contactable($id) {
     'mobile' => $contact[$mobile] ?? false,
     'phone' => $contact[$phone] ?? false,
   ];
+}
+
+/*
+ * Implements hook_cbf_course_node_validate()
+ */
+function cbf_civicrm_cbf_course_node_validate($node, $form, $form_state, $courseOptions) {
+  civicrm_initialize();
+  $valid = [];
+  foreach ($courseOptions as $i => $cO) {
+    if ($cO['id'] && !($valid[$cO['id']] ?? false)) {
+      $valid[$cO['id']] = false;
+      $optionValues = \Civi\Api4\OptionValue::get(false)
+      ->addSelect('id')
+      ->addWhere('option_group_id:name', '=', 'course_20210917103625')
+      ->addWhere('value', '=', $cO['id'])
+      ->setLimit(1)
+      ->execute();
+      foreach ($optionValues as $optionValue) {
+        $valid[$cO['id']] = true;
+      }
+      if (!$valid[$cO['id']]) {
+        $element = "field_course_options][und][$i][field_thinkific_course_id][und][0][value";
+        form_set_error($element, 'This Course Id is not set up in CiviCRM');
+      }
+    }
+  }
+}
+
+/*
+ * Sends an email using the named message template
+ */
+function cbf_civicrm_send_email($from, $toName, $toEmail, $subject, $template, $args) {
+  $messageTemplates = \Civi\Api4\MessageTemplate::get(false)
+    ->addSelect('msg_html')
+    ->addWhere('msg_title', '=', $template)
+    ->setLimit(1)
+    ->execute();
+  foreach ($messageTemplates as $messageTemplate) {
+    $html = format_string($messageTemplate['msg_html'], $args);
+    $params = [
+      'from' => $from,
+      'toName' => $toName,
+      'toEmail' => $toEmail,
+      'html' => $html,
+      'subject' => $subject,
+      'workflow' => 'cbf_civicrm_send_email',
+    ];
+    return CRM_Utils_Mail::send($params);
+  }
+
+  return false;
 }

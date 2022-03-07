@@ -1,0 +1,14 @@
+
+'Cooked data' includes ...
+
+    Email contains no spaces
+    Mobile is formatted as '+61 412 345 678'
+    listIf is an array
+    leadIf is an array
+
+
+'Feedback webhook progress' should say ...
+
+    Agent API key not found... stopping
+
+
