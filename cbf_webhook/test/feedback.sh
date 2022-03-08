@@ -48,6 +48,17 @@ fi
 
 echo
 
+cd $DIRECTORY
+
+case $(pwd) in
+  ( /var/www/civicrm/* )
+    SITE=citybibleforum.civicrm
+    ;;
+  ( * )
+    SITE=citybibleforum.test
+    ;;
+esac
+
 curl \
   --insecure \
   --request POST \
@@ -55,7 +66,7 @@ curl \
   --header "$HEADERNAME: $HEADERVALUE" \
   --data @$DATA \
   --fail \
-    https://citybibleforum.test/webhook/$COMMAND
+    https://$SITE/webhook/$COMMAND
 
 echo Exit code is $?
 

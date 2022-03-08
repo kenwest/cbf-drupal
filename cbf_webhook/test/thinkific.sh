@@ -47,6 +47,17 @@ fi
 
 echo
 
+cd $DIRECTORY
+
+case $(pwd) in
+  ( /var/www/civicrm/* )
+    SITE=citybibleforum.civicrm
+    ;;
+  ( * )
+    SITE=citybibleforum.test
+    ;;
+esac
+
 curl \
   --insecure \
   --request POST \
@@ -56,7 +67,7 @@ curl \
   --header "X-Thinkific-Subdomain: $SUBDOMAIN" \
   --data @$DATA \
   --fail \
-    https://citybibleforum.test/webhook/thinkific
+    https://$SITE/webhook/thinkific
 
 echo Exit code is $?
 
