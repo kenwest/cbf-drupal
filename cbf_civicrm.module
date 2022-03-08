@@ -393,6 +393,7 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
    */
   $audience = $audienceData['audience'];
   $host = $audienceData['audiences'][$audience]['host'];
+  $name = $audienceData['audiences'][$audience]['name'];
   $colour = $audienceData['audiences'][$audience]['colour'];
   $replacements = [
     [
@@ -434,6 +435,13 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
       'comment' => "Convert old-style Youtube links to $audience",
       'from' => '!https://www\.youtube\.com/channel/UCt1YTYKDW8f5s5q9McoHJ_Q!i',
       'to' => "$host/domain/$audience/youtube",
+      'html' => true,
+      'text' => true,
+    ],
+    [
+      'comment' => "Convert IMG ALT text to $name",
+      'from' => '!img alt="City Bible Forum"!i',
+      'to' => "img alt=\"$name",
       'html' => true,
       'text' => true,
     ],
