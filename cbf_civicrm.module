@@ -441,7 +441,7 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
     [
       'comment' => "Convert IMG ALT text to $name",
       'from' => '!img alt="City Bible Forum"!i',
-      'to' => "img alt=\"$name",
+      'to' => "img alt=\"$name\"",
       'html' => true,
       'text' => true,
     ],
