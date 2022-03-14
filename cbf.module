@@ -435,27 +435,35 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
     /* Try getting the dates from CiviCRM */
     if (empty($drupalDate)) {
-      if (!empty($form['taxonomy_vocabulary_1']['und']['#default_value'])) {
-        $ministryCentre =
-          $form['taxonomy_vocabulary_1']['und']['#options'][
-            $form['taxonomy_vocabulary_1']['und']['#default_value'][0]
-          ];
+
+      $defaultTimezone = date_default_timezone_get();
+      if ($form['event_tz']['#default_value']) {
+        $timezone = $form['event_tz']['#default_value'];
       }
       else {
-        $ministryCentre = _cbf_civicrm_civicrm_contact_ministry_centre($staffContactId);
-        if ($ministryCentre === false) {
-          $ministryCentre = 'Sydney';
-        }
+        $timezone = $defaultTimezone;
       }
 
-      $form['field_event_date']['und'][0]['#default_value'] = [];
-      $form['field_event_date']['und'][0]['#default_value']['value']
-      = str_replace(' ', 'T', $form['start_date']['#default_value']);
-      $form['field_event_date']['und'][0]['#default_value']['value2']
-        = str_replace(' ', 'T', $form['end_date']['#default_value']);
-      $form['field_event_date']['und'][0]['#default_value']['timezone']
-        = $form['field_event_date']['und'][0]['timezone']['#default_value']
-        = 'Australia/' . $ministryCentre;
+      $start = new DateObject(
+        $form['start_date']['#default_value'],
+        $defaultTimezone);
+      $start = strtotime($start->format('Y-m-d H:i:s O'));
+      $start = new DateObject($start, $timezone);
+
+      $end = new DateObject(
+        $form['end_date']['#default_value'],
+        $defaultTimezone);
+      $end = strtotime($end->format('Y-m-d H:i:s O'));
+      $end = new DateObject($end, $timezone);
+
+      $form['field_event_date']['und'][0]['#default_value'] = [
+        'value' => $start->format('Y-m-d\TH:i:s'),
+        'value2' => $end->format('Y-m-d\TH:i:s'),
+        'timezone' => $timezone,
+      ];
+
+      $form['field_event_date']['und'][0]['timezone']['#default_value']
+        = $timezone;
     }
   }
 
@@ -566,6 +574,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
  *  - Ministry centre (overwrite custom_25)
  *  - Event date (set the CiviEvent to start on the first date of a repeating
  *    event and to finish on the last date of a repeating event)
+ *  - Event timezone
  *  - Number of sessions (count of dates overwrites custom_47)
  *
  * Prevent Drupal values overwriting their CiviCRM equivalents
@@ -585,6 +594,7 @@ function cbf__civicrm_entity_form_submit(&$form, &$form_state) {
       $form_state['values']['custom_25'] = '';
     }
 
+    $first = $last = null;
     for ($i = 0; ; $i++) {
       if (!isset($form_state['values']['field_event_date']['und'][$i])) {
         break;
@@ -595,11 +605,22 @@ function cbf__civicrm_entity_form_submit(&$form, &$form_state) {
       }
     }
 
+    /*
+     * CiviCRM stores date/times in the default server timezone
+     */
+    $defaultTimezone = date_default_timezone_get();
+
     $date = new DateObject($first['value'], $first['timezone']);
-    $form_state['values']['start_date'] = $date->format('Y-m-d H:i');
+    $date = strtotime($date->format('Y-m-d H:i:s O'));
+    $date = new DateObject($date, $defaultTimezone);
+    $form_state['values']['start_date'] = $date->format('Y-m-d H:i:s');
 
     $date = new DateObject($last['value2'], $last['timezone']);
-    $form_state['values']['end_date'] = $date->format('Y-m-d H:i');
+    $date = strtotime($date->format('Y-m-d H:i:s O'));
+    $date = new DateObject($date, $defaultTimezone);
+    $form_state['values']['end_date'] = $date->format('Y-m-d H:i:s');
+
+    $form_state['values']['event_tz'] = $first['timezone'];
 
     $form_state['values']['custom_47'] = $i;
 
