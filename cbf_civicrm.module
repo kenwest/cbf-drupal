@@ -1327,6 +1327,68 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
           $errors['end_date'] = ts('End date should be after Start date');
         }
       }
+
+      /*
+       * When there is a Drupal civicrm_event, the following values will have
+       * been overwritten by their Drupal equivalents ...
+       *  - Staff contact (custom_62)
+       *  - Ministry centre (custom_25)
+       *  - Event start date
+       *  - Event end date
+       *  - Event timezone
+       *  - Number of sessions (count of date repeats overwrites custom_47)
+       *
+       * In that case then direct the the staff member to edit these values
+       * using Drupal.
+       *
+       * We detect the Drupal civicrm_event by looking for a mandatory field
+       * (audience) set by Drupal.
+       */
+      $entity = null;
+      $query = new EntityFieldQuery();
+      $result = $query
+        ->entityCondition('entity_type', 'civicrm_event')
+        ->entityCondition('entity_id', $form->_id)
+        ->execute();
+      foreach ($result as $entityType => $entityKeys) {
+        $entities = entity_load($entityType, array_keys($entityKeys));
+        foreach ($entities as $entityKey => $entity) {
+          ;
+        }
+      }
+
+      if (cbf_field_get_items('civicrm_event', $entity, 'taxonomy_vocabulary_3', 'tid')) {
+        $inDrupal = [
+          'custom_62' => 'Staff contact',
+          'custom_25' => 'Ministry centre',
+          'custom_47' => 'Number of sessions',
+          'start_date' => 'Start date',
+          'end_date' => 'End date',
+          'event_tz' => 'Event time zone',
+        ];
+        foreach ($fields as $key => $new) {
+          foreach ($inDrupal as $i => $name) {
+            if ($i == $key || stripos($key, "{$i}_") === 0) {
+              $old = $new;
+              if (isset($form->_defaultValues[$key])) {
+                $old = $form->_defaultValues[$key];
+              }
+              else {
+                foreach ($form->_groupTree as $group) {
+                  foreach ($group['fields'] as $f) {
+                    if ($f['element_name'] == $key) {
+                      $old = $f['element_value'];
+                    }
+                  }
+                }
+              }
+              if ($new != $old) {
+                $errors[$key] = "Cannot modify $name as this event is now on the website. Edit this value on the website.";
+              }
+            }
+          }
+        }
+      }
       break;
 
     case 'CRM_Event_Form_ManageEvent_Registration':
