@@ -55,23 +55,25 @@ function cbf_init() {
   /*
    * Redirect people away from pages that cause SEO problems
    */
-  switch (arg(0)) {
-    case 'category':
-      drupal_goto('', [], 301);
-      break;
+  if (user_is_anonymous()) {
+    switch (arg(0)) {
+      case 'category':
+        drupal_goto('', [], 301);
+        break;
 
-    case 'taxonomy':
-      switch (arg(1)) {
-        case 'term':
-          drupal_goto('', [], 301);
-          break;
-      }
-      break;
+      case 'taxonomy':
+        switch (arg(1)) {
+          case 'term':
+            drupal_goto('', [], 301);
+            break;
+        }
+        break;
 
-    case 'blog':
-    case 'blogs':
-      drupal_goto('articles', [], 301);
-      break;
+      case 'blog':
+      case 'blogs':
+        drupal_goto('articles', [], 301);
+        break;
+    }
   }
 
   if (arg(0) == 'node') {
