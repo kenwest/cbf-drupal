@@ -103,47 +103,19 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
           $email,
           $mobile,
           $progress);
-        
+
         /* --------------------------------------------------------------------
-         * Create the target contact if it couldn't be found
+         * Populate the target contact. If it doesn't exist, create it. But if
+         * it does, ensure it has both the Email and the Mobile if both are
+         * supplied.
          */
-        if (!$target) {
-          if ($firstName && $lastName && ($email || $mobile)) {
-
-            $progress[] = 'Target not found, so create a new one using supplied details';
-
-            $results = \Civi\Api4\Contact::create(false)
-              ->addValue('first_name', $firstName)
-              ->addValue('last_name', $lastName);
-            if ($email) {
-              $results = $results->addChain('email', \Civi\Api4\Email::create(false)
-                ->addValue('contact_id', '$id')
-                ->addValue('email', $email)
-                ->addValue('location_type_id:name', 'Main')
-              );
-            }
-            if ($mobile) {
-              $results = $results->addChain('mobile', \Civi\Api4\Phone::create(false)
-                ->addValue('contact_id', '$id')
-                ->addValue('phone', $mobile)
-                ->addValue('location_type_id:name', 'Main')
-                ->addValue('phone_type_id:name', 'Mobile')
-              );
-            }
-            $results = $results->execute();
-            foreach ($results as $result) {
-              $progress[] = 'Target created';
-              $target = $result;
-            }
-            if (!$target) {
-              $progress[] = 'Failed to create target contact';
-              $progress[] = $results;
-            }
-          }
-          else {
-            $progress[] = 'Not enough information has been supplied to create a contact';
-          }
-        }
+        $target = _cbf_webhook_populate_contact(
+          $target,
+          $firstName,
+          $lastName,
+          $email,
+          $mobile,
+          $progress);
 
         /* --------------------------------------------------------------------
          * Process the target contact

@@ -225,3 +225,108 @@ function _cbf_webhook_find_existing_contact($id, $firstName, $lastName, $email, 
 
   return $target;
 }
+
+/*
+ * Populate the target contact. If it doesn't exist, create it. But if it does,
+ * ensure it has both the Email and the Mobile if both are supplied.
+ */
+function _cbf_webhook_populate_contact($target, $firstName, $lastName, $email, $mobile, &$progress) {
+
+  if (!$target) {
+    if ($firstName && $lastName && ($email || $mobile)) {
+
+      $progress[] = 'Target not found, so create a new contact using supplied details';
+
+      $results = \Civi\Api4\Contact::create(false)
+        ->addValue('first_name', $firstName)
+        ->addValue('last_name', $lastName);
+      if ($email) {
+        $results = $results->addChain('email',
+          \Civi\Api4\Email::create(false)
+            ->addValue('contact_id', '$id')
+            ->addValue('email', $email)
+            ->addValue('location_type_id:name', 'Main')
+        );
+      }
+      if ($mobile) {
+        $results = $results->addChain('mobile',
+          \Civi\Api4\Phone::create(false)
+            ->addValue('contact_id', '$id')
+            ->addValue('phone', $mobile)
+            ->addValue('location_type_id:name', 'Main')
+            ->addValue('phone_type_id:name', 'Mobile')
+        );
+      }
+      $results = $results->execute();
+      foreach ($results as $result) {
+        $progress[] = 'Target created';
+        $target = $result;
+      }
+      if (!$target) {
+        $progress[] = 'Failed to create target contact';
+        $progress[] = $results;
+      }
+    }
+    else {
+      $progress[] = 'Not enough information has been supplied to create a contact';
+    }
+  }
+  else {
+    /*
+     * The target was found, but may not have both email and mobile set.
+     */
+    $last9digits = _cbf_webhook_format_mobile($mobile, '9 digits');
+    if ($email && $last9digits) {
+      $contacts = \Civi\Api4\Contact::get(false)
+        ->addSelect('id')
+        ->addWhere('id', '=', $target['id'])
+        ->setLimit(2)
+        ->addChain('emails', \Civi\Api4\Email::get(false)
+          ->addWhere('contact_id', '=', '$id')
+        )
+        ->addChain('phones', \Civi\Api4\Phone::get(false)
+          ->addWhere('contact_id', '=', '$id')
+          ->addWhere('phone_type_id:name', '=', 'Mobile')
+        )
+        ->execute();
+      foreach ($contacts as $contact) {
+        $progress[] = "Check if contact {$target['id']} has both supplied email and mobile set";
+        $addEmail = true;
+        $addPhone = true;
+        foreach ($contact['emails'] as $contactEmail) {
+          if ($email == $contactEmail['email']) {
+            $progress[] = "Contact has email $email";
+            $addEmail = false;
+            break;
+          }
+        }
+        foreach ($contact['phones'] as $contactPhone) {
+          if ($last9digits == _cbf_webhook_format_mobile($contactPhone['phone'], '9 digits')) {
+            $progress[] = "Contact has mobile '$mobile'";
+            $addPhone = false;
+            break;
+          }
+        }
+        if ($addEmail) {
+          $results = \Civi\Api4\Email::create(false)
+            ->addValue('contact_id', $target['id'])
+            ->addValue('location_type_id:name', 'Main')
+            ->addValue('email', $email)
+            ->execute();
+          $progress[] = "Added email $email";
+        }
+        if ($addPhone) {
+          $results = \Civi\Api4\Phone::create(false)
+            ->addValue('contact_id', $target['id'])
+            ->addValue('location_type_id:name', 'Main')
+            ->addValue('phone_type_id:name', 'Mobile')
+            ->addValue('phone', $mobile)
+            ->execute();
+          $progress[] = "Added mobile '$mobile'";
+        }
+      }
+    }
+  }
+
+  return $target;
+}
