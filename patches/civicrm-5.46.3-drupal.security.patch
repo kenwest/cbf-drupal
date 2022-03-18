@@ -1,0 +1,181 @@
+diff --git a/CRM/Contribute/Form/ContributionView.php b/CRM/Contribute/Form/ContributionView.php
+index 64f4c14..794cbb9 100644
+--- a/CRM/Contribute/Form/ContributionView.php
++++ b/CRM/Contribute/Form/ContributionView.php
+@@ -25,6 +25,13 @@ class CRM_Contribute_Form_ContributionView extends CRM_Core_Form {
+    */
+   public function preProcess() {
+     $id = $this->get('id');
++    if (empty($id)) {
++      throw new CRM_Core_Exception('Contribution ID is required');
++    }
++    // Check permission for action.
++    if (!CRM_Core_Permission::checkActionPermission('CiviContribute', $this->_action)) {
++      CRM_Core_Error::statusBounce(ts('You do not have permission to access this page.'));
++    }
+     $params = ['id' => $id];
+     $context = CRM_Utils_Request::retrieve('context', 'Alphanumeric', $this);
+     $this->assign('context', $context);
+diff --git a/CRM/Core/Permission/Backdrop.php b/CRM/Core/Permission/Backdrop.php
+index de90766..6fc230a 100644
+--- a/CRM/Core/Permission/Backdrop.php
++++ b/CRM/Core/Permission/Backdrop.php
+@@ -68,7 +68,7 @@ class CRM_Core_Permission_Backdrop extends CRM_Core_Permission_DrupalBase {
+     }
+     if (function_exists('user_access')) {
+       $account = NULL;
+-      if ($userId) {
++      if ($userId || $userId === 0) {
+         $account = user_load($userId);
+       }
+       return user_access($str, $account);
+diff --git a/CRM/Core/Permission/Drupal.php b/CRM/Core/Permission/Drupal.php
+index a6dbdd7..0b0abe0 100644
+--- a/CRM/Core/Permission/Drupal.php
++++ b/CRM/Core/Permission/Drupal.php
+@@ -67,7 +67,7 @@ class CRM_Core_Permission_Drupal extends CRM_Core_Permission_DrupalBase {
+     }
+     if (function_exists('user_access')) {
+       $account = NULL;
+-      if ($userId) {
++      if ($userId || $userId === 0) {
+         $account = user_load($userId);
+       }
+       return user_access($str, $account);
+diff --git a/CRM/Core/Permission/Drupal6.php b/CRM/Core/Permission/Drupal6.php
+index d478f09..5bae356 100644
+--- a/CRM/Core/Permission/Drupal6.php
++++ b/CRM/Core/Permission/Drupal6.php
+@@ -67,7 +67,7 @@ class CRM_Core_Permission_Drupal6 extends CRM_Core_Permission_DrupalBase {
+     }
+     if (function_exists('user_access')) {
+       $account = NULL;
+-      if ($userId) {
++      if ($userId || $userId === 0) {
+         $account = user_load($userId);
+       }
+       return user_access($str, $account);
+diff --git a/CRM/Core/Permission/Drupal8.php b/CRM/Core/Permission/Drupal8.php
+index add83a0..eb1d570 100644
+--- a/CRM/Core/Permission/Drupal8.php
++++ b/CRM/Core/Permission/Drupal8.php
+@@ -41,7 +41,7 @@ class CRM_Core_Permission_Drupal8 extends CRM_Core_Permission_DrupalBase {
+     if ($str == CRM_Core_Permission::ALWAYS_ALLOW_PERMISSION) {
+       return TRUE;
+     }
+-    $acct = $userId ? \Drupal\user\Entity\User::load($userId) : \Drupal::currentUser();
++    $acct = ($userId === 0 ? \Drupal\user\Entity\User::getAnonymousUser() : ($userId ? \Drupal\user\Entity\User::load($userId) : \Drupal::currentUser()));
+     return $acct->hasPermission($str);
+   }
+ 
+diff --git a/CRM/Core/Permission/Joomla.php b/CRM/Core/Permission/Joomla.php
+index 42d551d..1a3e333 100644
+--- a/CRM/Core/Permission/Joomla.php
++++ b/CRM/Core/Permission/Joomla.php
+@@ -33,7 +33,10 @@ class CRM_Core_Permission_Joomla extends CRM_Core_Permission_Base {
+   public function check($str, $userId = NULL) {
+     $config = CRM_Core_Config::singleton();
+     // JFactory::getUser does strict type checking, so convert falesy values to NULL
+-    if (!$userId) {
++    if ($userId === 0 || $userId === '0') {
++      $userId = 0;
++    }
++    elseif (!$userId) {
+       $userId = NULL;
+     }
+ 
+diff --git a/CRM/Core/Permission/WordPress.php b/CRM/Core/Permission/WordPress.php
+index 03eeb9b..dfcc6c3 100644
+--- a/CRM/Core/Permission/WordPress.php
++++ b/CRM/Core/Permission/WordPress.php
+@@ -60,14 +60,14 @@ class CRM_Core_Permission_WordPress extends CRM_Core_Permission_Base {
+ 
+     $user = $userId ? get_userdata($userId) : wp_get_current_user();
+ 
+-    if ($user->has_cap('super admin') || $user->has_cap('administrator')) {
++    if ($userId !== 0 && ($user->has_cap('super admin') || $user->has_cap('administrator'))) {
+       return TRUE;
+     }
+ 
+     // Make string lowercase and convert spaces into underscore
+     $str = CRM_Utils_String::munge(strtolower($str));
+ 
+-    if ($user->exists()) {
++    if ($userId !== 0 && $user->exists()) {
+       // Check whether the logged in user has the capabilitity
+       if ($user->has_cap($str)) {
+         return TRUE;
+diff --git a/CRM/Event/Import/Parser/Participant.php b/CRM/Event/Import/Parser/Participant.php
+index e9ce6d6..1af1c1f 100644
+--- a/CRM/Event/Import/Parser/Participant.php
++++ b/CRM/Event/Import/Parser/Participant.php
+@@ -296,11 +296,9 @@ class CRM_Event_Import_Parser_Participant extends CRM_Event_Import_Parser {
+       }
+       else {
+         $eventTitle = $params['event_title'];
+-        $qParams = [];
+-        $dao = new CRM_Core_DAO();
+-        $params['participant_role_id'] = $dao->singleValueQuery("SELECT default_role_id FROM civicrm_event WHERE title = '$eventTitle' ",
+-          $qParams
+-        );
++        $params['participant_role_id'] = CRM_Core_DAO::singleValueQuery('SELECT default_role_id FROM civicrm_event WHERE title = %1', [
++          1 => [$eventTitle, 'String']
++        ]);
+       }
+     }
+ 
+@@ -554,11 +552,9 @@ class CRM_Event_Import_Parser_Participant extends CRM_Event_Import_Parser {
+           if (!CRM_Utils_Rule::integer($value)) {
+             return civicrm_api3_create_error("Event ID is not valid: $value");
+           }
+-          $dao = new CRM_Core_DAO();
+-          $qParams = [];
+-          $svq = $dao->singleValueQuery("SELECT id FROM civicrm_event WHERE id = $value",
+-            $qParams
+-          );
++          $svq = CRM_Core_DAO::singleValueQuery('SELECT id FROM civicrm_event WHERE id = %1', [
++            1 => [$value, 'Integer']
++          ]);
+           if (!$svq) {
+             return civicrm_api3_create_error("Invalid Event ID: There is no event record with event_id = $value.");
+           }
+diff --git a/CRM/Utils/Check/Component/Security.php b/CRM/Utils/Check/Component/Security.php
+index 2036e1b..bc59fbc 100644
+--- a/CRM/Utils/Check/Component/Security.php
++++ b/CRM/Utils/Check/Component/Security.php
+@@ -292,6 +292,35 @@ class CRM_Utils_Check_Component_Security extends CRM_Utils_Check_Component {
+     return $messages;
+   }
+ 
++  /**
++   * Check to see if anonymous user has excessive permissions.
++   * @return CRM_Utils_Check_Message[]
++   */
++  public function checkAnonPermissions() {
++    $messages = [];
++    $permissions = [];
++    // These specific permissions were referenced in a security submission.
++    // This functionality is generally useful -- may be good to expand to a longer list.
++    $checkPerms = ['access CiviContribute', 'edit contributions'];
++    foreach ($checkPerms as $checkPerm) {
++      if (CRM_Core_Config::singleton()->userPermissionClass->check($checkPerm, 0)) {
++        $permissions[] = $checkPerm;
++      }
++    }
++    if (!empty($permissions)) {
++      $messages[] = new CRM_Utils_Check_Message(
++        __FUNCTION__,
++        ts('The system configuration grants anonymous users an <em>unusually broad</em> list of permissions. This could compromise security. Please reassess whether these permissions are required: %1', [
++          1 => '<ul><li><tt>' . implode('</tt></li><li><tt>', $permissions) . '</tt></li></ul>',
++        ]),
++        ts('Unusual Permissions for Anonymous Users'),
++        \Psr\Log\LogLevel::WARNING,
++        'fa-lock'
++      );
++    }
++    return $messages;
++  }
++
+   /**
+    * Determine whether $url is a public, browsable listing for $dir
+    *
