@@ -771,52 +771,6 @@ function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
     }
 
     /*
-     * When sending a Scheduled Reminder to a Zoom registrant, replace
-     * 'ZOOM_PARTICIPANT_JOIN_LINK' with the link provided by Zoom. Note that
-     * the Event Id will have been cached in this case.
-     */
-    if ($workflow == 'Scheduled Reminder Sender') {
-      $needle = 'ZOOM_PARTICIPANT_JOIN_LINK';
-      $select = 'zoom_data_sync.Zoom_Participant_Join_Link';
-      $contactId = $params['contactId'] ?? '';
-      $eventId = $audienceData['cache']['event'] ?? '';
-      if ($contactId && $eventId && strpos($htmlMessage, $needle) !== false) {
-        try {
-          $participants = \Civi\Api4\Participant::get(false)
-          ->addSelect($select)
-          ->addWhere('contact_id', '=', $contactId)
-          ->addWhere('event_id', '=', $eventId)
-          ->addOrderBy('id', 'DESC') // Assume more recent regos are better
-          ->setLimit(25)
-          ->execute();
-          foreach ($participants as $participant) {
-            if ($participant[$select]) {
-              $htmlMessage = preg_replace("#$needle#", $participant[$select], $htmlMessage) ?? $htmlMessage;
-              if (isset($params['text'])) {
-                $params['text'] = preg_replace("#$needle#", $participant[$select], $params['text']) ?? $params['text'];
-              }
-            }
-            else {
-              $params['abortMailSend'] = 1;
-            }
-            break; // Ignore any other participant records
-          }
-        } catch (\API_Exception $e) {
-          ;
-        }
-      }
-      CRM_Core_Error::debug_var(
-        'Scheduled Reminder Sender',
-        [
-          'contact' => $contactId,
-          'event' => $eventId,
-          'participant' => $participant['id'] ?? 'not set',
-          'zoom link' => $participant[$select] ?? 'not set',
-        ]
-      );
-    }
-
-    /*
      * Scheduled Reminder uses Smarty engine by default which strips out any
      * CSS <style> that is defined. {literal} ... {/literal} can be used to
      * protect the CSS, but if we put this in a template, that template could
@@ -1179,6 +1133,15 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         $fromAddress->setSelected(0);
       }
       break;
+
+    case 'CRM_Note_Form_Note':
+      /*
+       * Supply a note_date to prevent an unhandled exception in CiviCRM 5.47.0
+       */
+      if (empty($form->getElementValue('note_date'))) {
+        $date = new DateObject();
+        $form->_submitValues['note_date'] = $date->format('Y-m-d H:i:s');
+      }
   }
 
   /*

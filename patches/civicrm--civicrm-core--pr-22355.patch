@@ -1,0 +1,62 @@
+From 8ee2b510413f01ee74a17996c167f3e2f208fbb5 Mon Sep 17 00:00:00 2001
+From: Coleman Watts <coleman@civicrm.org>
+Date: Sun, 2 Jan 2022 15:00:04 -0500
+Subject: [PATCH] SearchKit - Enable joins for custom fields and option groups
+
+There are a few FKs in the database that also have a pseudoconstant.
+Arguably there shouldn't be, it should be one or the other. But there they are.
+Previously SearchKit would ignore those FKs, but they are needed for e.g.
+searching for custom groups and displaying the aggregate count of fields in that group.
+---
+ ext/search_kit/Civi/Search/Admin.php          |  2 +-
+ .../tests/phpunit/Civi/Search/AdminTest.php   | 24 +++++++++++++++++++
+ 2 files changed, 25 insertions(+), 1 deletion(-)
+
+diff --git a/ext/search_kit/Civi/Search/Admin.php b/ext/search_kit/Civi/Search/Admin.php
+index f8a8ecb96d1..2fb9d9f4978 100644
+--- a/ext/search_kit/Civi/Search/Admin.php
++++ b/ext/search_kit/Civi/Search/Admin.php
+@@ -221,7 +221,7 @@ public static function getJoins(array $allowedEntities) {
+               // Sanity check - keyField must exist
+               !$keyField ||
+               // Exclude any joins that are better represented by pseudoconstants
+-              is_a($reference, 'CRM_Core_Reference_OptionValue') || !empty($keyField['options']) ||
++              is_a($reference, 'CRM_Core_Reference_OptionValue') ||
+               // Sanity check - table should match
+               $daoClass::getTableName() !== $reference->getReferenceTable()
+             ) {
+diff --git a/ext/search_kit/tests/phpunit/Civi/Search/AdminTest.php b/ext/search_kit/tests/phpunit/Civi/Search/AdminTest.php
+index 9aeb06424c4..814136ecc10 100644
+--- a/ext/search_kit/tests/phpunit/Civi/Search/AdminTest.php
++++ b/ext/search_kit/tests/phpunit/Civi/Search/AdminTest.php
+@@ -96,6 +96,30 @@ public function testGetJoins(): void {
+       ['EntityTag', ['id', '=', 'Activity_EntityTag_Tag.entity_id'], ['Activity_EntityTag_Tag.entity_table', '=', "'civicrm_activity'"]],
+       $activityTagJoins[0]['conditions']
+     );
++
++    // Ensure joins exist btw custom group & custom fields
++    $customGroupToField = \CRM_Utils_Array::findAll($joins['CustomGroup'], [
++      'entity' => 'CustomField',
++      'multi' => TRUE,
++    ]);
++    $this->assertCount(1, $customGroupToField);
++    $customFieldToGroup = \CRM_Utils_Array::findAll($joins['CustomField'], [
++      'entity' => 'CustomGroup',
++      'multi' => FALSE,
++    ]);
++    $this->assertCount(1, $customFieldToGroup);
++
++    // Ensure joins btw option group and option value
++    $optionGroupToValue = \CRM_Utils_Array::findAll($joins['OptionGroup'], [
++      'entity' => 'OptionValue',
++      'multi' => TRUE,
++    ]);
++    $this->assertCount(1, $optionGroupToValue);
++    $optionValueToGroup = \CRM_Utils_Array::findAll($joins['OptionValue'], [
++      'entity' => 'OptionGroup',
++      'multi' => FALSE,
++    ]);
++    $this->assertCount(1, $optionValueToGroup);
+   }
+ 
+ }

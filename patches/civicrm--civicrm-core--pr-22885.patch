@@ -1,0 +1,262 @@
+From 57eda25db5a2e1efe1fcd328c75262fa70d9274a Mon Sep 17 00:00:00 2001
+From: Eileen McNaughton <emcnaughton@wikimedia.org>
+Date: Fri, 4 Mar 2022 12:17:19 +1300
+Subject: [PATCH 1/4] dev/core#3095 Permit setting of format_locale, prefer if
+ set
+
+This is a minimal patch to address https://lab.civicrm.org/dev/core/-/issues/3095
+in time for 5.47. With this set it is possible to change the format locale to
+English, Canada or English, Australian (but not NZ!)
+and the currency will only be displayed before dollar amounts NOT of that
+currency.
+
+This should be enough to mitigate that regression feeling but missing are
+1) fixing the admin form to hide irrelevant settings if format_locale is set
+2) the psuedoconstant is cludgey - existing stuff doesn't seem to work so
+I added a function - also - if we ARE going to use this option group we
+should .... add NZ to it
+---
+ CRM/Admin/Form/Setting/Localization.php       |  5 ++---
+ CRM/Core/I18n.php                             | 15 +++++++++++++
+ Civi/Core/Format.php                          |  4 ++--
+ settings/Localization.setting.php             | 22 +++++++++++++++++++
+ .../CRM/Admin/Form/Setting/Localization.tpl   | 13 +++++++----
+ 5 files changed, 50 insertions(+), 9 deletions(-)
+
+diff --git a/CRM/Admin/Form/Setting/Localization.php b/CRM/Admin/Form/Setting/Localization.php
+index 4273e9b98f5..d18e75ab718 100644
+--- a/CRM/Admin/Form/Setting/Localization.php
++++ b/CRM/Admin/Form/Setting/Localization.php
+@@ -32,6 +32,7 @@ class CRM_Admin_Form_Setting_Localization extends CRM_Admin_Form_Setting {
+     'inheritLocale' => CRM_Core_BAO_Setting::LOCALIZATION_PREFERENCES_NAME,
+     'lcMessages' => CRM_Core_BAO_Setting::LOCALIZATION_PREFERENCES_NAME,
+     'legacyEncoding' => CRM_Core_BAO_Setting::LOCALIZATION_PREFERENCES_NAME,
++    'format_locale' => CRM_Core_BAO_Setting::LOCALIZATION_PREFERENCES_NAME,
+     'monetaryThousandSeparator' => CRM_Core_BAO_Setting::LOCALIZATION_PREFERENCES_NAME,
+     'monetaryDecimalPoint' => CRM_Core_BAO_Setting::LOCALIZATION_PREFERENCES_NAME,
+     'moneyformat' => CRM_Core_BAO_Setting::LOCALIZATION_PREFERENCES_NAME,
+@@ -43,11 +44,9 @@ class CRM_Admin_Form_Setting_Localization extends CRM_Admin_Form_Setting {
+    * Build the form object.
+    */
+   public function buildQuickForm() {
+-    $config = CRM_Core_Config::singleton();
+-
+     $this->setTitle(ts('Settings - Localization'));
+ 
+-    $warningTitle = json_encode(ts("Warning"));
++    $warningTitle = json_encode(ts('Warning'));
+     $defaultLocaleOptions = CRM_Admin_Form_Setting_Localization::getDefaultLocaleOptions();
+ 
+     if (CRM_Core_I18n::isMultiLingual()) {
+diff --git a/CRM/Core/I18n.php b/CRM/Core/I18n.php
+index f6ed3dcf033..292b49c33ed 100644
+--- a/CRM/Core/I18n.php
++++ b/CRM/Core/I18n.php
+@@ -239,6 +239,21 @@ public static function languages($justEnabled = FALSE) {
+     return $justEnabled ? $enabled : $all;
+   }
+ 
++  /**
++   * Get the options available for format locale.
++   *
++   * Note the pseudoconstant can't be used as the key is the name not the value.
++   *
++   * @return array
++   */
++  public static function getLocaleOptions(): array {
++    $values = CRM_Core_OptionValue::getValues(['name' => 'languages'], $optionValues, 'label', TRUE);
++    foreach ($values as $value) {
++      $return[$value['name']] = $value['label'];
++    }
++    return $return;
++  }
++
+   /**
+    * Return the available UI languages
+    * @return array|string
+diff --git a/Civi/Core/Format.php b/Civi/Core/Format.php
+index 582727cce57..b3076d0e8dc 100644
+--- a/Civi/Core/Format.php
++++ b/Civi/Core/Format.php
+@@ -43,7 +43,7 @@ public function money($amount, ?string $currency = NULL, ?string $locale = NULL)
+       $currency = Civi::settings()->get('defaultCurrency');
+     }
+     if (!isset($locale)) {
+-      $locale = CRM_Core_I18n::getLocale();
++      $locale = Civi::settings()->get('format_locale') ?? CRM_Core_I18n::getLocale();
+     }
+     $money = Money::of($amount, $currency, NULL, RoundingMode::HALF_UP);
+     $formatter = $this->getMoneyFormatter($currency, $locale);
+@@ -150,7 +150,7 @@ public function moneyNumberLong($amount, ?string $currency, ?string $locale): st
+    * we are looking at how to manage an 'opt in'
+    */
+   protected function isUseSeparatorSettings(): bool {
+-    return !CRM_Utils_Constant::value('IGNORE_SEPARATOR_CONFIG');
++    return !Civi::settings()->get('format_locale') && !CRM_Utils_Constant::value('IGNORE_SEPARATOR_CONFIG');
+   }
+ 
+   /**
+diff --git a/settings/Localization.setting.php b/settings/Localization.setting.php
+index ec1be4f3bbf..4c09df3ad1a 100644
+--- a/settings/Localization.setting.php
++++ b/settings/Localization.setting.php
+@@ -409,6 +409,28 @@
+       'callback' => 'CRM_Core_I18n::languages',
+     ],
+   ],
++  'format_locale' => [
++    'group_name' => 'Localization Preferences',
++    'group' => 'localization',
++    'name' => 'format_locale',
++    'type' => 'String',
++    'quick_form_type' => 'Select',
++    'html_type' => 'Select',
++    'html_attributes' => [
++      'multiple' => 0,
++      'class' => 'crm-select2',
++    ],
++    'default' => NULL,
++    'add' => '5.47',
++    'title' => ts('Formatting locale'),
++    'is_domain' => 1,
++    'is_contact' => 0,
++    'help_text' => NULL,
++    'pseudoconstant' => [
++      'callback' => 'CRM_Core_I18n::getLocaleOptions',
++    ],
++    'description' => ts('Locale to use when formatting money (and in future dates). This replaces thousandsSeparator & decimalSeparator & moneyFormat settings.'),
++  ],
+   'uiLanguages' => [
+     'group_name' => 'Localization Preferences',
+     'group' => 'localization',
+diff --git a/templates/CRM/Admin/Form/Setting/Localization.tpl b/templates/CRM/Admin/Form/Setting/Localization.tpl
+index 754212bc0e1..05fd577a9b3 100644
+--- a/templates/CRM/Admin/Form/Setting/Localization.tpl
++++ b/templates/CRM/Admin/Form/Setting/Localization.tpl
+@@ -49,10 +49,15 @@
+               <span class="description">{$settings_fields.contact_default_language.description}</span>
+             </td>
+           </tr>
+-            <tr class="crm-localization-form-block-defaultCurrency">
+-                <td class="label">{$form.defaultCurrency.label} {help id='defaultCurrency' title=$form.defaultCurrency.label}</td>
+-                <td>{$form.defaultCurrency.html}</td>
+-            </tr>
++          <tr class="crm-localization-form-block-defaultCurrency">
++            <td class="label">{$form.defaultCurrency.label} {help id='defaultCurrency' title=$form.defaultCurrency.label}</td>
++            <td>{$form.defaultCurrency.html}</td>
++          </tr>
++          <tr class="crm-localization-form-block-format_locale">
++            <td class="label">{$form.format_locale.label}</td>
++            <td>{$form.format_locale.html}<br />
++              <span class="description">{ts}Locale to use when formatting money (and in future dates). This replaces thousandsSeparator & decimalSeparator settings.{/ts}</span></td>
++          </tr>
+             <tr class="crm-localization-form-block-monetaryThousandSeparator">
+                 <td class="label">{$form.monetaryThousandSeparator.label}</td>
+                 <td>{$form.monetaryThousandSeparator.html}</td>
+
+From afd5a927cda43d20de6c501e121871c69319efca Mon Sep 17 00:00:00 2001
+From: Eileen McNaughton <emcnaughton@wikimedia.org>
+Date: Fri, 4 Mar 2022 12:30:10 +1300
+Subject: [PATCH 2/4] Fix the world
+
+---
+ CRM/Core/I18n.php | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/CRM/Core/I18n.php b/CRM/Core/I18n.php
+index 292b49c33ed..3b471c950ec 100644
+--- a/CRM/Core/I18n.php
++++ b/CRM/Core/I18n.php
+@@ -248,9 +248,15 @@ public static function languages($justEnabled = FALSE) {
+    */
+   public static function getLocaleOptions(): array {
+     $values = CRM_Core_OptionValue::getValues(['name' => 'languages'], $optionValues, 'label', TRUE);
++    $return = [];
+     foreach ($values as $value) {
+       $return[$value['name']] = $value['label'];
+     }
++    // Sorry not sorry.
++    // Hacking in for now since the is probably the most important use-case for
++    // money formatting in an English speaking non-US locale based on any reasonable
++    // metric.
++    $return['en_NZ'] = ts('English - New Zealand');
+     return $return;
+   }
+ 
+
+From 9d14b6f716d5db15fce70a1648c6c206f3557047 Mon Sep 17 00:00:00 2001
+From: Tim Otten <totten@civicrm.org>
+Date: Fri, 4 Mar 2022 15:46:49 -0800
+Subject: [PATCH 3/4] format_locale - Present single-value option. Fix display
+ of null value.
+
+Overview: Fix display of new setting in admin form.
+
+Before: Field incorrectly displays as multi-value selection.
+
+After: Field displays as single-value selection. The null value is specifically allowed.
+---
+ CRM/Core/I18n.php                 | 3 ++-
+ settings/Localization.setting.php | 3 +--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/CRM/Core/I18n.php b/CRM/Core/I18n.php
+index 3b471c950ec..9b8fdcc1bf5 100644
+--- a/CRM/Core/I18n.php
++++ b/CRM/Core/I18n.php
+@@ -246,9 +246,10 @@ public static function languages($justEnabled = FALSE) {
+    *
+    * @return array
+    */
+-  public static function getLocaleOptions(): array {
++  public static function getFormatLocales(): array {
+     $values = CRM_Core_OptionValue::getValues(['name' => 'languages'], $optionValues, 'label', TRUE);
+     $return = [];
++    $return[NULL] = ts('Inherit from language');
+     foreach ($values as $value) {
+       $return[$value['name']] = $value['label'];
+     }
+diff --git a/settings/Localization.setting.php b/settings/Localization.setting.php
+index 4c09df3ad1a..6a55c01d981 100644
+--- a/settings/Localization.setting.php
++++ b/settings/Localization.setting.php
+@@ -417,7 +417,6 @@
+     'quick_form_type' => 'Select',
+     'html_type' => 'Select',
+     'html_attributes' => [
+-      'multiple' => 0,
+       'class' => 'crm-select2',
+     ],
+     'default' => NULL,
+@@ -427,7 +426,7 @@
+     'is_contact' => 0,
+     'help_text' => NULL,
+     'pseudoconstant' => [
+-      'callback' => 'CRM_Core_I18n::getLocaleOptions',
++      'callback' => 'CRM_Core_I18n::getFormatLocales',
+     ],
+     'description' => ts('Locale to use when formatting money (and in future dates). This replaces thousandsSeparator & decimalSeparator & moneyFormat settings.'),
+   ],
+
+From 79f4e0bdcdd168fa334e510a699c2aedf867cd0e Mon Sep 17 00:00:00 2001
+From: Tim Otten <totten@civicrm.org>
+Date: Fri, 4 Mar 2022 15:49:09 -0800
+Subject: [PATCH 4/4] (NFC) `en_NZ` label should look like other `en_*` labels
+
+---
+ CRM/Core/I18n.php | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CRM/Core/I18n.php b/CRM/Core/I18n.php
+index 9b8fdcc1bf5..30cb0cb8ead 100644
+--- a/CRM/Core/I18n.php
++++ b/CRM/Core/I18n.php
+@@ -257,7 +257,7 @@ public static function getFormatLocales(): array {
+     // Hacking in for now since the is probably the most important use-case for
+     // money formatting in an English speaking non-US locale based on any reasonable
+     // metric.
+-    $return['en_NZ'] = ts('English - New Zealand');
++    $return['en_NZ'] = ts('English (New Zealand)');
+     return $return;
+   }
+ 

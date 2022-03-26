@@ -1,6 +1,6 @@
 diff -ur ./ang/crmMailing/EditMailingCtrl/2step.html /var/www/civicrm/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html
 --- ./ang/crmMailing/EditMailingCtrl/2step.html	2020-08-06 12:54:52.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html	2021-09-02 17:17:25.458326774 +1000
++++ /var/www/civicrm/sites/all/modules/civicrm/ang/crmMailing/EditMailingCtrl/2step.html	2022-03-21 17:26:47.714248405 +1100
 @@ -14,9 +14,9 @@
              </div>
              <span ng-model="placeholder" crm-ui-validate="mailing.body_html || mailing.body_text"></span>
@@ -15,7 +15,7 @@ diff -ur ./ang/crmMailing/EditMailingCtrl/2step.html /var/www/civicrm/sites/all/
            </div>
 diff -ur ./api/v3/Generic/Setvalue.php /var/www/civicrm/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php
 --- ./api/v3/Generic/Setvalue.php	2021-02-04 13:36:03.000000000 +1100
-+++ /var/www/civicrm/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php	2021-09-02 17:17:25.458326774 +1000
++++ /var/www/civicrm/sites/all/modules/civicrm/api/v3/Generic/Setvalue.php	2022-03-21 17:26:47.714248405 +1100
 @@ -86,6 +86,7 @@
        break;
  
@@ -25,8 +25,8 @@ diff -ur ./api/v3/Generic/Setvalue.php /var/www/civicrm/sites/all/modules/civicr
        if (!$value) {
          return civicrm_api3_create_error("Param '$field' is not a date. format YYYYMMDD or YYYYMMDDHHMMSS");
 diff -ur ./api/v3/Generic.php /var/www/civicrm/sites/all/modules/civicrm/api/v3/Generic.php
---- ./api/v3/Generic.php	2021-08-07 00:35:30.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/api/v3/Generic.php	2021-09-02 17:17:25.458326774 +1000
+--- ./api/v3/Generic.php	2022-03-17 17:12:31.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/api/v3/Generic.php	2022-03-21 17:26:47.714248405 +1100
 @@ -308,7 +308,7 @@
      return $result['values'][0];
    }
@@ -46,8 +46,8 @@ diff -ur ./api/v3/Generic.php /var/www/civicrm/sites/all/modules/civicrm/api/v3/
    }
  
 diff -ur ./bower_components/ckeditor/plugins/table/dialogs/table.js /var/www/civicrm/sites/all/modules/civicrm/bower_components/ckeditor/plugins/table/dialogs/table.js
---- ./bower_components/ckeditor/plugins/table/dialogs/table.js	2021-08-12 22:19:19.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/bower_components/ckeditor/plugins/table/dialogs/table.js	2021-09-02 17:17:25.458326774 +1000
+--- ./bower_components/ckeditor/plugins/table/dialogs/table.js	2022-03-16 21:52:12.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/bower_components/ckeditor/plugins/table/dialogs/table.js	2022-03-21 17:26:47.714248405 +1100
 @@ -11,12 +11,11 @@
  b.setStyle("height",c.txtHeight):b.removeStyle("height");c.txtWidth?b.setStyle("width",c.txtWidth):b.removeStyle("width");b.getAttribute("style")||b.removeAttribute("style")}if(this._.selectedElement)try{d.selectBookmarks(e)}catch(n){}else a.insertElement(b),setTimeout(function(){var d=new CKEDITOR.dom.element(b.$.rows[0].cells[0]),c=a.createRange();c.moveToPosition(d,CKEDITOR.POSITION_AFTER_START);c.select()},0)},contents:[{id:"info",label:a.lang.table.title,elements:[{type:"hbox",widths:[null,null],
  styles:["vertical-align:top"],children:[{type:"vbox",padding:0,children:[{type:"text",id:"txtRows","default":3,label:a.lang.table.rows,required:!0,controlStyle:"width:5em",validate:t(a.lang.table.invalidRows),setup:function(d){this.setValue(d.$.rows.length)},commit:n},{type:"text",id:"txtCols","default":2,label:a.lang.table.columns,required:!0,controlStyle:"width:5em",validate:t(a.lang.table.invalidCols),setup:function(d){this.setValue(w(d))},commit:n},{type:"html",html:"\x26nbsp;"},{type:"select",
@@ -68,7 +68,7 @@ diff -ur ./bower_components/ckeditor/plugins/table/dialogs/table.js /var/www/civ
 +"table")});CKEDITOR.dialog.add("tableProperties",function(a){return r(a,"tableProperties")})})();
 diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/civicrm/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml
 --- ./CRM/Contribute/xml/Menu/Contribute.xml	2021-08-07 00:35:30.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2021-09-02 17:17:25.458326774 +1000
++++ /var/www/civicrm/sites/all/modules/civicrm/CRM/Contribute/xml/Menu/Contribute.xml	2022-03-21 17:26:47.714248405 +1100
 @@ -223,6 +223,8 @@
      <title>Cancel Subscription</title>
      <page_callback>CRM_Contribute_Form_CancelSubscription</page_callback>
@@ -88,9 +88,20 @@ diff -ur ./CRM/Contribute/xml/Menu/Contribute.xml /var/www/civicrm/sites/all/mod
    <item>
      <path>civicrm/contribute/subscriptionstatus</path>
 diff -ur ./css/civicrm.css /var/www/civicrm/sites/all/modules/civicrm/css/civicrm.css
---- ./css/civicrm.css	2021-08-27 13:44:20.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/css/civicrm.css	2021-09-02 17:17:25.458326774 +1000
-@@ -292,6 +292,14 @@
+--- ./css/civicrm.css	2022-03-17 17:12:31.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/css/civicrm.css	2022-03-21 17:26:47.718248487 +1100
+@@ -160,6 +160,10 @@
+   vertical-align: top;
+ }
+ 
++.crm-container td.html-adjust {
++  word-break: break-word;
++}
++
+ .crm-container .crm-row-child {
+   margin: 0;
+   padding: 3px 0 3px 0;
+@@ -292,6 +296,14 @@
    height: 5px;
  }
  
@@ -105,7 +116,7 @@ diff -ur ./css/civicrm.css /var/www/civicrm/sites/all/modules/civicrm/css/civicr
  .crm-container td.compressed select,
  .crm-container td.compressed input {
    font-size: 0.90em;
-@@ -1542,6 +1550,7 @@
+@@ -1547,6 +1559,7 @@
  }
  .crm-container a.action-item {
    display: inline;
@@ -113,7 +124,7 @@ diff -ur ./css/civicrm.css /var/www/civicrm/sites/all/modules/civicrm/css/civicr
  }
  
  /* theming for panel and context menus */
-@@ -1848,6 +1857,10 @@
+@@ -1853,6 +1866,10 @@
  
  /* Set/alter ICONS */
  
@@ -124,7 +135,7 @@ diff -ur ./css/civicrm.css /var/www/civicrm/sites/all/modules/civicrm/css/civicr
  #crm-container .order-icon {
    height: 15px;
    width: 10px;
-@@ -3070,6 +3083,9 @@
+@@ -3081,6 +3098,9 @@
    text-overflow: ellipsis;
    font-weight: normal;
  }
@@ -134,7 +145,7 @@ diff -ur ./css/civicrm.css /var/www/civicrm/sites/all/modules/civicrm/css/civicr
  .crm-container .select2-results .select2-highlighted > .select2-result-label .crm-select2-row-description p {
    color: #f0f0f0;
  }
-@@ -3207,6 +3223,10 @@
+@@ -3218,6 +3238,10 @@
  #crm-container .crm-fb-tweet-buttons {
    width: 93%;
  }
@@ -145,7 +156,7 @@ diff -ur ./css/civicrm.css /var/www/civicrm/sites/all/modules/civicrm/css/civicr
  
  /* Checkbox gropus */
  .crm-container ul.crm-checkbox-list {
-@@ -3615,6 +3635,7 @@
+@@ -3626,6 +3650,7 @@
  #crm-container.crm-public .price-field-amount {
    padding-top: 6px;
    font-size: 15px;
@@ -153,7 +164,7 @@ diff -ur ./css/civicrm.css /var/www/civicrm/sites/all/modules/civicrm/css/civicr
  }
  
  .crm-container.crm-public .select2-container,
-@@ -3655,9 +3676,16 @@
+@@ -3666,9 +3691,16 @@
    font-size: 15px;
  }
  
@@ -171,8 +182,8 @@ diff -ur ./css/civicrm.css /var/www/civicrm/sites/all/modules/civicrm/css/civicr
  
  #crm-container.crm-public #crm-submit-buttons {
 diff -ur ./ext/ckeditor4/js/crm.ckeditor.js /var/www/civicrm/sites/all/modules/civicrm/ext/ckeditor4/js/crm.ckeditor.js
---- ./ext/ckeditor4/js/crm.ckeditor.js	2021-08-27 12:35:48.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/ext/ckeditor4/js/crm.ckeditor.js	2021-09-08 12:09:16.328450536 +1000
+--- ./ext/ckeditor4/js/crm.ckeditor.js	2022-02-06 13:37:22.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/ext/ckeditor4/js/crm.ckeditor.js	2022-03-21 17:26:47.718248487 +1100
 @@ -64,12 +64,22 @@
        $(item).addClass('crm-wysiwyg-enabled');
  
@@ -225,7 +236,7 @@ diff -ur ./ext/ckeditor4/js/crm.ckeditor.js /var/www/civicrm/sites/all/modules/c
 +};
 diff -ur ./extern/url.php /var/www/civicrm/sites/all/modules/civicrm/extern/url.php
 --- ./extern/url.php	2020-08-06 12:54:52.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/extern/url.php	2021-09-02 17:17:25.458326774 +1000
++++ /var/www/civicrm/sites/all/modules/civicrm/extern/url.php	2022-03-21 17:26:47.718248487 +1100
 @@ -4,6 +4,8 @@
  require_once 'CRM/Core/Error.php';
  require_once 'CRM/Utils/Array.php';
@@ -236,9 +247,9 @@ diff -ur ./extern/url.php /var/www/civicrm/sites/all/modules/civicrm/extern/url.
  
  // To keep backward compatibility for URLs generated
 diff -ur ./packages/HTML/QuickForm/Rule/Email.php /var/www/civicrm/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php
---- ./packages/HTML/QuickForm/Rule/Email.php	2021-08-27 13:44:20.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php	2021-09-02 17:17:25.458326774 +1000
-@@ -88,10 +88,12 @@
+--- ./packages/HTML/QuickForm/Rule/Email.php	2022-02-06 13:37:22.000000000 +1100
++++ /var/www/civicrm/sites/all/modules/civicrm/packages/HTML/QuickForm/Rule/Email.php	2022-03-21 17:26:47.718248487 +1100
+@@ -56,10 +56,12 @@
                  if (checkdnsrr($tokens[1], 'MX') || checkdnsrr($tokens[1], 'A')) {
                      return true;
                  }
@@ -253,7 +264,7 @@ diff -ur ./packages/HTML/QuickForm/Rule/Email.php /var/www/civicrm/sites/all/mod
  
 diff -ur ./packages/Smarty/internals/core.create_dir_structure.php /var/www/civicrm/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php
 --- ./packages/Smarty/internals/core.create_dir_structure.php	2019-08-30 17:45:35.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php	2021-09-02 17:17:25.458326774 +1000
++++ /var/www/civicrm/sites/all/modules/civicrm/packages/Smarty/internals/core.create_dir_structure.php	2022-03-21 17:26:47.718248487 +1100
 @@ -65,7 +65,7 @@
                  $_make_new_dir = true;
              }
