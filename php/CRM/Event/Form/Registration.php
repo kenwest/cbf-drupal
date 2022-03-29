@@ -230,6 +230,7 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
       //retrieve event information
       $params = ['id' => $this->_eventId];
       CRM_Event_BAO_Event::retrieve($params, $this->_values['event']);
+
       // check for is_monetary status
       $isMonetary = $this->_values['event']['is_monetary'] ?? NULL;
       // check for ability to add contributions of type
@@ -1056,13 +1057,14 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
   }
 
   /**
-   * Check if template file exists.
+   * Check template file exists.
    *
-   * @param string $suffix
+   * @param string|null $suffix
    *
-   * @return null|string
+   * @return string|null
+   *   Template file path, else null
    */
-  public function checkTemplateFileExists($suffix = '') {
+  public function checkTemplateFileExists($suffix = NULL) {
     if ($this->_eventId) {
       $templateName = $this->_name;
       if (substr($templateName, 0, 12) == 'Participant_') {
