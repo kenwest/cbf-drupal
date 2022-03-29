@@ -2914,30 +2914,58 @@ function cbf_civicrm_send_email($from, $toName, $toEmail, $subject, $template, $
 /*
  * Format an Australian mobile number
  *
- * If the $format is '9 digits', return the last 9 digits of the mobile number.
+ * If the $format is ...
+ *   '9 digits': return the last 9 digits of the mobile number ('xxxxxxxxx')
+ *   'e164':     return the E164 formatted number ('+61xxxxxxxxx')
+ *   default:    return a readable number ('04xx xxx xxx' or '+61 xxx xxx xxx')
+ *
+ * Exceptions ...
+ *   '9 digits': return '' if there aren't 9 digits
+ *   'e164':     return the original $mobile if it doesn't parse to a valid
+ *               Australian mobile
+ *   default:    return the original $mobile if it doesn't parse to a valid
+ *               Australian mobile
  */
 function cbf_civicrm_format_mobile($mobile, $format = null) {
 
-  if ($format == '9 digits') {
-    $last9digits = substr(preg_replace('/[^0-9]/', '', $mobile), -9);
-    if (is_numeric($last9digits) && $last9digits >= 100000000) {
-      return $last9digits;
-    }
-    else {
-      return '';
-    }
-  }
-  else {
-    $digits = preg_replace('/[^0-9]/', '', $mobile);
-    if (is_numeric($digits)) {
-      $digits = (int) $digits;
-      if ($digits >= 400000000 && $digits <= 499999999) {
-        return '0' . implode(' ', sscanf($digits, '%3c%3c%3c'));
+  $result = $mobile;
+  $digits = preg_replace('/[^0-9]/', '', $mobile); // Remove non-digits
+  $digits = preg_replace('/^0+/', '', $digits); // Remove leading zeroes
+
+  switch (strtolower($format ?? '')) {
+    case '9 digits':
+      $result = substr($digits, -9);
+      if (!is_numeric($result) || $result < 100000000) {
+        $result = '';
       }
-      if ($digits >= 61400000000 && $digits <= 61499999999) {
-        return '+' . implode(' ', sscanf($digits, '%2c%3c%3c%3c'));
+      break;
+
+    case 'e164':
+      if (is_numeric($digits)) {
+        if ($digits >= 400000000 && $digits <= 499999999) {
+          $result = '+61' . $digits;
+        }
+        else if ($digits >= 61400000000 && $digits <= 61499999999) {
+          $result = '+' . $digits;
+        }
       }
-    }
-    return $mobile;
+      break;
+
+    default:
+      if (is_numeric($digits)) {
+        if ($digits >= 400000000 && $digits <= 499999999) {
+          $result = '0' . implode(' ', sscanf($digits, '%3c%3c%3c'));
+        }
+        else if ($digits >= 61400000000 && $digits <= 61499999999) {
+          $result = '+' . implode(' ', sscanf($digits, '%2c%3c%3c%3c'));
+        }
+      }
+      break;
   }
+
+  return $result;
+}
+
+function cbf_civicrm_civicrm_twilio_alterSMS(&$header, &$from, &$message) {
+  $header['To'] = cbf_civicrm_format_mobile($header['To'], 'e164');
 }
