@@ -94,43 +94,12 @@ function cbf_webhook_webhook_unserializer() {
 }
 
 /*
- * Format an Australian mobile number
- *
- * If the $format is '9 digits', return the last 9 digits of the mobile number.
- */
-function _cbf_webhook_format_mobile($mobile, $format = null) {
-
-  if ($format == '9 digits') {
-    $last9digits = substr(preg_replace('/[^0-9]/', '', $mobile), -9);
-    if (is_numeric($last9digits) && $last9digits >= 100000000) {
-      return $last9digits;
-    }
-    else {
-      return '';
-    }
-  }
-  else {
-    $digits = preg_replace('/[^0-9]/', '', $mobile);
-    if (is_numeric($digits)) {
-      $digits = (int) $digits;
-      if ($digits >= 400000000 && $digits <= 499999999) {
-        return '0' . implode(' ', sscanf($digits, '%3c%3c%3c'));
-      }
-      if ($digits >= 61400000000 && $digits <= 61499999999) {
-        return '+' . implode(' ', sscanf($digits, '%2c%3c%3c%3c'));
-      }
-    }
-    return $mobile;
-  }
-}
-
-/*
  * Find an existing contact, either by Id or by First+Last+(EMail|Mobile). The
  * latter emulates the CBF standard dedupe rule for individuals.
  */
 function _cbf_webhook_find_existing_contact($id, $firstName, $lastName, $email, $mobile, &$progress) {
 
-  $last9digits = _cbf_webhook_format_mobile($mobile, '9 digits');
+  $last9digits = cbf_civicrm_format_mobile($mobile, '9 digits');
 
   $potentials = null;
   $target = null;
@@ -190,7 +159,7 @@ function _cbf_webhook_find_existing_contact($id, $firstName, $lastName, $email, 
         }
       }
 
-      $found9digits = _cbf_webhook_format_mobile($contact['phone.phone_numeric'], '9 digits');
+      $found9digits = cbf_civicrm_format_mobile($contact['phone.phone_numeric'], '9 digits');
       if ($last9digits && $last9digits != $found9digits) {
         if (!$email || $email != $contact['email.email']) {
           $progress[] = "Contact {$contact['id']} phone digits don't match '$last9digits'";
@@ -275,7 +244,7 @@ function _cbf_webhook_populate_contact($target, $firstName, $lastName, $email, $
     /*
      * The target was found, but may not have both email and mobile set.
      */
-    $last9digits = _cbf_webhook_format_mobile($mobile, '9 digits');
+    $last9digits = cbf_civicrm_format_mobile($mobile, '9 digits');
     if ($email && $last9digits) {
       $contacts = \Civi\Api4\Contact::get(false)
         ->addSelect('id')
@@ -301,7 +270,7 @@ function _cbf_webhook_populate_contact($target, $firstName, $lastName, $email, $
           }
         }
         foreach ($contact['phones'] as $contactPhone) {
-          if ($last9digits == _cbf_webhook_format_mobile($contactPhone['phone'], '9 digits')) {
+          if ($last9digits == cbf_civicrm_format_mobile($contactPhone['phone'], '9 digits')) {
             $progress[] = "Contact has mobile '$mobile'";
             $addPhone = false;
             break;

@@ -2910,3 +2910,34 @@ function cbf_civicrm_send_email($from, $toName, $toEmail, $subject, $template, $
 
   return false;
 }
+
+/*
+ * Format an Australian mobile number
+ *
+ * If the $format is '9 digits', return the last 9 digits of the mobile number.
+ */
+function cbf_civicrm_format_mobile($mobile, $format = null) {
+
+  if ($format == '9 digits') {
+    $last9digits = substr(preg_replace('/[^0-9]/', '', $mobile), -9);
+    if (is_numeric($last9digits) && $last9digits >= 100000000) {
+      return $last9digits;
+    }
+    else {
+      return '';
+    }
+  }
+  else {
+    $digits = preg_replace('/[^0-9]/', '', $mobile);
+    if (is_numeric($digits)) {
+      $digits = (int) $digits;
+      if ($digits >= 400000000 && $digits <= 499999999) {
+        return '0' . implode(' ', sscanf($digits, '%3c%3c%3c'));
+      }
+      if ($digits >= 61400000000 && $digits <= 61499999999) {
+        return '+' . implode(' ', sscanf($digits, '%2c%3c%3c%3c'));
+      }
+    }
+    return $mobile;
+  }
+}
