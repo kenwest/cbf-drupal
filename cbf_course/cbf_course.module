@@ -536,7 +536,7 @@ function cbf_course_enrolment($first, $last, $email, $id, $course, $courseName, 
       [
         '@title' => $courseName,
         '@course' => $courseOption,
-        '@link' => "https://citybible.thinkific.com/users/express_signin?email=$email",
+        '@link' => "https://citybible.thinkific.com/users/express_signin?email={$result['enrolment']['thinkific']['email']}",
         '!group' => $groupLicenceInstructions,
         '@pathway' => $pathwayName,
         '!pathway_description' => $pathwayDescription,
@@ -604,7 +604,7 @@ function cbf_course_group_license_participation($first, $last, $email, $id, $tok
       'Course group licence participation - system use only',
       [
         '@course' => $courseName,
-        '@link' => "https://citybible.thinkific.com/users/express_signin?email=$email",
+        '@link' => "https://citybible.thinkific.com/users/express_signin?email={$enrolment['thinkific']['email']}",
       ]);
 
     if ($emailStatus) {
