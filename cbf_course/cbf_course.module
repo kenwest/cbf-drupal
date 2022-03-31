@@ -495,7 +495,36 @@ function cbf_course_enrolment($first, $last, $email, $id, $course, $courseName, 
 
   $result = [];
 
-  $result['enrolment'] = cbf_course_thinkific_enrolment($first, $last, $email, $id, [], [], [$course], $expiry);
+  /*
+   * Check if the $course is a Thinkific course or a Thinkific bundle
+   */
+  $courseDescription = null;
+  $courseDefinitions = \Civi\Api4\OptionValue::get(false)
+    ->addSelect('value', 'label', 'description')
+    ->addWhere('option_group_id:name', '=', 'course_20210917103625')
+    ->addWhere('value', '=', $course)
+    ->setLimit(2)
+    ->execute();
+  foreach ($courseDefinitions as $courseDefinition) {
+    $result['CiviCRM course'] = $courseDefinition;
+    $courseDescription = $courseDefinition['description'] ?? 'By default it is a Thinkific course';
+  }
+
+  if (!isset($courseDescription)) {
+    $errors = ["Course '$courseName' is not known to CiviCRM (value = $course)",];
+    $result['failure notification'] = cbf_course_failed_enrolment($first, $last, $email, $id, $courseName, $courseOption, $errors);
+    return $result;
+  }
+  else if (stripos($courseDescription, 'bundle') === false) {
+    $courses = [$course,];
+    $bundles = [];
+  }
+  else {
+    $courses = [];
+    $bundles = [$course,];
+  }
+
+  $result['enrolment'] = cbf_course_thinkific_enrolment($first, $last, $email, $id, [], $bundles, $courses, $expiry);
 
   if ($result['enrolment']['status'] == 'Success') {
     $result['email'] = cbf_civicrm_send_email(
