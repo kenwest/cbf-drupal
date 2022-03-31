@@ -682,9 +682,16 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
   $expiry_time = $expiry_time->format($thinkificDateFormat);
 
   $steps = [
+    "find user by external_id $id" => [
+      'action' => 'find user by external_id',
+      'skip' => 'never',
+      'id' => $id,
+      'method' => 'GET',
+      'endpoint' => "users/$id?provider=SSO",
+    ],
     "find user by email $email" => [
       'action' => 'find user by email',
-      'skip' => 'never',
+      'skip' => 'if user has been found',
       'id' => $email,
       'method' => 'GET',
       'endpoint' => 'users?query[email]=' . urlencode($email),
@@ -762,8 +769,8 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
 
     if ($step['skip'] == 'if user has been found' && $result['thinkific']['user']) {
       /*
-       * Skip this step if a user has been found
-       * eg 'create user'
+       * Skip this step if a user has already been found
+       * eg 'find user by email', 'create user'
        */
     }
     else {
@@ -787,6 +794,11 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
         case 201: // Created
         case 202: // Created asynchronously
           switch ($step['action']) {
+            case 'find user by external_id':
+              $result['thinkific']['user'] = $httpResponse->id;
+              $result['progress'][] = "User with CiviCRM Id $id found";
+              break;
+
             case 'find user by email':
               if (empty($httpResponse->items)) {
                 $result['progress'][] = "No existing user for $email";
@@ -826,6 +838,13 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
         case 500: // Internal server error
         default:  // Unexpected error
           switch ($step['action']) {
+            case 'find user by external_id':
+              if ($httpResult->code == 404) {
+                $result['progress'][] = "User with CiviCRM Id $id not found";
+                break 2; // break from switch on $httpResult->code
+              }
+              break;
+
             case 'add user to group':
               if (
               $httpResult->code == 400 &&
