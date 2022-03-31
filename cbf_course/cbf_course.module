@@ -759,6 +759,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
     'progress' => [],
     'thinkific' => [
       'user' => '',
+      'email' => '',
       'groups' => [],
       'bundles' => [],
       'courses' => [],
@@ -796,6 +797,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
           switch ($step['action']) {
             case 'find user by external_id':
               $result['thinkific']['user'] = $httpResponse->id;
+              $result['thinkific']['email'] = $httpResponse->email;
               $result['progress'][] = "User with CiviCRM Id $id found";
               break;
 
@@ -805,12 +807,14 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
               }
               else {
                 $result['thinkific']['user'] = $httpResponse->items[0]->id;
+                $result['thinkific']['email'] = $httpResponse->items[0]->email;
                 $result['progress'][] = "User $email found";
               }
               break;
 
             case 'create user':
               $result['thinkific']['user'] = $httpResponse->id;
+              $result['thinkific']['email'] = $httpResponse->email;
               $result['progress'][] = "User $email created";
               break;
 
