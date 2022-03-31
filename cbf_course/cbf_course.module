@@ -813,7 +813,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
       $httpResult = drupal_http_request($api . $step['endpoint'], $httpOptions);
       $httpResponse = json_decode($httpResult->data);
 
-      switch ($step[$httpResult->code . ''] ?? $httpResult->code) {
+      switch ($step[$httpResult->code] ?? $httpResult->code) {
 
         case 'found user by external_id':
           $result['thinkific']['user'] = $httpResponse->id;
