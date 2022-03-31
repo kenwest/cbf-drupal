@@ -767,6 +767,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
     $steps['create user']['data']['external_id'] = $id . '';
   }
 
+  $abort = false;
   $result = [
     'progress' => [],
     'thinkific' => [
@@ -871,14 +872,21 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
               }
               break;
           }
-          $result['progress'][] = "Failed to $stepName";
-          $result['progress'][] = "HTTP code was {$httpResult->code}";
-          $result['progress'][] = "HTTP response was '" . print_r($httpResponse, true) . "'";
-          $result['status'] = 'Failure';
 
-          CRM_Core_Error::debug_var('Thinkific enrolment failed', implode(', ', $result['progress']));
-          return $result;
+          $abort = true;
+          break;
       }
+    }
+
+    if ($abort) {
+
+      $result['progress'][] = "Failed to $stepName";
+      $result['progress'][] = "HTTP code was {$httpResult->code}";
+      $result['progress'][] = "HTTP response was '" . print_r($httpResponse, true) . "'";
+      $result['status'] = 'Failure';
+
+      CRM_Core_Error::debug_var('Thinkific enrolment failed', implode(', ', $result['progress']));
+      return $result;
     }
   }
 
