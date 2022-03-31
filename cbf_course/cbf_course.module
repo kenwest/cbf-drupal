@@ -88,7 +88,7 @@ function cbf_course_node_validate($node, $form, &$form_state) {
 
       if ($first) {
         // The first option must specify a Course Id, #sessions and expiry date so other options can use it
-        if (!$cO['id'] || !$cO['sessions'] || !$cO['expiry']) {
+        if (!$cO['id'] || !is_numeric($cO['sessions']) || !$cO['expiry']) {
           $element = "field_course_options][und][$i";
           form_set_error($element, 'The first option must have Course, id, sessions and expiry so other options can use them');
         }
