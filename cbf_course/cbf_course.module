@@ -682,14 +682,16 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
   $expiry_time = $expiry_time->format($thinkificDateFormat);
 
   $steps = [
-    'find user' => [
-      'action' => 'find user',
+    "find user by email $email" => [
+      'action' => 'find user by email',
+      'skip' => 'never',
       'id' => $email,
       'method' => 'GET',
       'endpoint' => 'users?query[email]=' . urlencode($email),
     ],
     'create user' => [
       'action' => 'create user',
+      'skip' => 'if user has been found',
       'id' => $email,
       'method' => 'POST',
       'endpoint' => 'users',
@@ -703,6 +705,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
   foreach ($groups as $group) {
     $steps["add user to group '$group'"] = [
       'action' => 'add user to group',
+      'skip' => 'never',
       'id' => $group,
       'method' => 'POST',
       'endpoint' => 'group_users',
@@ -715,6 +718,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
   foreach ($bundles as $bundle) {
     $steps["enrol user in bundle $bundle"] = [
       'action' => 'enrol user in bundle',
+      'skip' => 'never',
       'id' => $bundle,
       'method' => 'POST',
       'endpoint' => 'bundles/' . $bundle . '/enrollments',
@@ -728,6 +732,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
   foreach ($courses as $course) {
     $steps["enrol user in course $course"] = [
       'action' => 'enrol user in course',
+      'skip' => 'never',
       'id' => $course,
       'method' => 'POST',
       'endpoint' => 'enrollments',
@@ -755,8 +760,11 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
 
   foreach ($steps as $stepName => $step) {
 
-    if ($step['action'] == 'create user' && $result['thinkific']['user']) {
-      // Skip creating a user if we have found one
+    if ($step['skip'] == 'if user has been found' && $result['thinkific']['user']) {
+      /*
+       * Skip this step if a user has been found
+       * eg 'create user'
+       */
     }
     else {
 
@@ -779,7 +787,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
         case 201: // Created
         case 202: // Created asynchronously
           switch ($step['action']) {
-            case 'find user':
+            case 'find user by email':
               if (empty($httpResponse->items)) {
                 $result['progress'][] = "No existing user for {$email}";
               }
