@@ -681,6 +681,18 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
   $expiry_time = new DateObject(strtotime($expiry), 'UTC');
   $expiry_time = $expiry_time->format($thinkificDateFormat);
 
+  /*
+   * The $steps are done in the order they are listed, and have the following structure ...
+   *
+   *     'step name, which is used in logging (it is action + id in English)' => [
+   *       'action' => 'the action taken at this step',
+   *       'skip' => 'a condition that if true will cause this step to be skipped',
+   *       'id' => 'the id presented to Thinkific, which is used in logging',
+   *       'method' => 'the HTTP method used with the Thinkific API',
+   *       'endpoint' => 'See https://developers.thinkific.com/api/api-documentation/',
+   *       'data' => 'the request body for POST endpoints (do not supply for GET endpoints)'
+   *     ],
+   */
   $steps = [
     "find user by external_id $id" => [
       'action' => 'find user by external_id',
@@ -798,39 +810,39 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
             case 'find user by external_id':
               $result['thinkific']['user'] = $httpResponse->id;
               $result['thinkific']['email'] = $httpResponse->email;
-              $result['progress'][] = "User with CiviCRM Id $id found";
+              $result['progress'][] = "User {$result['thinkific']['user']} found with CiviCRM Id {$step['id']}";
               break;
 
             case 'find user by email':
               if (empty($httpResponse->items)) {
-                $result['progress'][] = "No existing user for $email";
+                $result['progress'][] = "No existing user found with email {$step['id']}";
               }
               else {
                 $result['thinkific']['user'] = $httpResponse->items[0]->id;
                 $result['thinkific']['email'] = $httpResponse->items[0]->email;
-                $result['progress'][] = "User $email found";
+                $result['progress'][] = "User {$result['thinkific']['user']} found with email {$result['thinkific']['email']}";
               }
               break;
 
             case 'create user':
               $result['thinkific']['user'] = $httpResponse->id;
               $result['thinkific']['email'] = $httpResponse->email;
-              $result['progress'][] = "User $email created";
+              $result['progress'][] = "User {$result['thinkific']['user']} created with email {$result['thinkific']['email']}";
               break;
 
             case 'add user to group':
               $result['thinkific']['groups'][] = $step['id'];
-              $result['progress'][] = "User $email added to group '{$step['id']}'";
+              $result['progress'][] = "User {$result['thinkific']['user']} added to group '{$step['id']}'";
               break;
 
             case 'enrol user in bundle':
               $result['thinkific']['bundles'][] = $step['id'];
-              $result['progress'][] = "User $email enrolled in bundle {$step['id']}";
+              $result['progress'][] = "User {$result['thinkific']['user']} enrolled in bundle {$step['id']}";
               break;
 
             case 'enrol user in course':
               $result['thinkific']['courses'][] = $httpResponse->course_name;
-              $result['progress'][] = "User $email enrolled in course '{$httpResponse->course_name}'";
+              $result['progress'][] = "User {$result['thinkific']['user']} enrolled in course '{$httpResponse->course_name}'";
               break;
           }
           break;
@@ -844,7 +856,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
           switch ($step['action']) {
             case 'find user by external_id':
               if ($httpResult->code == 404) {
-                $result['progress'][] = "User with CiviCRM Id $id not found";
+                $result['progress'][] = "No existing user found with CiviCRM Id {$step['id']}";
                 break 2; // break from switch on $httpResult->code
               }
               break;
@@ -854,7 +866,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
               $httpResult->code == 400 &&
               stripos($httpResponse->error ?? '', 'already a part of this group') !== false) {
                 $result['thinkific']['groups'][] = $step['id'];
-                $result['progress'][] = "User $email already a part of group '{$step['id']}'";
+                $result['progress'][] = "User {$result['thinkific']['user']} already a part of group '{$step['id']}'";
                 break 2; // break from switch on $httpResult->code
               }
               break;
