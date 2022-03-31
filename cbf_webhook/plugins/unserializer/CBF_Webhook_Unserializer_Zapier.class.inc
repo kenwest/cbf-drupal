@@ -35,7 +35,7 @@ class CBF_Webhook_Unserializer_Zapier implements Webhook_Plugins_Unserializer_In
       ],
       'mobile' => [
         'name' => ['mobile', 'phone'],
-        'format' => '_cbf_webhook_format_mobile',
+        'format' => 'cbf_civicrm_format_mobile',
       ],
       'yearEnteredWorkforce' => [
         'name' => ['yearEnteredWorkforce', 'year_entered_workforce'],
