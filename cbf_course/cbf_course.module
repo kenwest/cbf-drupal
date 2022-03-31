@@ -691,6 +691,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
    *       'method' => 'the HTTP method used with the Thinkific API',
    *       'endpoint' => 'See https://developers.thinkific.com/api/api-documentation/',
    *       'data' => 'the request body for POST endpoints (do not supply for GET endpoints)'
+   *       'XXX' => 'indicates that HTTP code XXX is an expected outcome'
    *     ],
    */
   $steps = [
@@ -700,6 +701,8 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
       'id' => $id,
       'method' => 'GET',
       'endpoint' => "users/$id?provider=SSO",
+      '200' => 'found user by external_id',
+      '404' => 'user not found by external_id',
     ],
     "find user by email $email" => [
       'action' => 'find user by email',
@@ -707,6 +710,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
       'id' => $email,
       'method' => 'GET',
       'endpoint' => 'users?query[email]=' . urlencode($email),
+      '200' => 'may have found user by email',
     ],
     'create user' => [
       'action' => 'create user',
@@ -719,6 +723,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
         'last_name' => $last,
         'email' => $email,
       ],
+      '201' => 'created user',
     ],
   ];
   foreach ($groups as $group) {
@@ -732,6 +737,8 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
         'user_id' => '',
         'group_names' => [$group],
       ],
+      '201' => 'user added to group',
+      '400' => 'user may already be in group',
     ];
   }
   foreach ($bundles as $bundle) {
@@ -746,6 +753,8 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
         'activated_at' => $activation_time,
         'expiry_date' => $expiry_time,
       ],
+      '201' => 'user enrolled in bundle',
+      '202' => 'user enrolled in bundle',
     ];
   }
   foreach ($courses as $course) {
@@ -761,6 +770,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
         'activated_at' => $activation_time,
         'expiry_date' => $expiry_time,
       ],
+      '201' => 'user enrolled in course',
     ];
   }
   if (is_numeric($id)) {
@@ -803,76 +813,61 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
       $httpResult = drupal_http_request($api . $step['endpoint'], $httpOptions);
       $httpResponse = json_decode($httpResult->data);
 
-      switch ($httpResult->code) {
-        case 200: // OK
-        case 201: // Created
-        case 202: // Created asynchronously
-          switch ($step['action']) {
-            case 'find user by external_id':
-              $result['thinkific']['user'] = $httpResponse->id;
-              $result['thinkific']['email'] = $httpResponse->email;
-              $result['progress'][] = "User {$result['thinkific']['user']} found with CiviCRM Id {$step['id']}";
-              break;
+      switch ($step[$httpResult->code . ''] ?? $httpResult->code) {
 
-            case 'find user by email':
-              if (empty($httpResponse->items)) {
-                $result['progress'][] = "No existing user found with email {$step['id']}";
-              }
-              else {
-                $result['thinkific']['user'] = $httpResponse->items[0]->id;
-                $result['thinkific']['email'] = $httpResponse->items[0]->email;
-                $result['progress'][] = "User {$result['thinkific']['user']} found with email {$result['thinkific']['email']}";
-              }
-              break;
+        case 'found user by external_id':
+          $result['thinkific']['user'] = $httpResponse->id;
+          $result['thinkific']['email'] = $httpResponse->email;
+          $result['progress'][] = "User {$result['thinkific']['user']} found with CiviCRM Id {$step['id']}";
+          break;
 
-            case 'create user':
-              $result['thinkific']['user'] = $httpResponse->id;
-              $result['thinkific']['email'] = $httpResponse->email;
-              $result['progress'][] = "User {$result['thinkific']['user']} created with email {$result['thinkific']['email']}";
-              break;
+        case 'user not found by external_id':
+          $result['progress'][] = "No existing user found with CiviCRM Id {$step['id']}";
+          break;
 
-            case 'add user to group':
-              $result['thinkific']['groups'][] = $step['id'];
-              $result['progress'][] = "User {$result['thinkific']['user']} added to group '{$step['id']}'";
-              break;
-
-            case 'enrol user in bundle':
-              $result['thinkific']['bundles'][] = $step['id'];
-              $result['progress'][] = "User {$result['thinkific']['user']} enrolled in bundle {$step['id']}";
-              break;
-
-            case 'enrol user in course':
-              $result['thinkific']['courses'][] = $httpResponse->course_name;
-              $result['progress'][] = "User {$result['thinkific']['user']} enrolled in course '{$httpResponse->course_name}'";
-              break;
+        case 'may have found user by email':
+          if (empty($httpResponse->items)) {
+            $result['progress'][] = "No existing user found with email {$step['id']}";
+          }
+          else {
+            $result['thinkific']['user'] = $httpResponse->items[0]->id;
+            $result['thinkific']['email'] = $httpResponse->items[0]->email;
+            $result['progress'][] = "User {$result['thinkific']['user']} found with email {$result['thinkific']['email']}";
           }
           break;
 
-        case 400: // Bad request
-        case 403: // Access forbidden
-        case 404: // Not found
-        case 422: // Validation error
-        case 500: // Internal server error
-        default:  // Unexpected error
-          switch ($step['action']) {
-            case 'find user by external_id':
-              if ($httpResult->code == 404) {
-                $result['progress'][] = "No existing user found with CiviCRM Id {$step['id']}";
-                break 2; // break from switch on $httpResult->code
-              }
-              break;
+        case 'created user':
+          $result['thinkific']['user'] = $httpResponse->id;
+          $result['thinkific']['email'] = $httpResponse->email;
+          $result['progress'][] = "User {$result['thinkific']['user']} created with email {$result['thinkific']['email']}";
+          break;
 
-            case 'add user to group':
-              if (
-              $httpResult->code == 400 &&
-              stripos($httpResponse->error ?? '', 'already a part of this group') !== false) {
-                $result['thinkific']['groups'][] = $step['id'];
-                $result['progress'][] = "User {$result['thinkific']['user']} already a part of group '{$step['id']}'";
-                break 2; // break from switch on $httpResult->code
-              }
-              break;
+        case 'user added to group':
+          $result['thinkific']['groups'][] = $step['id'];
+          $result['progress'][] = "User {$result['thinkific']['user']} added to group '{$step['id']}'";
+          break;
+
+        case 'user may already be in group':
+          if (stripos($httpResponse->error ?? '', 'already a part of this group') !== false) {
+            $result['thinkific']['groups'][] = $step['id'];
+            $result['progress'][] = "User {$result['thinkific']['user']} already a part of group '{$step['id']}'";
           }
+          else {
+            $abort = true;
+          }
+          break;
 
+        case 'user enrolled in bundle':
+          $result['thinkific']['bundles'][] = $step['id'];
+          $result['progress'][] = "User {$result['thinkific']['user']} enrolled in bundle {$step['id']}";
+          break;
+
+        case 'user enrolled in course':
+          $result['thinkific']['courses'][] = $httpResponse->course_name;
+          $result['progress'][] = "User {$result['thinkific']['user']} enrolled in course '{$httpResponse->course_name}'";
+          break;
+
+        default:  // Unexpected response
           $abort = true;
           break;
       }
