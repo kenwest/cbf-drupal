@@ -721,7 +721,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
       'skip' => 'never',
       'id' => $bundle,
       'method' => 'POST',
-      'endpoint' => 'bundles/' . $bundle . '/enrollments',
+      'endpoint' => "bundles/$bundle/enrollments",
       'data' => [
         'user_id' => '',
         'activated_at' => $activation_time,
@@ -789,32 +789,32 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
           switch ($step['action']) {
             case 'find user by email':
               if (empty($httpResponse->items)) {
-                $result['progress'][] = "No existing user for {$email}";
+                $result['progress'][] = "No existing user for $email";
               }
               else {
                 $result['thinkific']['user'] = $httpResponse->items[0]->id;
-                $result['progress'][] = "User {$email} found";
+                $result['progress'][] = "User $email found";
               }
               break;
 
             case 'create user':
               $result['thinkific']['user'] = $httpResponse->id;
-              $result['progress'][] = "User {$email} created";
+              $result['progress'][] = "User $email created";
               break;
 
             case 'add user to group':
               $result['thinkific']['groups'][] = $step['id'];
-              $result['progress'][] = "User {$email} added to group '{$step['id']}'";
+              $result['progress'][] = "User $email added to group '{$step['id']}'";
               break;
 
             case 'enrol user in bundle':
               $result['thinkific']['bundles'][] = $step['id'];
-              $result['progress'][] = "User {$email} enrolled in bundle {$step['id']}";
+              $result['progress'][] = "User $email enrolled in bundle {$step['id']}";
               break;
 
             case 'enrol user in course':
               $result['thinkific']['courses'][] = $httpResponse->course_name;
-              $result['progress'][] = "User {$email} enrolled in course '{$httpResponse->course_name}'";
+              $result['progress'][] = "User $email enrolled in course '{$httpResponse->course_name}'";
               break;
           }
           break;
@@ -831,7 +831,7 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
               $httpResult->code == 400 &&
               stripos($httpResponse->error ?? '', 'already a part of this group') !== false) {
                 $result['thinkific']['groups'][] = $step['id'];
-                $result['progress'][] = "User {$email} already a part of group '{$step['id']}'";
+                $result['progress'][] = "User $email already a part of group '{$step['id']}'";
                 break 2; // break from switch on $httpResult->code
               }
               break;
