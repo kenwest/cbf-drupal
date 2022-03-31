@@ -64,9 +64,13 @@ function cbf_course_node_validate($node, $form, &$form_state) {
       }
 
       // Validate expiry date
-      if ($cO['expiry'] && strtotime($cO['expiry']) === false) {
-        $element = "field_course_options][und][$i][field_thinkific_expiry_period][und][0][value";
-        form_set_error($element, 'Expiry dates take the form "6 months" etc and should evaluate to a future date');
+      if ($cO['expiry']) {
+        $now = strtotime('now');
+        $expiry = strtotime($cO['expiry']);
+        if ($expiry === false || $expiry < $now) {
+          $element = "field_course_options][und][$i][field_thinkific_expiry_period][und][0][value";
+          form_set_error($element, 'Expiry dates take the form "6 months" etc and should evaluate to a future date');
+        }
       }
 
       // Validate promotional code
