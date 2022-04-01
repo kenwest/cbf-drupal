@@ -3296,14 +3296,19 @@ function cbf_cbf_facebook_pixel_event($domain, $path) {
 
 /*
  * A wrapper around field_get_items() that returns either a single value or an
- * array of values. The single value is the default if the field is empty.
+ * array of values.
+ *
+ *   0 values   Return the $default
+ *   1 value    If $default is an array then return the value as an array
+ *              Otherwise return the value itself
+ *   2+ values  Return the values as an array
  */
 function cbf_field_get_items($entity_type, $entity, $field_name, $field_value, $default = null, $langcode = null) {
   $field = field_get_items($entity_type, $entity, $field_name, $langcode);
   if ($field === false || count($field) == 0) {
     return $default;
   }
-  if (count($field) == 1) {
+  if (count($field) == 1 && !is_array($default)) {
     return reset($field)[$field_value];
   }
   $result = [];
