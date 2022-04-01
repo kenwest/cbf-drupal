@@ -19,7 +19,7 @@ function cbf_course_node_validate($node, $form, &$form_state) {
     $cOs = cbf_field_get_items('node', $node, 'field_course_options', 'entity', []);
     $courseOptions = [];
     foreach ($cOs as $cO) {
-      if (is_object($cO)) {
+      if (is_object($cO) && ($cO->removed ?? 0) != 1) {
         $courseOptions[] = [
           'name' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_name', 'value'),
           'price' => cbf_field_get_items('paragraphs_item', $cO, 'field_training_option_price', 'amount'),
