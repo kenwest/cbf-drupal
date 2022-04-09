@@ -278,9 +278,14 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
       /*
        * There is no need to show the form if the only valid options are 'All'
-       * and one city. Otherwise, only show the valid options.
+       * or 'All' plus one city. Otherwise, only show the valid options.
        */
-      if (count($alterations['activity'][$exposedTid]) <= 2) {
+      if (
+        (
+          count($alterations['activity']['cities']) == 1 &&
+          isset($alterations['activity']['cities']['All'])) ||
+        count($alterations['activity'][$exposedTid]) <= 2
+      ) {
         $form['#access'] = false;
       }
       else {
