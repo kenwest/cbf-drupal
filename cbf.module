@@ -131,14 +131,18 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
   /*
    * Limit the views_exposed_form on the displays of the
-   * cbf2019-national-activity-contents view. It should only list locations
-   * where this Activity is active, and there is either a Regular
-   * Venue, a Mappable item, an Upcoming Event or a Staff member.
+   * cbf2019_national_activity_contents view and the
+   * cbf2019_activity_components view. It should only list locations where this
+   * Activity is active, and there is either a Regular Venue, a Mappable item,
+   * an Upcoming Event or a Staff member.
    */
   if (
       $form_id == 'views_exposed_form' &&
       !empty($form_state['view']) &&
-      $form_state['view']->name == 'cbf2019_national_activity_contents'
+      (
+        $form_state['view']->name == 'cbf2019_national_activity_contents' ||
+        $form_state['view']->name == 'cbf2019_activity_components'
+      )
     ) {
     $node = menu_get_object();
     if (!empty($node) && $node->type == 'activity') {
