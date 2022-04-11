@@ -58,7 +58,8 @@ function _cbf_civicrm_email_audience($params, $context) {
      *         c - For a Scheduled Reminder use Event > Campaign > Audience
      *  20  - Inspect the email for HREF links that select an Audience
      *  30  - Inspect the current domain to see if that selects an Audience
-     *  99 - If the previous rules fail to set an $audience, set it to 'general'
+     *  40  - Assume a 'christian' audience for batch jobs
+     *  99  - If the previous rules fail to set an $audience, set it to 'general'
      */
 
     /*
@@ -134,6 +135,7 @@ function _cbf_civicrm_email_audience($params, $context) {
           case 'membership_autorenew_cancelled':
           case 'pledge_reminder':
             $audienceRule['30'] = true;
+            $audienceRule['40'] = true;
             break;
 
           // Offline actions where 'christian' is not offensive if chosen
@@ -332,7 +334,7 @@ function _cbf_civicrm_email_audience($params, $context) {
      * If applicable, try $audience rule 30:
      * Inspect the current domain to see if that selects an Audience
      */
-    if (empty($audience) && isset($audienceRule['30'])) {
+    if (empty($audience) && isset($audienceRule['30']) && isset($_SERVER['HTTP_HOST'])) {
       $audienceMatches = [];
       foreach ($audienceData['audiences'] as $a => $data) {
         $audienceMatches[$a] = preg_match($data['patterns']['30'], $_SERVER['HTTP_HOST']);
@@ -349,6 +351,14 @@ function _cbf_civicrm_email_audience($params, $context) {
           }
         }
       }
+    }
+
+    /*
+     * If applicable, try $audience rule 40:
+     * Assume a 'christian' audience for batch jobs
+     */
+    if (empty($audience) && isset($audienceRule['40']) && !isset($_SERVER['HTTP_HOST'])) {
+      $audience = 'christian';
     }
 
     /*
