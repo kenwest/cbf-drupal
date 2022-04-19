@@ -49,18 +49,18 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
     switch ($resource) {
       case 'enrollment':
         try {
-          $enrolment = $payload->id;
-          $course = $payload->course->id;
-          $user = $payload->user->id;
+          $enrolmentId = $payload->id;
+          $courseId = $payload->course->id;
+          $userId = $payload->user->id;
           $percent = round(100 * $payload->percentage_completed);
 
-          CRM_Core_Error::debug_var('Thinkific notification', 'Thinkific ' . $action . ' ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
+          CRM_Core_Error::debug_var('Thinkific notification', 'Thinkific ' . $action . ' ' . $resource . ' ' . $enrolmentId . ' for user ' . $userId . ' in course ' . $courseId);
 
           // Find the Enrolment if it exists
           $enrolments = \Civi\Api4\CustomValue::get('Courses')
-            ->addWhere('Enrolment_Id', '=', $enrolment)
             ->setLimit(2) // we expect 0 or 1 but we warn of duplicates
             ->setCheckPermissions(false)
+            ->addWhere('Enrolment_Id', '=', $enrolmentId)
             ->execute();
           $enrolmentCount = 0;
           foreach ($enrolments as $_) {
@@ -72,18 +72,18 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
           }
 
           if ($enrolmentCount == 0) {
-            CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
+            CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' ' . $enrolmentId . ' for user ' . $userId . ' in course ' . $courseId);
 
             // No enrolment found, so find other enrolments by this Thinkific user 
             $contactAction = 'Found';
             $users = \Civi\Api4\CustomValue::get('Courses')
               ->addSelect('entity_id')
-              ->addWhere('User_Id', '=', $user)
+              ->addWhere('User_Id', '=', $userId)
               ->setLimit(2)
               ->setCheckPermissions(false)
               ->execute();
             if ($users->count() == 0) {
-              CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' records for user ' . $user);
+              CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' records for user ' . $userId);
 
               // No previous enrolments by this Thinkific user, so try to find a Contact that matches
 
@@ -103,7 +103,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
                 $contactId = $contact['id'];
               }
               else if ($first && $last && $email) {
-                CRM_Core_Error::debug_var('Thinkific processing', 'No contact record for user ' . $user);
+                CRM_Core_Error::debug_var('Thinkific processing', 'No contact record for user ' . $userId);
 
                 // No matching Contact found, so create one. May need deduping later.
                 $contactAction = 'Created';
@@ -128,44 +128,44 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
             }
 
             if ($contactId) {
-              CRM_Core_Error::debug_var('Thinkific processing', $contactAction . ' contact ' . $contactId . ' for user ' . $user);
+              CRM_Core_Error::debug_var('Thinkific processing', $contactAction . ' contact ' . $contactId . ' for user ' . $userId);
             }
             else {
-              CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not find or create a contact record corresponding to user ' . $user);
+              CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not find or create a contact record corresponding to user ' . $userId);
               break;
             }
 
             $results = \Civi\Api4\CustomValue::create('Courses', false)
               ->addValue('entity_id', $contactId)
-              ->addValue('Enrolment_Id', $enrolment)
-              ->addValue('Course', $course)
-              ->addValue('User_Id', $user)
+              ->addValue('Enrolment_Id', $enrolmentId)
+              ->addValue('Course', $courseId)
+              ->addValue('User_Id', $userId)
               ->addValue('Percent_complete', $percent)
               ->execute();
             $resultCount = 0;
             foreach ($results as $_) {
-              CRM_Core_Error::debug_var('Thinkific processing', 'Created ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
+              CRM_Core_Error::debug_var('Thinkific processing', 'Created ' . $resource . ' ' . $enrolmentId . ' for user ' . $userId . ' in course ' . $courseId);
               $resultCount++;
             }
             if ($resultCount == 0) {
-              CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolment);
+              CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolmentId);
               break;
             }
           }
           else {
             $results = \Civi\Api4\CustomValue::update('Courses', false)
-              ->addWhere('Enrolment_Id', '=', $enrolment)
-              ->addValue('Course', $course)
-              ->addValue('User_Id', $user)
+              ->addWhere('Enrolment_Id', '=', $enrolmentId)
+              ->addValue('Course', $courseId)
+              ->addValue('User_Id', $userId)
               ->addValue('Percent_complete', $percent)
               ->execute();
             $resultCount = 0;
             foreach ($results as $_) {
-              CRM_Core_Error::debug_var('Thinkific processing', 'Updated ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
+              CRM_Core_Error::debug_var('Thinkific processing', 'Updated ' . $resource . ' ' . $enrolmentId . ' for user ' . $userId . ' in course ' . $courseId);
               $resultCount++;
             }
             if ($resultCount == 0) {
-              CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not update a record for ' . $resource . ' ' . $enrolment);
+              CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not update a record for ' . $resource . ' ' . $enrolmentId);
               break;
             }
           }
@@ -215,7 +215,7 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               $assignments[] = "$column = $value";
             }
             else if ($k == 'Enrolment_Id') {
-              $where = "$column = $enrolment";
+              $where = "$column = $enrolmentId";
             }
           }
           $assignments = implode(', ', $assignments);
