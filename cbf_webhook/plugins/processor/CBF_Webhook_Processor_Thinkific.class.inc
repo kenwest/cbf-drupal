@@ -98,17 +98,16 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
 
                 // No matching Contact found, so create one. May need deduping later.
                 $contactAction = 'Created';
-                $contacts = \Civi\Api4\Contact::create()
+                $contacts = \Civi\Api4\Contact::create(false)
                   ->addValue('first_name', $first)
                   ->addValue('last_name', $last)
                   ->addValue('contact_type', 'Individual')
-                  ->addChain('email', \Civi\Api4\Email::create()
+                  ->addChain('email', \Civi\Api4\Email::create(false)
                     ->addValue('contact_id', '$id')
                     ->addValue('location_type_id', 6 /* Main */)
                     ->addValue('email', $email)
                     ->addValue('is_primary', true)
                   )
-                  ->setCheckPermissions(false)
                   ->execute();
                 foreach ($contacts as $contact) {
                   $contactId = $contact['id'];
@@ -127,37 +126,39 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               break;
             }
 
-            $results = \Civi\Api4\CustomValue::create('Courses')
+            $results = \Civi\Api4\CustomValue::create('Courses', false)
               ->addValue('entity_id', $contactId)
               ->addValue('Enrolment_Id', $enrolment)
               ->addValue('Course', $course)
               ->addValue('User_Id', $user)
               ->addValue('Percent_complete', $percent)
-              ->setCheckPermissions(false)
               ->execute();
-            if (isset($results->first()['is_error'])) {
+            $resultCount = 0;
+            foreach ($results as $_) {
+              CRM_Core_Error::debug_var('Thinkific processing', 'Created ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
+              $resultCount++;
+            }
+            if ($resultCount == 0) {
               CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolment);
               break;
             }
-            else {
-              CRM_Core_Error::debug_var('Thinkific processing', 'Created ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
-            }
           }
           else {
-            $results = \Civi\Api4\CustomValue::update('Courses')
+            $results = \Civi\Api4\CustomValue::update('Courses', false)
               ->addWhere('Enrolment_Id', '=', $enrolment)
               ->addValue('Course', $course)
               ->addValue('User_Id', $user)
               ->addValue('Percent_complete', $percent)
               ->setLimit(25)
-              ->setCheckPermissions(false)
               ->execute();
-            if (isset($results->first()['is_error'])) {
-              CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolment);
-              break;
-            }
-            else {
+            $resultCount = 0;
+            foreach ($results as $_) {
               CRM_Core_Error::debug_var('Thinkific processing', 'Updated ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
+              $resultCount++;
+            }
+            if ($resultCount == 0) {
+              CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not update a record for ' . $resource . ' ' . $enrolment);
+              break;
             }
           }
 
