@@ -52,7 +52,18 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
           $enrolmentId = $payload->id;
           $courseId = $payload->course->id;
           $userId = $payload->user->id;
+          $first = $payload->user->first_name;
+          $last = $payload->user->last_name;
+          $email = $payload->user->email;
           $percent = round(100 * $payload->percentage_completed);
+          $dateFields = [
+            'Created' => $payload->created_at,
+            'Activated' => $payload->activated_at,
+            'Started' => $payload->started_at,
+            'Updated' => $payload->updated_at,
+            'Completed' => $payload->completed_at,
+            'Expired' => $payload->expiry_date,
+          ];
 
           CRM_Core_Error::debug_var('Thinkific notification', 'Thinkific ' . $action . ' ' . $resource . ' ' . $enrolmentId . ' for user ' . $userId . ' in course ' . $courseId);
 
@@ -85,11 +96,6 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' records for user ' . $userId);
 
               // No previous enrolments by this Thinkific user, so try to find a Contact that matches
-
-              $first = $payload->user->first_name;
-              $last = $payload->user->last_name;
-              $email = $payload->user->email;
-
               $progress = [];
               $contact = _cbf_webhook_find_existing_contact('', $first, $last, $email, '', $progress);
 
@@ -141,8 +147,15 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
             $results
               ->addValue('Course', $courseId)
               ->addValue('User_Id', $userId)
-              ->addValue('Percent_complete', $percent)
-              ->execute();
+              ->addValue('Percent_complete', $percent);
+
+            foreach ($dateFields as $key => $value) {
+              if ($value) {
+                $results->addValue($key, $value);
+              }
+            }
+
+            $results->execute();
             $resultCount = 0;
             foreach ($results as $_) {
               $enrolmentAction = ucfirst($enrolmentAction) . 'd';
@@ -155,62 +168,6 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
             }
           }
 
-          /*
-           * ------------------------------------------------------------------------
-           * This is a hack to work around API4 not being able to process date values
-           *
-           * When we add ->addValue('Completed', $payload->completed_at) to the
-           * Civi\Api4\CustomValue::create() call, API4 interprets this payload value
-           * correctly but then dies in the SQL because the date is not quoted as a
-           * string.
-           */
-          $dateFields = [
-            'Created' => $payload->created_at,
-            'Activated' => $payload->activated_at,
-            'Started' => $payload->started_at,
-            'Updated' => $payload->updated_at,
-            'Completed' => $payload->completed_at,
-            'Expired' => $payload->expiry_date,
-          ];
-          $dateFieldKeys = array_keys($dateFields);
-          $customGroups = \Civi\Api4\CustomGroup::get()
-            ->addWhere('name', '=', 'Courses')
-            ->setLimit(25)
-            ->setCheckPermissions(false)
-            ->execute();
-          $customFields = \Civi\Api4\CustomField::get()
-            ->addWhere('custom_group_id:name', '=', 'Courses')
-            ->setLimit(25)
-            ->setCheckPermissions(false)
-            ->execute();
-          $table = $customGroups->first()['table_name'];
-          $assignments = [];
-          $count = $customFields->count();
-          for ($i = 0; $i < $count; $i++) {
-            $column = $customFields->itemAt($i)['column_name'];
-            $k = $customFields->itemAt($i)['name'];
-            if (in_array($k, $dateFieldKeys)) {
-              $value = $dateFields[$k];
-              if ($value) {
-                $value = '"' . date('Y-m-d H:i:s', strtotime($value)) . '"';
-              }
-              else {
-                $value = 'null';
-              }
-              $assignments[] = "$column = $value";
-            }
-            else if ($k == 'Enrolment_Id') {
-              $where = "$column = $enrolmentId";
-            }
-          }
-          $assignments = implode(', ', $assignments);
-          $update = "update $table set $assignments where $where";
-          $_ = CRM_Core_DAO::executeQuery($update);
-
-          /*
-           * End of hack
-           * ------------------------------------------------------------------------
-           */
         } catch (\API_Exception $e) {
           CRM_Core_Error::debug_var('Thinkific processing', 'Caught exception: ' . $e);
         }
