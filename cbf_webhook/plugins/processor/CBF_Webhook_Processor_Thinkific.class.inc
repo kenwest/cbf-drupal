@@ -62,7 +62,16 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
             ->setLimit(2) // we expect 0 or 1 but we warn of duplicates
             ->setCheckPermissions(false)
             ->execute();
-          if ($enrolments->count() == 0) {
+          $enrolmentCount = 0;
+          foreach ($enrolments as $_) {
+            $enrolmentCount++;
+          }
+
+          if ($enrolmentCount > 1) {
+            CRM_Core_Error::debug_var('Thinkific processing', 'Warning: there are multiple records for ' . $resource . ' ' . $enrolment);
+          }
+
+          if ($enrolmentCount == 0) {
             CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' ' . $enrolment . ' for user ' . $user . ' in course ' . $course);
 
             // No enrolment found, so find other enrolments by this Thinkific user 
@@ -149,7 +158,6 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               ->addValue('Course', $course)
               ->addValue('User_Id', $user)
               ->addValue('Percent_complete', $percent)
-              ->setLimit(25)
               ->execute();
             $resultCount = 0;
             foreach ($results as $_) {
@@ -218,10 +226,6 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
            * End of hack
            * ------------------------------------------------------------------------
            */
-
-          if ($enrolments->count() > 1) {
-            CRM_Core_Error::debug_var('Thinkific processing', 'Warning: there are multiple records for ' . $resource . ' ' . $enrolment);
-          }
         } catch (\API_Exception $e) {
           CRM_Core_Error::debug_var('Thinkific processing', 'Caught exception: ' . $e);
         }
