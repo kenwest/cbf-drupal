@@ -57,32 +57,31 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
           CRM_Core_Error::debug_var('Thinkific notification', 'Thinkific ' . $action . ' ' . $resource . ' ' . $enrolmentId . ' for user ' . $userId . ' in course ' . $courseId);
 
           // Find the Enrolment if it exists
-          $enrolments = \Civi\Api4\CustomValue::get('Courses')
-            ->setLimit(2) // we expect 0 or 1 but we warn of duplicates
-            ->setCheckPermissions(false)
+          $enrolments = \Civi\Api4\CustomValue::get('Courses', false)
             ->addWhere('Enrolment_Id', '=', $enrolmentId)
+            ->setLimit(1)
             ->execute();
           $enrolmentCount = 0;
           foreach ($enrolments as $_) {
             $enrolmentCount++;
           }
 
-          if ($enrolmentCount > 1) {
-            CRM_Core_Error::debug_var('Thinkific processing', 'Warning: there are multiple records for ' . $resource . ' ' . $enrolment);
-          }
-
           if ($enrolmentCount == 0) {
             CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' ' . $enrolmentId . ' for user ' . $userId . ' in course ' . $courseId);
 
             // No enrolment found, so find other enrolments by this Thinkific user 
+            $contactId = null;
             $contactAction = 'Found';
-            $users = \Civi\Api4\CustomValue::get('Courses')
+            $users = \Civi\Api4\CustomValue::get('Courses', false)
               ->addSelect('entity_id')
               ->addWhere('User_Id', '=', $userId)
-              ->setLimit(2)
-              ->setCheckPermissions(false)
+              ->setLimit(1)
               ->execute();
-            if ($users->count() == 0) {
+            foreach ($users as $user) {
+              $contactId = $user['entity_id'];
+            }
+
+            if (!$contactId) {
               CRM_Core_Error::debug_var('Thinkific processing', 'No ' . $resource . ' records for user ' . $userId);
 
               // No previous enrolments by this Thinkific user, so try to find a Contact that matches
@@ -91,7 +90,6 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               $last = $payload->user->last_name;
               $email = $payload->user->email;
 
-              $contactId = null;
               $progress = [];
               $contact = _cbf_webhook_find_existing_contact('', $first, $last, $email, '', $progress);
 
@@ -122,9 +120,6 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
                   $contactId = $contact['id'];
                 }
               }
-            }
-            else {
-              $contactId = $users->first()['entity_id'];
             }
 
             if ($contactId) {
