@@ -105,18 +105,14 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
 
                 // No matching Contact found, so create one. May need deduping later.
                 $contactAction = 'Created';
-                $contacts = \Civi\Api4\Contact::create(false)
-                  ->addValue('first_name', $first)
-                  ->addValue('last_name', $last)
-                  ->addValue('contact_type', 'Individual')
-                  ->addChain('email', \Civi\Api4\Email::create(false)
-                    ->addValue('contact_id', '$id')
-                    ->addValue('location_type_id', 6 /* Main */)
-                    ->addValue('email', $email)
-                    ->addValue('is_primary', true)
-                  )
-                  ->execute();
-                foreach ($contacts as $contact) {
+                $progress = [];
+                $contact = _cbf_webhook_populate_contact('', $first, $last, $email, '', $progress);
+
+                if ($progress) {
+                  CRM_Core_Error::debug_var('Thinkific processing', implode(', ', $progress));
+                }
+
+                if ($contact) {
                   $contactId = $contact['id'];
                 }
               }

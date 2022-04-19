@@ -207,6 +207,7 @@ function _cbf_webhook_populate_contact($target, $firstName, $lastName, $email, $
       $progress[] = 'Target not found, so create a new contact using supplied details';
 
       $results = \Civi\Api4\Contact::create(false)
+        ->addValue('contact_type', 'Individual')
         ->addValue('first_name', $firstName)
         ->addValue('last_name', $lastName);
       if ($email) {
