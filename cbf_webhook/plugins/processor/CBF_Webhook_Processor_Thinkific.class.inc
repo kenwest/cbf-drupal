@@ -126,37 +126,31 @@ class CBF_Webhook_Processor_Thinkific implements Webhook_Plugins_Processor_Inter
               break;
             }
 
+            $enrolmentAction = 'create';
             $results = \Civi\Api4\CustomValue::create('Courses', false)
               ->addValue('entity_id', $contactId)
-              ->addValue('Enrolment_Id', $enrolmentId)
-              ->addValue('Course', $courseId)
-              ->addValue('User_Id', $userId)
-              ->addValue('Percent_complete', $percent)
-              ->execute();
-            $resultCount = 0;
-            foreach ($results as $_) {
-              CRM_Core_Error::debug_var('Thinkific processing', 'Created ' . $resource . ' ' . $enrolmentId . ' for user ' . $userId . ' in course ' . $courseId);
-              $resultCount++;
-            }
-            if ($resultCount == 0) {
-              CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not create a record for ' . $resource . ' ' . $enrolmentId);
-              break;
-            }
+              ->addValue('Enrolment_Id', $enrolmentId);
           }
           else {
+            $enrolmentAction = 'update';
             $results = \Civi\Api4\CustomValue::update('Courses', false)
-              ->addWhere('Enrolment_Id', '=', $enrolmentId)
+              ->addWhere('Enrolment_Id', '=', $enrolmentId);
+          }
+
+          if ($results) {
+            $results
               ->addValue('Course', $courseId)
               ->addValue('User_Id', $userId)
               ->addValue('Percent_complete', $percent)
               ->execute();
             $resultCount = 0;
             foreach ($results as $_) {
-              CRM_Core_Error::debug_var('Thinkific processing', 'Updated ' . $resource . ' ' . $enrolmentId . ' for user ' . $userId . ' in course ' . $courseId);
+              $enrolmentAction = ucfirst($enrolmentAction) . 'd';
+              CRM_Core_Error::debug_var('Thinkific processing', "$enrolmentAction $resource $enrolmentId for user $userId in course $courseId");
               $resultCount++;
             }
             if ($resultCount == 0) {
-              CRM_Core_Error::debug_var('Thinkific processing', 'Aborting: could not update a record for ' . $resource . ' ' . $enrolmentId);
+              CRM_Core_Error::debug_var('Thinkific processing', "Aborting: could not $enrolmentAction a record for $resource $enrolmentId");
               break;
             }
           }
