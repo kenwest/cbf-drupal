@@ -416,6 +416,7 @@ function cbf_course_webform_submission_presave($node, &$submission) {
           '@course' => $courseArg,
           '@group' => $token,
           '@expiry' => $expiry,
+          '@count' => $group,
         ]);
     }
     else {
