@@ -463,6 +463,13 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
       'text' => true,
     ],
     [
+      'comment' => "Convert old-style Instagram links to $audience",
+      'from' => '!https://instagram\.com/city_bible_forum!i',
+      'to' => "$host/domain/$audience/instagram",
+      'html' => true,
+      'text' => true,
+    ],
+    [
       'comment' => "Convert IMG ALT text to $name",
       'from' => '!img alt="City Bible Forum"!i',
       'to' => "img alt=\"$name\"",
