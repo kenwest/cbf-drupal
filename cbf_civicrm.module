@@ -2073,10 +2073,6 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
         foreach ($contributions as $_) {
           $save = true;
         }
-        CRM_Core_Error::debug_var('cbf_civicrm_civicrm_accountPushAlterMapped', [
-          'contact' => $data['contact_id'],
-          'push to Xero' => $save,
-        ]);
       } catch (\API_Exception $e) {
         CRM_Core_Error::debug_var('cbf_civicrm_civicrm_accountPushAlterMapped exception', $e);
       }
@@ -2123,18 +2119,18 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
       if (empty($params['LineItems']['LineItem'])) {
         $accountCode = CRM_Accountsync_BAO_AccountInvoice::getAccountCode($data['financial_type_id']);
         if (empty($accountCode)) {
-          $accountCode = civicrm_api('setting', 'getvalue', array(
+          $accountCode = civicrm_api('setting', 'getvalue', [
             'group' => 'Xero Settings',
             'name' => 'xero_default_revenue_account',
             'version' => 3,
-          ));
+          ]);
         }
-        $params['LineItems']['LineItem'][] = array(
+        $params['LineItems']['LineItem'][] = [
           'Description' => 'Amount',
           'Quantity' => '1.00',
           'UnitAmount' => $data['total_amount'],
           'AccountCode' => $accountCode,
-        );
+        ];
         $data['line_items'][] = array('label' => 'Amount');
       }
 
@@ -2159,42 +2155,38 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
         // Contributions, but can be derived from the Event's ministry
         // centre.
         if (!empty($data['custom_26'])) {
-          $params['LineItems']['LineItem'][$key]['Tracking']
-            = array(
-                'TrackingCategory' =>
-                  array(
-                    array(
-                     'Name' => 'City',
-                     'Option' => $data['custom_26']
-                  )
-              )
-          );
+          $params['LineItems']['LineItem'][$key]['Tracking'] = [
+            'TrackingCategory' => [
+              [
+                'Name' => 'City',
+                'Option' => $data['custom_26'],
+              ],
+            ],
+          ];
         } elseif (!empty($data['api.participant_payment.get']) && $data['api.participant_payment.get']['count'] > 0) {
           $event_id = $data['api.participant_payment.get']['values'][0]['api.participant.get']['values'][0]['event_id'];
           list($tagId, $name) = _cbf_civicrm_civicrm_event_ministry_centre($event_id);
           if (!empty($name)) {
-            $params['LineItems']['LineItem'][$key]['Tracking']
-              = array(
-                  'TrackingCategory' =>
-                    array(
-                      array(
-                       'Name' => 'City',
-                       'Option' => strtoupper(substr($name, 0, 3))
-                    )
-                )
-            );
+            $params['LineItems']['LineItem'][$key]['Tracking'] = [
+              'TrackingCategory' => [
+                [
+                  'Name' => 'City',
+                  'Option' => strtoupper(substr($name, 0, 3)),
+                ],
+              ],
+            ];
           }
         }
       }
 
       // Capture the Purpose if supplied as an extra Line Item
-      if (!empty($data['custom_27'])) {
-        $params['LineItems']['LineItem'][] = array(
+      if ($data['custom_27']) {
+        $params['LineItems']['LineItem'][] = [
           'Description' => filter_var(
             $data['custom_27'],
             FILTER_SANITIZE_STRING,
             FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH),
-        );
+        ];
       }
       break;
   }
