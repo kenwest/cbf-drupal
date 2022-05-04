@@ -2188,6 +2188,32 @@ function cbf_civicrm_civicrm_accountPushAlterMapped($entity, &$data, &$save, &$p
             FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH),
         ];
       }
+
+      // Capture additional information about the contribution as Line Items
+      $contributions = \Civi\Api4\Contribution::get(FALSE)
+        ->addSelect('source', 'contribution_page_id:name')
+        ->addJoin('ContributionPage AS contribution_page', 'LEFT')
+        ->addWhere('id', '=', $data['contribution_id'])
+        ->setLimit(1)
+        ->execute();
+      foreach ($contributions as $contribution) {
+        if ($contribution['source']) {
+          $params['LineItems']['LineItem'][] = [
+            'Description' => filter_var(
+              "Contribution source = '{$contribution['source']}'",
+              FILTER_SANITIZE_STRING,
+              FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH),
+          ];
+        }
+        if ($contribution['contribution_page_id:name']) {
+          $params['LineItems']['LineItem'][] = [
+            'Description' => filter_var(
+              "Contribution page = '{$contribution['contribution_page_id:name']}'",
+              FILTER_SANITIZE_STRING,
+              FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH),
+          ];
+        }
+      }
       break;
   }
 }
