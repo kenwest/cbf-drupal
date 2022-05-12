@@ -982,6 +982,52 @@ function cbf_entity_presave($entity, $type) {
         break;
     }
   }
+
+  /*
+   * When saving an entity with field_with items, update field_speakers to
+   * match. Update the description and images in the $speaker term if not
+   * yet set.
+   */
+  if ($entity->field_with['und'] ?? false) {
+
+    $personnel = cbf_field_get_items($type, $entity, 'field_with', 'value', []);
+    $personnel = entity_load('paragraphs_item', $personnel);
+
+    $first = true;
+    foreach ($personnel as $person) {
+      $tid = cbf_field_get_items('paragraphs_item', $person, 'field_speaker', 'tid');
+
+      // Update the field_speakers
+      if (isset($entity->field_speakers)) {
+        if ($first) {
+          $entity->field_speakers = ['und' => []];
+        }
+        $entity->field_speakers['und'][] = ['tid' => $tid,];
+      }
+
+      // Update the $speaker term if needed
+      $speaker = taxonomy_term_load($tid);
+      $changed = false;
+      $description = cbf_field_get_items('paragraphs_item', $person, 'field_description', 'value');
+      if ($description && !$speaker->description) {
+        $speaker->description = $description;
+        $changed = true;
+      }
+      if ($person->field_highlight && !$speaker->field_highlight) {
+        $speaker->field_highlight = $person->field_highlight;
+        $changed = true;
+      }
+      if ($person->field_image && !$speaker->field_image) {
+        $speaker->field_image = $person->field_image;
+        $changed = true;
+      }
+      if ($changed) {
+        taxonomy_term_save($speaker);
+      }
+
+      $first = false;
+    }
+  }
 }
 
 /*
