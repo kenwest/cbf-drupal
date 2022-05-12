@@ -539,7 +539,14 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
   }
 
   /*
-   * If we're editing an entity that has boht field_speakers and a field_with
+   * If the form has a field_with element then validate it
+   */
+  if (isset($form['field_with'])) {
+    $form['#validate'][] = 'cbf_field_with_validate';
+  }
+
+  /*
+   * If we're editing an entity that has both a field_speakers and a field_with
    * then make the field_speakers read-only
    */
   if ($form['#node'] || $form['#entity']) {
@@ -730,6 +737,61 @@ function cbf_field_highlight_validate($form, &$form_state) {
       form_set_error(
         'field_highlight',
         'The Highlight image must be supplied unless the article is Unlisted.');
+    }
+  }
+}
+
+/*
+ * Validate field_with elements on forms.
+ *  - Check that the nominated Person has a corresponding Speaker record which
+ *    has both a bio/description and an image
+ *  - If this is a new person then require both a bio/description and an image
+ */
+function cbf_field_with_validate($form, &$form_state) {
+  if (false) {
+    $unlisted = '1957';
+    $fid = reset(reset($form_state['values']['field_highlight']))['fid'] ?? '0';
+    $audience = reset(reset($form_state['values']['taxonomy_vocabulary_3']))['tid'] ?? '0';
+    if ($audience != $unlisted && $fid == '0') {
+      form_set_error(
+        'field_with',
+        'The Highlight image must be supplied unless the article is Unlisted.');
+    }
+  }
+  $people = reset($form_state['values']['field_with']);
+  foreach ($people as $key => $person) {
+    if (is_numeric($key)) { // Ignore people who are in the process of being added
+      $tid = reset(reset($person['field_speaker']))['tid'] ?? 0;
+      if (is_numeric($tid)) {
+        if ($tid > 0) {
+          $speaker = taxonomy_term_load($tid);
+          if (!$person['field_description']['und'][0]['value'] && !$speaker->description) {
+            form_set_error(
+              "field_with][und][$key][field_description][und][0][value",
+              "The existing Speaker record for '{$speaker->name}' doesn't have a description. Need to add one here or on the Speaker record.");
+          }
+          if (!$person['field_highlight']['und'][0]['fid'] && !$speaker->field_highlight
+              && !$person['field_image']['und'][0]['fid'] && !$speaker->field_image) {
+            form_set_error(
+              "field_with][und][$key][field_highlight][und][0][value",
+              "The existing Speaker record for '{$speaker->name}' doesn't have an image. Need to add one here or on the Speaker record.");
+          }
+        }
+      }
+      else {
+        $name = reset(reset($person['field_speaker']))['name'] ?? '';
+        if (!$person['field_description']['und'][0]['value']) {
+          form_set_error(
+            "field_with][und][$key][field_description][und][0][value",
+            "'$name' needs a description as there is no existing Speaker record");
+        }
+        if (!$person['field_highlight']['und'][0]['fid']
+            && !$person['field_image']['und'][0]['fid']) {
+          form_set_error(
+            "field_with][und][$key][field_highlight][und][0][value",
+            "'$name' needs an image as there is no existing Speaker record");
+            }
+      }
     }
   }
 }
