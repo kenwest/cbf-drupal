@@ -532,6 +532,22 @@ function _cbf_civicrm_amend_email(&$html, &$text, $audienceData) {
       ];
     }
   }
+  if ($audience != 'christian') {
+    $replacements[] = [
+      'comment' => "Convert christian brand images to $audience images",
+      'from' => "!/images/christian/brand/!i",
+      'to' => "/images/$audience/brand/",
+      'html' => true,
+      'text' => true,
+    ];
+    $replacements[] = [
+      'comment' => "Convert christian domain links to $audience links",
+      'from' => "!/domain/christian/!i",
+      'to' => "/domain/$audience/",
+      'html' => true,
+      'text' => true,
+    ];
+  }
   foreach ($replacements as $r) {
     if ($r['html']) {
       $html = preg_replace($r['from'], $r['to'], $html) ?? $html;
