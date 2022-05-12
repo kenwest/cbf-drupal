@@ -537,6 +537,22 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
   if (isset($form['field_highlight'])) {
     $form['#validate'][] = 'cbf_field_highlight_validate';
   }
+
+  /*
+   * If we're editing an entity that has boht field_speakers and a field_with
+   * then make the field_speakers read-only
+   */
+  if ($form['#node'] || $form['#entity']) {
+    $entity = $form['#node'] ?? $form['#entity'];
+    if ($entity->field_speakers && $entity->field_with) {
+      if ($form['field_speakers']['und']['#attributes']) {
+        $form['field_speakers']['und']['#attributes']['disabled'] = true;
+      }
+      else {
+        $form['field_speakers']['und']['#attributes'] = ['disabled' => true];
+      }
+    }
+  }
 }
 
 /*
