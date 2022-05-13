@@ -549,9 +549,11 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
    * If we're editing an entity that has both a field_speakers and a field_with
    * then make the field_speakers read-only
    */
-  if ($form['#node'] || $form['#entity']) {
-    $entity = $form['#node'] ?? $form['#entity'];
-    if ($entity->field_speakers && $entity->field_with) {
+  $entity = $form['#node'] ?? ($form['#entity'] ?? false);
+  if ($entity) {
+    $speakers = $entity->field_speakers ?? false;
+    $with = $entity->field_with ?? false;
+    if ($speakers && $with) {
       if ($form['field_speakers']['und']['#attributes']) {
         $form['field_speakers']['und']['#attributes']['disabled'] = true;
       }
