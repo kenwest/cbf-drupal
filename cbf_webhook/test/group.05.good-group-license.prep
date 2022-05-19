@@ -1,3 +1,13 @@
 The 'hellothere' group licence should not be expired, and have licences remaining
 Unenrol from Sharing Jesus at Work in Thinkific
 
+For example ...
+
+    select * from civicrm_value_group_license_32;
+
+    update civicrm_value_group_license_32
+    set group_license_token_161 = 'hellothere',
+        group_license_expiry_162 = 'FUTURE-06-24 00:00:00',
+        group_licenses_remaining_163 = 100
+    where entity_id = NNNNNN;
+
