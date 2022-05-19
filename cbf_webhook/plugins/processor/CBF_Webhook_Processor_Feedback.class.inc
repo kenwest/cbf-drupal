@@ -333,6 +333,7 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
               ->execute();
             foreach ($activities as $activity) {
               $groupLicence = [
+                'token' => $groupLicenceToken,
                 'activity' => $activity['id'],
                 'course' => $activity['Contact_form_fields.Course'],
                 'name' => $activity['Contact_form_fields.Course:label'],
@@ -375,18 +376,8 @@ class CBF_Webhook_Processor_Feedback implements Webhook_Plugins_Processor_Interf
                 $lastName,
                 $email,
                 $target['id'],
-                $groupLicenceToken,
-                $groupLicence['course'],
-                $groupLicence['name'],
+                $groupLicence,
                 $expiry);
-
-              $results = \Civi\Api4\Activity::update(false)
-                ->addValue('Group_license.Group_licenses_remaining', --$groupLicence['remaining'])
-                ->addWhere('id', '=', $groupLicence['activity'])
-                ->execute();
-              foreach ($results as $result) {
-                $progress[] = "Decremented licences remaining for Group Licence $groupLicenceToken to {$groupLicence['remaining']}";
-              }
             }
           }
 

@@ -592,32 +592,42 @@ function cbf_course_failed_enrolment($first, $last, $email, $id, $courseName, $c
 /*
  * Complete the participation of a contact in a Group Licence
  */
-function cbf_course_group_license_participation($first, $last, $email, $id, $token, $course, $courseName, $expiry) {
+function cbf_course_group_license_participation($first, $last, $email, $id, $groupLicence, $expiry) {
 
-  $enrolment = cbf_course_thinkific_enrolment($first, $last, $email, $id, [], [], [$course], $expiry);
+  $enrolment = cbf_course_thinkific_enrolment($first, $last, $email, $id, [], [], [$groupLicence['course'],], $expiry);
 
   if ($enrolment['status'] == 'Success') {
+
+    $remaining = "Failed to decrement the licences remaining";
+    $results = \Civi\Api4\Activity::update(false)
+      ->addValue('Group_license.Group_licenses_remaining', --$groupLicence['remaining'])
+      ->addWhere('id', '=', $groupLicence['activity'])
+      ->execute();
+    foreach ($results as $_) {
+      $remaining = "Decremented licences remaining to {$groupLicence['remaining']}";
+    }
+
     $emailStatus = cbf_civicrm_send_email(
       '"Do not reply" <do-not-reply@citybibleforum.org>',
       format_string('@first @last', ['@first' => $first, '@last' => $last,]),
       $email,
-      "Enrolled in '$courseName'",
+      "Enrolled in '{$groupLicence['name']}'",
       'Course group licence participation - system use only',
       [
-        '@course' => $courseName,
+        '@course' => $groupLicence['name'],
         '@link' => "https://citybible.thinkific.com/users/express_signin?email={$enrolment['thinkific']['email']}",
       ]);
 
     if ($emailStatus) {
-      return "Contact $id now participates in Group Licence $token, and we have notified them at $email";
+      return "Contact $id now participates in Group Licence {$groupLicence['token']}, and we have notified them at $email. $remaining.";
     }
     else {
-      return "Failed to email contact $id at $email that their request to participate in Group Licence $token succeeded";
+      return "Failed to email contact $id at $email that their request to participate in Group Licence {$groupLicence['token']} succeeded. $remaining.";
     }
   }
   else {
     $errors = ["Unfortunately, we had a technical problem while registering you. We will complete the process manually and advise you when that is done."];
-    return cbf_course_failed_group_license_participation($first, $last, $email, $id, $token, $courseName, $errors, $enrolment['progress']);
+    return cbf_course_failed_group_license_participation($first, $last, $email, $id, $groupLicence['token'], $groupLicence['name'], $errors, $enrolment['progress']);
   }
 }
 
