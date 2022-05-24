@@ -750,16 +750,6 @@ function cbf_field_highlight_validate($form, &$form_state) {
  *  - If this is a new person then require both a bio/description and an image
  */
 function cbf_field_with_validate($form, &$form_state) {
-  if (false) {
-    $unlisted = '1957';
-    $fid = reset(reset($form_state['values']['field_highlight']))['fid'] ?? '0';
-    $audience = reset(reset($form_state['values']['taxonomy_vocabulary_3']))['tid'] ?? '0';
-    if ($audience != $unlisted && $fid == '0') {
-      form_set_error(
-        'field_with',
-        'The Highlight image must be supplied unless the article is Unlisted.');
-    }
-  }
   $people = reset($form_state['values']['field_with']);
   foreach ($people as $key => $person) {
     if (is_numeric($key)) { // Ignore people who are in the process of being added
