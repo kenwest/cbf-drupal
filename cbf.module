@@ -745,22 +745,37 @@ function cbf_field_highlight_validate($form, &$form_state) {
 
 /*
  * Validate field_with elements on forms.
- *  - Check that the nominated Person has a corresponding Speaker record which
+ *  - Check that the nominated Person has an existing Speaker record which
  *    has both a bio/description and an image
  *  - If this is a new person then require both a bio/description and an image
+ *  - Warn if the bio/description of the existing Speaker record is longer than
+ *    500 characters
+ *  - Limit the bio/description to 500 characters
  */
 function cbf_field_with_validate($form, &$form_state) {
+
   $people = reset($form_state['values']['field_with']);
+  $maxDescription = 500;
+
   foreach ($people as $key => $person) {
     if (is_numeric($key)) { // Ignore people who are in the process of being added
       $tid = reset(reset($person['field_speaker']))['tid'] ?? 0;
       if (is_numeric($tid)) {
         if ($tid > 0) {
           $speaker = taxonomy_term_load($tid);
-          if (!$person['field_description']['und'][0]['value'] && !$speaker->description) {
-            form_set_error(
-              "field_with][und][$key][field_description][und][0][value",
-              "The existing Speaker record for '{$speaker->name}' doesn't have a description. Need to add one here or on the Speaker record.");
+          if (!$person['field_description']['und'][0]['value']) {
+            if ($speaker->description) {
+              if (strlen($speaker->description) > $maxDescription) {
+                drupal_set_message(
+                  "The existing Speaker record for '{$speaker->name}' has a description that is longer than $maxDescription characters (it will overflow the display area)",
+                  'warning');
+              }
+            }
+            else {
+              form_set_error(
+                "field_with][und][$key][field_description][und][0][value",
+                "The existing Speaker record for '{$speaker->name}' doesn't have a description. Need to add one here or on the Speaker record.");
+            }
           }
           if (!$person['field_highlight']['und'][0]['fid'] && !$speaker->field_highlight
               && !$person['field_image']['und'][0]['fid'] && !$speaker->field_image) {
@@ -783,6 +798,12 @@ function cbf_field_with_validate($form, &$form_state) {
             "field_with][und][$key][field_highlight][und][0][value",
             "'$name' needs an image as there is no existing Speaker record");
             }
+      }
+      $description = $person['field_description']['und'][0]['value'] ?? '';
+      if (strlen($description) > $maxDescription) {
+        form_set_error(
+          "field_with][und][$key][field_description][und][0][value",
+          "The description supplied for '$name' is longer than $maxDescription characters (it will overflow the display area)");
       }
     }
   }
