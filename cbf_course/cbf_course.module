@@ -701,8 +701,8 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
    *       'id' => 'the id presented to Thinkific, which is used in logging',
    *       'method' => 'the HTTP method used with the Thinkific API',
    *       'endpoint' => 'See https://developers.thinkific.com/api/api-documentation/',
-   *       'data' => 'the request body for POST endpoints (do not supply for GET endpoints)'
-   *       'XXX' => 'indicates that HTTP code XXX is an expected outcome'
+   *       'data' => 'the request body for POST endpoints (do not supply for GET endpoints)',
+   *       'XXX' => 'the name of the case statement that is executed when HTTP code XXX is returned',
    *     ],
    */
   $steps = [
