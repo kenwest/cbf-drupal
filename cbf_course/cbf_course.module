@@ -492,40 +492,11 @@ function cbf_course_webform_submission_insert($node, $submission) {
 /*
  * Enrol a contact in a Course
  */
-function cbf_course_enrolment($first, $last, $email, $id, $course, $courseName, $courseOption, $expiry, $groupLicenceInstructions, $pathwayName, $pathwayDescription) {
+function cbf_course_enrolment($first, $last, $email, $id, $courseCode, $courseName, $courseOption, $expiry, $groupLicenceInstructions, $pathwayName, $pathwayDescription) {
 
   $result = [];
 
-  /*
-   * Check if the $course is a Thinkific course or a Thinkific bundle
-   */
-  $courseDescription = null;
-  $courseDefinitions = \Civi\Api4\OptionValue::get(false)
-    ->addSelect('value', 'label', 'description')
-    ->addWhere('option_group_id:name', '=', 'course_20210917103625')
-    ->addWhere('value', '=', $course)
-    ->setLimit(2)
-    ->execute();
-  foreach ($courseDefinitions as $courseDefinition) {
-    $result['CiviCRM course'] = $courseDefinition;
-    $courseDescription = $courseDefinition['description'] ?? 'By default it is a Thinkific course';
-  }
-
-  if (!isset($courseDescription)) {
-    $errors = ["Course '$courseName' is not known to CiviCRM (value = $course)",];
-    $result['failure notification'] = cbf_course_failed_enrolment($first, $last, $email, $id, $courseName, $courseOption, $errors);
-    return $result;
-  }
-  else if (stripos($courseDescription, 'bundle') === false) {
-    $courses = [$course,];
-    $bundles = [];
-  }
-  else {
-    $courses = [];
-    $bundles = [$course,];
-  }
-
-  $result['enrolment'] = cbf_course_thinkific_enrolment($first, $last, $email, $id, [], $bundles, $courses, $expiry);
+  $result['enrolment'] = cbf_course_thinkific_enrolment($first, $last, $email, $id, $courseCode, $expiry);
 
   if ($result['enrolment']['status'] == 'Success') {
     $result['email'] = cbf_civicrm_send_email(
@@ -594,7 +565,7 @@ function cbf_course_failed_enrolment($first, $last, $email, $id, $courseName, $c
  */
 function cbf_course_group_license_participation($first, $last, $email, $id, $groupLicence, $expiry) {
 
-  $enrolment = cbf_course_thinkific_enrolment($first, $last, $email, $id, [], [], [$groupLicence['course'],], $expiry);
+  $enrolment = cbf_course_thinkific_enrolment($first, $last, $email, $id, $groupLicence['course'], $expiry);
 
   if ($enrolment['status'] == 'Success') {
 
@@ -678,7 +649,43 @@ function cbf_course_failed_group_license_participation($first, $last, $email, $i
   }
 }
 
-function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bundles, $courses, $expiry) {
+/*
+ * Check if the $courseCode is a Thinkific group, bundle or course
+ * This information is stored in the Description of the CiviCRM OptionValue
+ * which corresponds to the $courseCode.
+ */
+function cbf_course_map_course_to_thinkific($courseCode, &$groups, &$bundles, &$courses) {
+
+  $errors = [];
+
+  $courseDescription = null;
+  $courseDefinitions = \Civi\Api4\OptionValue::get(false)
+  ->addSelect('value', 'label', 'description')
+  ->addWhere('option_group_id:name', '=', 'course_20210917103625')
+  ->addWhere('value', '=', $courseCode)
+  ->setLimit(2)
+  ->execute();
+  foreach ($courseDefinitions as $courseDefinition) {
+    $courseDescription = $courseDefinition['description'] ?? 'By default it is a Thinkific course';
+  }
+
+  if (!isset($courseDescription)) {
+    $errors[] = "Course with code '$courseCode' is not known to CiviCRM";
+  }
+  else if (stripos($courseDescription, 'group') !== false) {
+    $groups[] = $courseCode;
+  }
+  else if (stripos($courseDescription, 'bundle') !== false) {
+    $bundles[] = $courseCode;
+  }
+  else {
+    $courses[] = $courseCode;
+  }
+
+  return $errors;
+}
+
+function cbf_course_thinkific_enrolment($first, $last, $email, $id, $courseCode, $expiry) {
 
   $api = 'https://api.thinkific.com/api/public/v1/';
   $headers = [
@@ -691,6 +698,28 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
   $activation_time = $activation_time->format($thinkificDateFormat);
   $expiry_time = new DateObject(strtotime($expiry), 'UTC');
   $expiry_time = $expiry_time->format($thinkificDateFormat);
+
+  $result = [
+    'progress' => [],
+    'thinkific' => [
+      'user' => '',
+      'email' => '',
+      'groups' => [],
+      'bundles' => [],
+      'courses' => [],
+    ],
+  ];
+  $groups = $bundles = $courses = [];
+  $errors = cbf_course_map_course_to_thinkific($courseCode, $groups, $bundles, $courses);
+
+  if ($errors) {
+
+    $result['progress'][] = "Failed to map '$courseCode' to Thinkific groups, bundles or courses";
+    $result['status'] = 'Failure';
+
+    CRM_Core_Error::debug_var('Thinkific enrolment failed', implode(', ', $result['progress']));
+    return $result;
+  }
 
   /*
    * The $steps are done in the order they are listed, and have the following structure ...
@@ -789,16 +818,6 @@ function cbf_course_thinkific_enrolment($first, $last, $email, $id, $groups, $bu
   }
 
   $abort = false;
-  $result = [
-    'progress' => [],
-    'thinkific' => [
-      'user' => '',
-      'email' => '',
-      'groups' => [],
-      'bundles' => [],
-      'courses' => [],
-    ],
-  ];
 
   foreach ($steps as $stepName => $step) {
 
