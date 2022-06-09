@@ -1187,7 +1187,7 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
       /*
        * Supply a note_date to prevent an unhandled exception in CiviCRM 5.47.0
        */
-      if (empty($form->getElementValue('note_date'))) {
+      if ($form->elementExists('note_date') && empty($form->getElementValue('note_date'))) {
         $date = new DateObject();
         $form->_submitValues['note_date'] = $date->format('Y-m-d H:i:s');
       }
