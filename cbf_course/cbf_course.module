@@ -130,6 +130,7 @@ function cbf_course_entity_presave($entity, $type) {
       'promotional_code',
       'expiry',
       'civicrm_1_activity_1_cg32_custom_163',
+      'options_and_price',
     ];
     $cids = [];
     foreach ($formKeys as $formKey) {
@@ -175,6 +176,14 @@ function cbf_course_entity_presave($entity, $type) {
     }
     $entity->webform['components'][$cids['course_selection']]['extra']['items'] = implode("\n", $items);
     $entity->webform['components'][$cids['course_selection']]['value'] = '0';
+    if (count($items) == 1) {
+      $entity->webform['components'][$cids['course_selection']]['extra']['wrapper_classes'] = 'single-option';
+      $entity->webform['components'][$cids['options_and_price']]['name'] = 'Price';
+    }
+    else {
+      $entity->webform['components'][$cids['course_selection']]['extra']['wrapper_classes'] = '';
+      $entity->webform['components'][$cids['options_and_price']]['name'] = 'Options and price';
+    }
 
     // Create webform conditionals from course options
     $conditionals = [];
