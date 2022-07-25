@@ -3471,3 +3471,54 @@ function cbf_field_get_items($entity_type, $entity, $field_name, $field_value, $
   }
   return $result;
 }
+
+/*
+ * Implements hook_datalayer_alter()
+ *
+ * "Alter the Data Layer data before it is output to the screen."
+ *
+ */
+function cbf_datalayer_alter(array &$data_layer) {
+
+  // Datalayer defaults
+  $activity = null;
+  $formTitle = $_SESSION['City Bible Forum']['Form title'];
+  unset ($_SESSION['City Bible Forum']['Form title']);
+
+  $node = menu_get_object('node');
+  if (!empty($node) && is_object($node)) {
+    if ($node->type == "activity") {
+      $activity = $node;
+    }
+    else {
+      $activity = field_get_items('node', $node, 'field_in_activity');
+      $activity = empty($activity) ? false : entity_load('node', reset($activity));
+      $activity = empty($activity) ? false : reset($activity);
+    }
+  }
+  else {
+    $event = menu_get_object('civicrm_entity_loader');
+    if (!empty($event) && is_object($event) && $event->entityType() == 'civicrm_event') {
+      $activity = field_get_items('civicrm_event', $event, 'field_in_activity');
+      $activity = empty($activity) ? false : entity_load('node', reset($activity));
+      $activity = empty($activity) ? false : reset($activity);
+    }
+  }
+
+  // Datalayer values
+  if (!empty($activity)) {
+    $data_layer['cbfActivity'] = $activity->title;
+  }
+  if (!empty($formTitle)) {
+    $data_layer['cbfForm'] = $node->title;
+  }
+}
+
+/*
+ * Implements hook_webform_submission_insert()
+ *
+ * Respond to a Webform submission being inserted.
+ */
+function cbf_webform_submission_insert($node, $submission) {
+  $_SESSION['City Bible Forum']['Form title'] = $node->title;
+}
