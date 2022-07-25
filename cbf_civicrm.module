@@ -1227,6 +1227,8 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         break;
     }
   }
+
+  datalayer_add(['cbfForm' => $formName], true);
 }
 
 /*
