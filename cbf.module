@@ -3473,21 +3473,16 @@ function cbf_field_get_items($entity_type, $entity, $field_name, $field_value, $
 }
 
 /*
- * Implements hook_datalayer_alter()
- *
- * "Alter the Data Layer data before it is output to the screen."
- *
+ * Find the $node, $event and $activity related to the current page's
+ * menu_get_object()
  */
-function cbf_datalayer_alter(array &$data_layer) {
+function _cbf_find_object_and_activity_for_page() {
 
-  // Datalayer defaults
-  $activity = null;
-  $formTitle = $_SESSION['City Bible Forum']['Form title'];
-  unset ($_SESSION['City Bible Forum']['Form title']);
+  $node = $event = $activity = null;
 
   $node = menu_get_object('node');
   if (!empty($node) && is_object($node)) {
-    if ($node->type == "activity") {
+    if ($node->type == 'activity') {
       $activity = $node;
     }
     else {
@@ -3497,20 +3492,45 @@ function cbf_datalayer_alter(array &$data_layer) {
     }
   }
   else {
+    $node = false;
     $event = menu_get_object('civicrm_entity_loader');
     if (!empty($event) && is_object($event) && $event->entityType() == 'civicrm_event') {
       $activity = field_get_items('civicrm_event', $event, 'field_in_activity');
       $activity = empty($activity) ? false : entity_load('node', reset($activity));
       $activity = empty($activity) ? false : reset($activity);
     }
+    else {
+      $event = false;
+    }
   }
 
+  return [
+    'node' => $node,
+    'event' => $event,
+    'activity' => $activity,
+  ];
+}
+
+/*
+ * Implements hook_datalayer_alter()
+ *
+ * "Alter the Data Layer data before it is output to the screen."
+ *
+ */
+function cbf_datalayer_alter(array &$data_layer) {
+
+  // Datalayer defaults
+  $formTitle = $_SESSION['City Bible Forum']['Form title'];
+  unset ($_SESSION['City Bible Forum']['Form title']);
+
+  $page = _cbf_find_object_and_activity_for_page();
+
   // Datalayer values
-  if (!empty($activity)) {
-    $data_layer['cbfActivity'] = $activity->title;
+  if (!empty($page['activity'])) {
+    $data_layer['cbfActivity'] = $page['activity']->title;
   }
-  if (!empty($formTitle)) {
-    $data_layer['cbfForm'] = $node->title;
+  if (!empty($formTitle) && !empty($page['node'])) {
+    $data_layer['cbfForm'] = $page['node']->title;
   }
 }
 
