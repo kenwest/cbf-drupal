@@ -1,0 +1,47 @@
+<?php
+
+/*
+ * Implements hook_filter_info().
+ */
+function cbf_filter_filter_info() {
+  $filters = [
+    'cbf_filter_activity_promotion' => [
+      'title' => t('CBF Activity promotion filter'),
+      'description' => t('Substitutes [cbfActivityPromotion] with CBF Activity promotional material.'),
+      'process callback' => '_cbf_filter_activity_promotion_process',
+      'settings callback' => '_cbf_filter_activity_promotion_settings',
+      'default settings' => [],
+      'tips callback' => '_cbf_filter_activity_promotion_tips',
+    ],
+  ];
+  return $filters;
+}
+
+function _cbf_filter_activity_promotion_settings($form, $form_state, $filter, $format, $defaults, $filters) {
+  return [];
+}
+
+function _cbf_filter_activity_promotion_process($text, $filter, $format, $langcode, $cache, $cache_id) {
+  $page = _cbf_find_object_and_activity_for_page();
+  $pattern = [
+    '!<p( [^>]*)?>\[cbfActivityPromotion\]</p>!i',
+    '!\[cbfActivityPromotion\]!i',
+  ];
+  $replacement = $page['activity'];
+  $replacement = empty($replacement) ? '' : cbf_field_get_items('node', $replacement, 'field_short_form', 'value', '');
+  $text = preg_replace($pattern, $replacement, $text) ?? $text;
+  return $text;
+}
+
+function _cbf_filter_activity_promotion_tips($filter, $format, $long) {
+  if ($long) {
+    return '
+      <p><strong>CBF Activity promotion filter</strong></p>
+      <p>You may insert CBF Activity promotional material with [cbfActivityPromotion]</p>
+      <p>This filter works best when you put the [cbfActivityPromotion] tag in a paragraph by itself.</p>
+    ';
+  }
+  else {
+    return 'You may insert CBF Activity promotional material with [cbfActivityPromotion]';
+  }
+}
