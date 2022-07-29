@@ -5,6 +5,26 @@
  * other functions to use
  */
 function _cbf_civicrm_email_audience($params, $context) {
+
+  /*
+   * This function can be called from cbf_civicrm_civicrm_alterMailContent
+   * and cbf_civicrm_civicrm_alterMailParams which have differences between
+   * their parameters. So we just need to reconcile them.
+   */
+  if (empty($context)) {
+    if (isset($params['mailingID'])) {
+      $context = 'civimail';
+    }
+    else if ($workflow) {
+      $context = 'singleEmail';
+    }
+    else if (!empty($params['messageTemplateID'])) {
+      $context = 'messageTemplate';
+    }
+    else {
+      $context = 'civimail';
+    }
+  }
   $audienceData = &drupal_static(__FUNCTION__);
   if (empty($audienceData)) {
     $audienceData = [
@@ -67,25 +87,6 @@ function _cbf_civicrm_email_audience($params, $context) {
      */
     $audienceRule = [];
     $workflow = $params['workflow'] ?? $params['valueName'] ?? $params['groupName'] ?? '';
-    if (empty($context)) {
-      /*
-       * This function can be called from cbf_civicrm_civicrm_alterMailContent
-       * and cbf_civicrm_civicrm_alterMailParams which have differences between
-       * their parameters. So we just need to reconcile them.
-       */
-      if (isset($params['mailingID'])) {
-        $context = 'civimail';
-      }
-      else if ($workflow) {
-        $context = 'singleEmail';
-      }
-      else if (!empty($params['messageTemplateID'])) {
-        $context = 'messageTemplate';
-      }
-      else {
-        $context = 'civimail';
-      }
-    }
     switch ($context) {
       case 'singleEmail':
         switch ($workflow) {
