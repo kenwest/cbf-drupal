@@ -11,9 +11,11 @@ function _cbf_civicrm_email_audience($params, $context) {
    * and cbf_civicrm_civicrm_alterMailParams which have differences between
    * their parameters. So we just need to reconcile them.
    */
+  $contextId = false;
   if (empty($context)) {
     if (isset($params['mailingID'])) {
       $context = 'civimail';
+      $contextId = $params['mailingID'];
     }
     else if ($workflow) {
       $context = 'singleEmail';
@@ -25,8 +27,21 @@ function _cbf_civicrm_email_audience($params, $context) {
       $context = 'civimail';
     }
   }
+
+  /*
+   * For CiviMails, cbf_civicrm_civicrm_alterMailContent() is called before
+   * cbf_civicrm_civicrm_alterMailParams(). So a call to this function with
+   * empty $context and $params['mailingID'] set to a new value is a signal
+   * that a new mailing is being processed.
+   */
+
   $audienceData = &drupal_static(__FUNCTION__);
-  if (empty($audienceData)) {
+  if (
+    empty($audienceData)
+    || ($context == 'civimail'
+        && $contextId
+        && $contextId != $audienceData['context id']) // See note above
+  ) {
     $audienceData = [
       'audience' => '',
       'audiences' => [
@@ -38,6 +53,8 @@ function _cbf_civicrm_email_audience($params, $context) {
         ],
       ],
       'cache' => [],
+      'context' => $context,
+      'context id' => $contextId,
     ];
 
     foreach (domain_list_by_machine_name() as $domain) {
