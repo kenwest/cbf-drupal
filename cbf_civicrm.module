@@ -120,6 +120,7 @@ function _cbf_civicrm_email_audience($params, $context) {
            * are not being set, so $audience Rule 2.a is no longer effective.
            */
           case 'Activity Email Sender':
+          case 'Email from API':
             $audienceRule['2.a'] = true;
             $audienceRule['20'] = true;
             $audienceRule['30'] = true;
