@@ -590,7 +590,7 @@ abstract class CRM_Core_Payment {
         return '';
 
       case 'contributionPageContinueText':
-        return ts('Click the <strong>Continue</strong> button to proceed with the payment.');
+        return ts('Click the <strong>Make payment</strong> button to proceed with the payment.');
 
       case 'cancelRecurDetailText':
         if ($params['mode'] === 'auto_renew') {
