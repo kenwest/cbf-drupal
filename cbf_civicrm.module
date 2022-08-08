@@ -12,6 +12,7 @@ function _cbf_civicrm_email_audience($params, $context) {
    * their parameters. So we just need to reconcile them.
    */
   $contextId = false;
+  $workflow = $params['workflow'] ?? $params['valueName'] ?? $params['groupName'] ?? '';
   if (empty($context)) {
     if (isset($params['mailingID'])) {
       $context = 'civimail';
@@ -103,7 +104,6 @@ function _cbf_civicrm_email_audience($params, $context) {
      * The $context and $params guide which $audience rules are applicable
      */
     $audienceRule = [];
-    $workflow = $params['workflow'] ?? $params['valueName'] ?? $params['groupName'] ?? '';
     switch ($context) {
       case 'singleEmail':
         switch ($workflow) {
