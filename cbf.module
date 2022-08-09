@@ -240,10 +240,9 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
          * Find the possible options for this filter
          */
         $exposedLocations = [];
-        $locations = field_get_items('node', $node, $exposedFilter);
-        if ($locations === false) $locations = [];
+        $locations = cbf_field_get_items('node', $node, $exposedFilter, 'tid', []);
         foreach ($locations as $location) {
-          $i = (int) $location['tid'];
+          $i = (int) $location;
           $exposedLocations[$i] = $i;
         }
 
@@ -896,52 +895,31 @@ function cbf_entity_presave($entity, $type) {
   if ($followDomainRules) {
     $domains = domain_list_by_machine_name();
 
-    $matches = [ ];
+    $matches = [];
 
-    $field_in_activity = field_get_items($type, $entity, 'field_in_activity');
-    if ($field_in_activity === false || empty($field_in_activity[0]['target_id'])) {
-      $entityActivity = 0;
-    }
-    else {
-      $entityActivity = $field_in_activity[0]['target_id'];
-    }
+    $entityActivity = cbf_field_get_items($type, $entity, 'field_in_activity', 'target_id', 0);
 
-    $audienceTerm = field_get_items($type, $entity, 'taxonomy_vocabulary_3');
-    if ($audienceTerm === false || empty($audienceTerm[0]['tid'])) {
-      $entityAudience = '';
-    }
-    else {
-      switch ($audienceTerm[0]['tid']) {
-        case '47':
-          $entityAudience = 'christian';
-          break;
-        case '48':
-          $entityAudience = 'general';
-          break;
-        case '1957':
-          $entityAudience = 'unlisted';
-          break;
-        default:
-          $entityAudience = '';
-          break;
-      }
+    $audienceTerm = cbf_field_get_items($type, $entity, 'taxonomy_vocabulary_3', 'tid', '');
+    switch ($audienceTerm) {
+      case '47':
+        $entityAudience = 'christian';
+        break;
+      case '48':
+        $entityAudience = 'general';
+        break;
+      case '1957':
+        $entityAudience = 'unlisted';
+        break;
+      default:
+        $entityAudience = '';
+        break;
     }
 
-    $field_third_space_category = field_get_items($type, $entity, 'field_third_space_category');
-    if ($field_third_space_category === false || empty($field_third_space_category[0]['tid'])) {
-      $entityHasThirdSpaceCategory = false;
-    }
-    else {
-      $entityHasThirdSpaceCategory = true;
-    }
+    $field_third_space_category = cbf_field_get_items($type, $entity, 'field_third_space_category', 'tid', '');
+    $entityHasThirdSpaceCategory = !empty($field_third_space_category);
 
-    $field_third_space_exclusive = field_get_items($type, $entity, 'field_third_space_exclusive');
-    if ($field_third_space_exclusive === false || empty($field_third_space_exclusive[0]['value'])) {
-      $entityIsThirdSpaceExclusive = false;
-    }
-    else {
-      $entityIsThirdSpaceExclusive = true;
-    }
+    $field_third_space_exclusive = cbf_field_get_items($type, $entity, 'field_third_space_exclusive', 'value', 0);
+    $entityIsThirdSpaceExclusive = !empty($field_third_space_exclusive);
 
     foreach ($domains as $domain) {
       $match = false;
@@ -1595,8 +1573,8 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
  */
 function cbf_metatag_metatags_view_alter(&$output, $instance, $options) {
   if (stripos($instance, 'node:') === 0 || stripos($instance, 'civicrm_event:') === 0) {
-    $audienceTerm = field_get_items($options['entity_type'], $options['entity'], 'taxonomy_vocabulary_3');
-    if ($audienceTerm !== false && !empty($audienceTerm[0]['tid']) && $audienceTerm[0]['tid'] != '47') {
+    $audience = cbf_field_get_items($options['entity_type'], $options['entity'], 'taxonomy_vocabulary_3', 'tid', '');
+    if (!empty($audience) && $audience != '47') {
       // There is an audience and it is not 'christian'
       $currentDomainId = domain_get_domain()['domain_id'];
       $christianDomainId = domain_load_domain_id('christian');
@@ -2788,8 +2766,7 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
     && $entity->type == 'ministry_team'
   ) {
     $defaults = [ ];
-    $team = field_get_items($type, $entity, 'field_ministry_team');
-    $team = empty($team) ? false : reset($team)['contact_id'];
+    $team = cbf_field_get_items($type, $entity, 'field_ministry_team', 'contact_id', 0);
     $team = cbf_civicrm_ministry_team_viewable_fields($team);
     $teamFieldMap = [
       'nickname' => 'field_title',
@@ -2966,10 +2943,10 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
    */
   if ($type == 'civicrm_event' && in_array('field_map_location', $fields)) {
     // We should not map it if its 'next action' is in the past.
-    $field_next_action = field_get_items($type, $entity, 'field_next_action');
+    $nextAction = cbf_field_get_items($type, $entity, 'field_next_action', 'value', 0);
     $currentTime = strtotime('now');
-    if ($field_next_action === false || $field_next_action[0]['value'] < $currentTime) {
-      return [ ];
+    if ($nextAction < $currentTime) {
+      return [];
     }
 
     // Get the location from CiviCRM
@@ -2977,9 +2954,9 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
 
     // If the $currentForm already has a location recycle the Location ID
     if (!empty($result['field_map_location']) && isset($currentForm)) {
-      $location = field_get_items('entityform', $currentForm, 'field_map_location');
-      if ($location !== false && isset($location[0]['lid'])) {
-        $result['field_map_location']['lid'] = $location[0]['lid'];
+      $location = cbf_field_get_items('entityform', $currentForm, 'field_map_location', 'lid', 0);
+      if (!empty($location)) {
+        $result['field_map_location']['lid'] = $location;
       }
     }
   }
@@ -3199,12 +3176,9 @@ function cbf_entity_info_alter(&$entity_info) {
 }
 
 function cbf_entityform_label_callback($entity, $entity_type) {
-  $title = field_get_items($entity_type, $entity, 'field_title');
-  if (empty($title) || !is_array($title)) {
+  $title = cbf_field_get_items($entity_type, $entity, 'field_title', 'value', '');
+  if (empty($title)) {
     $title = $entity->label();
-  }
-  else {
-    $title = $title[0]['value'];
   }
   return $title;
 }
