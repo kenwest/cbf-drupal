@@ -2728,9 +2728,10 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
    * 'required' as there is a default available from the Activity.
    */
   if (!empty($activityDefaults)) {
-    $activity = field_get_items($type, $entity, 'field_in_activity');
-    $activity = empty($activity) ? false : entity_load('node', reset($activity));
+    $activity = cbf_field_get_items($type, $entity, 'field_in_activity', 'target_id', []);
+    $activity = empty($activity) ? false : entity_load('node', $activity);
     $activity = empty($activity) ? false : reset($activity);
+
     if (!empty($activity)) {
       foreach ($activityDefaults as $to) {
         $from = $fromFields[$to];
@@ -3486,8 +3487,8 @@ function _cbf_find_object_and_activity_for_page() {
       $activity = $node;
     }
     else {
-      $activity = field_get_items('node', $node, 'field_in_activity');
-      $activity = empty($activity) ? false : entity_load('node', reset($activity));
+      $activity = cbf_field_get_items('node', $node, 'field_in_activity', 'target_id', []);
+      $activity = empty($activity) ? false : entity_load('node', $activity);
       $activity = empty($activity) ? false : reset($activity);
     }
   }
@@ -3495,8 +3496,8 @@ function _cbf_find_object_and_activity_for_page() {
     $node = false;
     $event = menu_get_object('civicrm_entity_loader');
     if (!empty($event) && is_object($event) && $event->entityType() == 'civicrm_event') {
-      $activity = field_get_items('civicrm_event', $event, 'field_in_activity');
-      $activity = empty($activity) ? false : entity_load('node', reset($activity));
+      $activity = cbf_field_get_items('civicrm_event', $event, 'field_in_activity', 'target_id', []);
+      $activity = empty($activity) ? false : entity_load('node', $activity);
       $activity = empty($activity) ? false : reset($activity);
     }
     else {
