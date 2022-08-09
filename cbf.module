@@ -11,22 +11,17 @@ function cbf_init() {
    */
   $event = menu_get_object('civicrm_entity_loader');
   if (!empty($event) && is_object($event) && $event->entityType() == 'civicrm_event') {
-    $audienceTerm = field_get_items('civicrm_event', $event, 'taxonomy_vocabulary_3');
-    if ($audienceTerm === false || empty($audienceTerm[0]['tid'])) {
-      $eventAudience = '';
-    }
-    else {
-      switch ($audienceTerm[0]['tid']) {
-        case '47':
-          $eventAudience = 'christian';
-          break;
-        case '48':
-          $eventAudience = 'general';
-          break;
-        default:
-          $eventAudience = '';
-          break;
-      }
+    $audienceTerm = cbf_field_get_items('civicrm_event', $event, 'taxonomy_vocabulary_3', 'tid', '');
+    switch ($audienceTerm) {
+      case '47':
+        $eventAudience = 'christian';
+        break;
+      case '48':
+        $eventAudience = 'general';
+        break;
+      default:
+        $eventAudience = '';
+        break;
     }
     if (!empty($eventAudience)) {
       $currentDomain = domain_get_domain();
