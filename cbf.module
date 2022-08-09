@@ -3520,8 +3520,8 @@ function _cbf_find_object_and_activity_for_page() {
 function cbf_datalayer_alter(array &$data_layer) {
 
   // Datalayer defaults
-  $formTitle = $_SESSION['City Bible Forum']['Form title'];
-  unset ($_SESSION['City Bible Forum']['Form title']);
+  $formTitle = $_SESSION['City Bible Forum']['Form title'] ?? '';
+  unset($_SESSION['City Bible Forum']['Form title']);
 
   $page = _cbf_find_object_and_activity_for_page();
 
