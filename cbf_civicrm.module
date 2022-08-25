@@ -1728,80 +1728,88 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
 /*
  * Implementation of hook_civicrm_pre() to capture changes before they're saved
 */
-function cbf_civicrm_civicrm_pre( $op, $objectName, $id, &$params ) {
-  /*
-   * Whenever an Archived_team ("Past team") is created or edited, ensure
-   * its name includes 'No longer meets: ' and its relationships are
-   * inactive.
-   */
-  if ($objectName == 'Household') {
-    switch ($op) {
-      case 'create':
-      case 'edit':
-        foreach ($params['contact_sub_type'] as $sub_type) {
-          if ($sub_type == 'Archived_team') {
-            $archived_team_prefix = 'No longer meets: ';
+function cbf_civicrm_civicrm_pre($op, $objectName, $id, &$params) {
 
-            if (strpos($params['household_name'], $archived_team_prefix) === false) {
-              $params['household_name'] = $archived_team_prefix . $params['household_name'];
-            }
+  switch ($objectName) {
 
-            try {
-              $get_a = civicrm_api3('Relationship', 'get', array(
-                'sequential' => 1,
-                'contact_id_a' => $id,
-                'is_active' => 1,
-              ));
-              $get_b = civicrm_api3('Relationship', 'get', array(
-                'sequential' => 1,
-                'contact_id_b' => $id,
-                'is_active' => 1,
-              ));
-              $get = array_merge($get_a['values'], $get_b['values']);
+    case 'Household':
 
-              foreach ($get as $relationship) {
-                $arguments = array(
-                  'sequential' => 1,
-                  'id' => $relationship['id'],
-                  'is_active' => 0,
-                );
+      switch ($op) {
+        case 'create':
+        case 'edit':
 
-                if (!isset($relationship['end_date'])) {
-                  $arguments['end_date'] = CRM_Utils_Date::getToday();
-                }
+          /*
+           * Whenever an Archived_team ("Past team") is created or edited, ensure
+           * its name includes 'No longer meets: ' and its relationships are
+           * inactive.
+           */
+          foreach ($params['contact_sub_type'] as $sub_type) {
+            if ($sub_type == 'Archived_team') {
+              $archived_team_prefix = 'No longer meets: ';
 
-                $result = civicrm_api3('Relationship', 'create', $arguments);
+              if (strpos($params['household_name'], $archived_team_prefix) === false) {
+                $params['household_name'] = $archived_team_prefix . $params['household_name'];
               }
 
-            } catch (CiviCRM_API3_Exception $e) {
-              ;
+              try {
+                $get_a = civicrm_api3('Relationship', 'get', array(
+                  'sequential' => 1,
+                  'contact_id_a' => $id,
+                  'is_active' => 1,
+                ));
+                $get_b = civicrm_api3('Relationship', 'get', array(
+                  'sequential' => 1,
+                  'contact_id_b' => $id,
+                  'is_active' => 1,
+                ));
+                $get = array_merge($get_a['values'], $get_b['values']);
+
+                foreach ($get as $relationship) {
+                  $arguments = array(
+                    'sequential' => 1,
+                    'id' => $relationship['id'],
+                    'is_active' => 0,
+                  );
+
+                  if (!isset($relationship['end_date'])) {
+                    $arguments['end_date'] = CRM_Utils_Date::getToday();
+                  }
+
+                  $result = civicrm_api3('Relationship', 'create', $arguments);
+                }
+
+              } catch (CiviCRM_API3_Exception $e) {
+                ;
+              }
             }
           }
-        }
-        break;
-    }
-  }
+          break;
+      }
+      break;
 
-  /*
-   * The payment_processor field on the civicrm-event-form doesn't support
-   * multiselect, but we want people to be able to choose to pay via credit
-   * card or PayPal.
-   *
-   * Until this is resolved, ignore input from this field on this form. This
-   * is signalled by cbf__civicrm_entity_form_submit() which sets the
-   * payment_processor to be one that is never used. It's name is 'Hack for
-   * CiviCRM Event entities' and its number is 15.
-   */
-  if ($objectName == 'Event') {
-    switch ($op) {
-      case 'create':
-      case 'edit':
-        $dummyPaymentProcessor = '15';
-        if (($params['payment_processor'] ?? '') == $dummyPaymentProcessor) {
-          unset($params['payment_processor']);
-        }
-        break;
-    }
+    case 'Event':
+
+      switch ($op) {
+        case 'create':
+        case 'edit':
+
+          /*
+           * The payment_processor field on the civicrm-event-form doesn't support
+           * multiselect, but we want people to be able to choose to pay via credit
+           * card or PayPal.
+           *
+           * Until this is resolved, ignore input from this field on this form. This
+           * is signalled by cbf__civicrm_entity_form_submit() which sets the
+           * payment_processor to be one that is never used. It's name is 'Hack for
+           * CiviCRM Event entities' and its number is 15.
+           */
+          $dummyPaymentProcessor = '15';
+          if (($params['payment_processor'] ?? '') == $dummyPaymentProcessor) {
+            unset($params['payment_processor']);
+          }
+          break;
+      }
+      break;
   }
 }
 
