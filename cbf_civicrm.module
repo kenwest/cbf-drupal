@@ -598,12 +598,19 @@ function cbf_civicrm_civicrm_alterMailContent(&$content) {
 function cbf_civicrm_civicrm_alterMailParams( &$params, $context = null ) {
 
   $workflow = $params['workflow'] ?? $params['valueName'] ?? $params['groupName'] ?? '';
+  $now = date('Y-m-d G:i:s');
 
   // Don't send event confirmations when a Pending attendee is marked as Attended after the event
-  $now = date('Y-m-d G:i:s');
   if ($workflow == 'event_online_receipt'
       && isset($params['tplParams']['participant_status']) && $params['tplParams']['participant_status'] == 'Attended'
       && isset($params['tplParams']['event']['is_pay_later']) && $params['tplParams']['event']['is_pay_later'] == 1
+      && isset($params['tplParams']['event']['end_date']) && $params['tplParams']['event']['end_date'] < $now) {
+    $params['abortMailSend'] = 1;
+    return;
+  }
+
+  // Don't send participant cancellations after the event
+  if ($workflow == 'participant_cancelled'
       && isset($params['tplParams']['event']['end_date']) && $params['tplParams']['event']['end_date'] < $now) {
     $params['abortMailSend'] = 1;
     return;
