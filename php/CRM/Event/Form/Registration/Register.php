@@ -288,20 +288,29 @@ class CRM_Event_Form_Registration_Register extends CRM_Event_Form_Registration {
         }
         $optionFullIds = CRM_Utils_Array::value('option_full_ids', $val, []);
         foreach ($val['options'] as $keys => $values) {
-          if ($values['is_default'] && empty($values['is_full'])) {
-
-            if ($val['html_type'] == 'CheckBox') {
-              $this->_defaults["price_{$key}"][$keys] = 1;
-            }
-            else {
-              $this->_defaults["price_{$key}"] = $keys;
+          $priceFieldName = 'price_' . $values['price_field_id'];
+          $priceFieldValue = CRM_Price_BAO_PriceSet::getPriceFieldValueFromURL($this, $priceFieldName);
+          if (!empty($priceFieldValue)) {
+            CRM_Price_BAO_PriceSet::setDefaultPriceSetField($priceFieldName, $priceFieldValue, $val['html_type'], $this->_defaults);
+            // break here to prevent overwriting of default due to 'is_default'
+            // option configuration. The value sent via URL get's higher priority.
+            break;
+          }
+          else {
+            if ($values['is_default'] && empty($values['is_full'])) {
+              if ($val['html_type'] == 'CheckBox') {
+                $this->_defaults["price_{$key}"][$keys] = 1;
+              }
+              else {
+                $this->_defaults["price_{$key}"] = $keys;
+              }
             }
           }
         }
         $unsetSubmittedOptions[$val['id']] = $optionFullIds;
       }
       //reset values for all options those are full.
-      CRM_Event_Form_Registration::resetElementValue($unsetSubmittedOptions, $this);
+      CRM_Event_Form_Registration::resetElementValue($unsetSubmittedOptions ?? [], $this);
     }
 
     //set default participant fields, CRM-4320.
@@ -378,8 +387,7 @@ class CRM_Event_Form_Registration_Register extends CRM_Event_Form_Registration {
         $this->add('select', 'additional_participants',
           ts('How many people are you registering?'),
           $additionalOptions,
-          NULL,
-          ['onChange' => "allowParticipant()"]
+          NULL
         );
         $isAdditionalParticipants = TRUE;
       }
@@ -977,10 +985,8 @@ class CRM_Event_Form_Registration_Register extends CRM_Event_Form_Registration {
     // assign pay later stuff
     $this->_params['is_pay_later'] = CRM_Utils_Array::value('is_pay_later', $params, FALSE);
     $this->assign('is_pay_later', $params['is_pay_later']);
-    if ($params['is_pay_later']) {
-      $this->assign('pay_later_text', $this->_values['event']['pay_later_text']);
-      $this->assign('pay_later_receipt', $this->_values['event']['pay_later_receipt']);
-    }
+    $this->assign('pay_later_text', $params['is_pay_later'] ? $this->_values['event']['pay_later_text'] : NULL);
+    $this->assign('pay_later_receipt', $params['is_pay_later'] ? $this->_values['event']['pay_later_receipt'] : NULL);
 
     if (!$this->_allowConfirmation) {
       // check if the participant is already registered

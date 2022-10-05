@@ -30,8 +30,7 @@
         {else}
           {$event.event_end_date|crmDate}
         {/if}
-      {/if}
-    </td>
+      </td>
   </tr>
 
   {if $isShowLocation}
