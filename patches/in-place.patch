@@ -193,7 +193,6 @@ diff -ur ./css/civicrm.css /var/www/civicrm/sites/all/modules/civicrm/css/civicr
  }
  
  #crm-container.crm-public #crm-submit-buttons {
-Only in /var/www/civicrm/sites/all/modules/civicrm/css: civicrm.css.orig
 diff -ur ./ext/ckeditor4/js/crm.ckeditor.js /var/www/civicrm/sites/all/modules/civicrm/ext/ckeditor4/js/crm.ckeditor.js
 --- ./ext/ckeditor4/js/crm.ckeditor.js	2022-02-06 13:37:22.000000000 +1100
 +++ /var/www/civicrm/sites/all/modules/civicrm/ext/ckeditor4/js/crm.ckeditor.js	2022-10-06 08:44:35.486148838 +1100
@@ -287,31 +286,3 @@ diff -ur ./packages/Smarty/internals/core.create_dir_structure.php /var/www/civi
                  $smarty->trigger_error("problem creating directory '" . $_new_dir . "'");
                  return false;
              }
-diff -ur ./settings/Localization.setting.php /var/www/civicrm/sites/all/modules/civicrm/settings/Localization.setting.php
---- ./settings/Localization.setting.php	2022-09-08 14:30:27.000000000 +1000
-+++ /var/www/civicrm/sites/all/modules/civicrm/settings/Localization.setting.php	2022-10-06 08:44:35.490148816 +1100
-@@ -107,6 +107,7 @@
-     'quick_form_type' => 'Select',
-     'html_type' => 'Select',
-     'html_attributes' => [
-+      'multiple' => 0,
-       'class' => 'crm-select2',
-     ],
-     'default' => 'USD',
-@@ -459,6 +460,7 @@
-     'quick_form_type' => 'Select',
-     'html_type' => 'Select',
-     'html_attributes' => [
-+      'multiple' => 0,
-       'class' => 'crm-select2',
-     ],
-     'default' => 'en_US',
-@@ -538,6 +540,7 @@
-     'quick_form_type' => 'Select',
-     'html_type' => 'Select',
-     'html_attributes' => [
-+      'multiple' => 0,
-       'class' => 'crm-select2',
-     ],
-     'pseudoconstant' => [
-Only in /var/www/civicrm/sites/all/modules/civicrm/settings: Localization.setting.php.orig
