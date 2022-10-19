@@ -36,7 +36,7 @@ function _cbf_filter_activity_promotion_process($text, $filter, $format, $langco
   else {
     $page = _cbf_find_object_and_activity_for_page();
     $replacement = $page['activity'];
-    $replacement = field_view_field('node', $replacement, 'field_short_form', ['label' => 'hidden']);
+    $replacement = empty($replacement) ? '' : field_view_field('node', $replacement, 'field_short_form', ['label' => 'hidden']);
     $replacement = empty($replacement) ? '' : render($replacement);
   }
   $nesting--;
