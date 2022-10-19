@@ -22,15 +22,27 @@ function _cbf_filter_activity_promotion_settings($form, $form_state, $filter, $f
 }
 
 function _cbf_filter_activity_promotion_process($text, $filter, $format, $langcode, $cache, $cache_id) {
-  $page = _cbf_find_object_and_activity_for_page();
+
   $pattern = [
     '!<p( [^>]*)?>\[cbfActivityPromotion\]</p>!i',
     '!\[cbfActivityPromotion\]!i',
   ];
-  $replacement = $page['activity'];
-  $replacement = empty($replacement) ? '' : field_view_field('node', $replacement, 'field_short_form', ['label' => 'hidden']);
-  $replacement = empty($replacement) ? '' : render($replacement);
+
+  static $nesting = 0;
+
+  if ($nesting++) {
+    $replacement = '';
+  }
+  else {
+    $page = _cbf_find_object_and_activity_for_page();
+    $replacement = $page['activity'];
+    $replacement = field_view_field('node', $replacement, 'field_short_form', ['label' => 'hidden']);
+    $replacement = empty($replacement) ? '' : render($replacement);
+  }
+  $nesting--;
+
   $text = preg_replace($pattern, $replacement, $text) ?? $text;
+
   return $text;
 }
 
