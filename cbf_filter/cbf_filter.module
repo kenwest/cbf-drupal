@@ -28,7 +28,8 @@ function _cbf_filter_activity_promotion_process($text, $filter, $format, $langco
     '!\[cbfActivityPromotion\]!i',
   ];
   $replacement = $page['activity'];
-  $replacement = empty($replacement) ? '' : cbf_field_get_items('node', $replacement, 'field_short_form', 'value', '');
+  $replacement = empty($replacement) ? '' : field_view_field('node', $replacement, 'field_short_form', ['label' => 'hidden']);
+  $replacement = empty($replacement) ? '' : render($replacement);
   $text = preg_replace($pattern, $replacement, $text) ?? $text;
   return $text;
 }
