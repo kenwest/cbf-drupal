@@ -1,0 +1,42 @@
+diff --git a/var/www/prod/sites/all/modules/minify/minify.admin.inc b/var/www/test/sites/all/modules/minify/minify.admin.inc
+index 2262712..85b18be 100644
+--- a/minify.admin.inc
++++ b/minify.admin.inc
+@@ -223,9 +223,34 @@ function minify_clear_js_cache($form, &$form_state) {
+  * Helper function to process minify call
+  */
+ function _minify_process_minify($script, &$cache_data) {
+-  $js_code = urlencode(trim(file_get_contents(drupal_realpath($script))));
+-  $post_data = _minify_get_post_fields($js_code);
+-  $response = _minify_send_request($post_data);
++  $useOriginalCode = !module_exists('google_closure_compiler');
++  $newCodeFailed = false;
++
++  if (!$useOriginalCode) {
++    module_load_include('inc', 'google_closure_compiler', 'google_closure_compiler.defines');
++    module_load_include('inc', 'google_closure_compiler', 'google_closure_compiler.compile');
++
++    $compiled = _google_closure_compiler_compile_file_local($script, GOOGLE_CLOSURE_COMPILER_SIMPLE);
++    if ($compiled) {
++      $response = [
++        'response' => new stdClass(),
++        'http_code' => 200,
++      ];
++      $response['response']->compiledCode = $compiled;
++      $response['response']->statistics = new stdClass();
++      $response['response']->statistics->compressedSize = strlen($compiled);
++    }
++    else {
++      $newCodeFailed = true;
++    }
++  }
++
++  if ($useOriginalCode || $newCodeFailed) {
++    $js_code = urlencode(trim(file_get_contents(drupal_realpath($script))));
++    $post_data = _minify_get_post_fields($js_code);
++    $response = _minify_send_request($post_data);
++  }
++
+   if (isset($response['response'])) {
+     $response_obj = $response['response'];
+ 
