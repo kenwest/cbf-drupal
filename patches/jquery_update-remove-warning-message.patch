@@ -1,0 +1,17 @@
+diff --git a/var/www/prod/sites/all/modules/jquery_update/jquery_update.module b/./jquery_update.module
+index 1082b25..c17bb56 100644
+--- a/jquery_update.module
++++ b/jquery_update.module
+@@ -933,12 +933,6 @@ function _jquery_update_convert_settings_to_supported_versions() {
+       if ($theme_jquery_version != $mapped_theme_jquery_version) {
+         $theme_settings['jquery_update_jquery_version'] = $mapped_theme_jquery_version;
+         variable_set('theme_' . $theme_key . '_settings', $theme_settings);
+-        watchdog('jquery_update', 'theme settings for @theme: jquery_update_jquery_version updated from @before to @after',
+-          array(
+-            '@theme' => $theme_key,
+-            '@before' => $theme_jquery_version,
+-            '@after' => $mapped_theme_jquery_version
+-          ), WATCHDOG_WARNING);
+       }
+     }
+   }
