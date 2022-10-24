@@ -721,12 +721,14 @@ function cbf_field_title_image_validate($form, &$form_state) {
  *  - only apply this rule to modern articles
  */
 function cbf_field_highlight_validate($form, &$form_state) {
-  if (($form_state['entity_type'] == 'civicrm_event'
+  if ((isset($form_state['entity_type'])
+      && $form_state['entity_type'] == 'civicrm_event'
       && $form_state['civicrm_event']->id > 2662)
     || (isset($form_state['node'])
       && ($form_state['node']->type == 'episode'
         || $form_state['node']->type == 'blog')
-      && $form_state['node']->nid > 5898)) {
+      && (!isset($form_state['node']->nid)
+        || $form_state['node']->nid > 5898))) {
     $unlisted = '1957';
     $fid = reset(reset($form_state['values']['field_highlight']))['fid'] ?? '0';
     $audience = reset(reset($form_state['values']['taxonomy_vocabulary_3']))['tid'] ?? '0';
