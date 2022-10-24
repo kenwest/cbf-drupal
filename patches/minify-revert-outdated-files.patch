@@ -1,0 +1,48 @@
+diff --git a/var/www/prod/sites/all/modules/minify/minify.admin.inc b/./minify.admin.inc
+index 85b18be..45f85a3 100644
+--- a/minify.admin.inc
++++ b/minify.admin.inc
+@@ -400,6 +400,14 @@ function _minify_js_refresh_callback() {
+  */
+ function _minify_clear_invalid_cache() {
+   $cache = variable_get('minify_captured_js', array());
++
++  /*
++   * Modify the cache to 'revert' any JS that has been updated, on the premise
++   * that it's better to serve un-minified JS than outdated JS. The $updated
++   * variable tracks outdated JS.
++   */
++  $updated = [];
++
+   foreach ($cache as $key => $value) {
+     if (!file_exists($key)) {
+       if (file_exists($value['minified_file_path'])) {
+@@ -407,6 +415,28 @@ function _minify_clear_invalid_cache() {
+       }
+       unset($cache[$key]);
+     }
++    else if (_minify_is_file_updated($value)) {
++      if (file_exists($value['minified_file_path'])) {
++        drupal_unlink($value['minified_file_path']);
++      }
++
++      // This code copied from _minify_js_revert_callback()
++      $value['minified_file_path'] = null;
++      $value['minified_size'] = 0;
++      $value['status'] = false;
++      $value['last_minify_at'] = 0;
++      $value['error'] = false;
++      $value['error_msg'] = null;
++      $value['skip'] = false;
++      $value['md5'] = null;
++
++      $updated[$key] = $value;
++    }
+   }
++
++  foreach ($updated as $key => $value) {
++    $cache[$key] = $value;
++  }
++
+   variable_set('minify_captured_js', $cache);
+ }
