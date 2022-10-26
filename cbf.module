@@ -730,8 +730,10 @@ function cbf_field_highlight_validate($form, &$form_state) {
       && (!isset($form_state['node']->nid)
         || $form_state['node']->nid > 5898))) {
     $unlisted = '1957';
-    $fid = reset(reset($form_state['values']['field_highlight']))['fid'] ?? '0';
-    $audience = reset(reset($form_state['values']['taxonomy_vocabulary_3']))['tid'] ?? '0';
+    $fid = reset($form_state['values']['field_highlight']);
+    $fid = is_array($fid) ? reset($fid)['fid'] ?? '0' : '0';
+    $audience = reset($form_state['values']['taxonomy_vocabulary_3']);
+    $audience = is_array($audience) ? reset($audience)['tid'] ?? '0' : '0';
     if ($audience != $unlisted && $fid == '0') {
       form_set_error(
         'field_highlight',
