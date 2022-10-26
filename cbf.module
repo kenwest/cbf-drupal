@@ -705,8 +705,10 @@ function cbf_field_title_image_validate($form, &$form_state) {
   if (isset($form_state['node'])
     && $form_state['node']->type == 'activity') {
           $unlisted = '1957';
-          $fid = reset(reset($form_state['values']['field_title_image']))['fid'] ?? '0';
-          $audience = reset(reset($form_state['values']['taxonomy_vocabulary_3']))['tid'] ?? '0';
+          $fid = reset($form_state['values']['field_title_image']);
+          $fid = is_array($fid) ? reset($fid)['fid'] ?? '0' : '0';
+          $audience = reset($form_state['values']['taxonomy_vocabulary_3']);
+          $audience = is_array($audience) ? reset($audience)['tid'] ?? '0' : '0';
           if ($audience != $unlisted && $fid == '0') {
             form_set_error(
               'field_highlight',
@@ -758,7 +760,8 @@ function cbf_field_with_validate($form, &$form_state) {
 
   foreach ($people as $key => $person) {
     if (is_numeric($key)) { // Ignore people who are in the process of being added
-      $tid = reset(reset($person['field_speaker']))['tid'] ?? 0;
+      $tid = reset($person['field_speaker']);
+      $tid = is_array($tid) ? reset($tid)['tid'] ?? 0 : 0;
       if (is_numeric($tid)) {
         if ($tid > 0) {
           $speaker = taxonomy_term_load($tid);
@@ -785,7 +788,8 @@ function cbf_field_with_validate($form, &$form_state) {
         }
       }
       else {
-        $name = reset(reset($person['field_speaker']))['name'] ?? '';
+        $name = reset($person['field_speaker']);
+        $name = is_array($name) ? reset($name)['name'] ?? '' : '';
         if (!$person['field_description']['und'][0]['value']) {
           form_set_error(
             "field_with][und][$key][field_description][und][0][value",
