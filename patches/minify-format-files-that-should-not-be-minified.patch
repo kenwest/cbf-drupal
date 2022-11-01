@@ -1,0 +1,28 @@
+diff --git a/var/www/prod/sites/all/modules/minify/minify.admin.inc b/./minify.admin.inc
+index 85b18be..6d42af0 100644
+--- a/var/www/prod/sites/all/modules/minify/minify.admin.inc
++++ b/./minify.admin.inc
+@@ -117,7 +117,7 @@ function _minify_operation_links($details) {
+  */
+ function _minify_original_file_size($details) {
+   $file_size = filesize(drupal_realpath($details['file_path']));
+-  if ($details['file_updated']) {
++  if ($details['file_updated'] || $file_size <= $details['minified_size']) {
+     return '<span class="marker">' . _minify_format_file_size($file_size) . '</span>';
+   } else {
+     return _minify_format_file_size($file_size);
+@@ -161,6 +161,14 @@ function _minify_file_status($details) {
+     $status = 'Minified';
+   } else {
+     $status = 'Non-minified';
++    if (
++         stripos($details['file_name'], '.min.') !== false
++      || stripos($details['file_name'], '.mini.') !== false
++      || stripos($details['file_name'], 'l10n') !== false
++      || stripos($details['file_name'], 'angular') !== false)
++    {
++      $status = ' <span style="color: green;">' . $status . '</span>';
++    }
+   }
+   return $status;
+ }
