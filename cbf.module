@@ -540,6 +540,14 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
   }
 
   /*
+   * If we are editing a node, then check whether we need to enforce creating a
+   * revision
+   */
+  if (isset($form['#node_edit_form'])) {
+    $form['#validate'][] = 'cbf_form_revision_validate';
+  }
+
+  /*
    * If we're editing an entity that has both a field_speakers and a field_with
    * then make the field_speakers read-only
    */
@@ -808,6 +816,88 @@ function cbf_field_with_validate($form, &$form_state) {
           "field_with][und][$key][field_description][und][0][value",
           "The description supplied for '$name' is longer than $maxDescription characters (it will overflow the display area)");
       }
+    }
+  }
+}
+
+/*
+ * If we are editing a node, then check whether we need to enforce creating a
+ * revision.
+ */
+function cbf_form_revision_validate($form, &$form_state) {
+
+  /*
+   * The node lifecycle is assumed to be ...
+   *
+   *  - development - during the first month the node is rapidly developed, so
+   *                  creating revisions is not needed
+   *  - use         - during the next 5 months there are occasional changes,
+   *                  and only certain changes require a revision
+   *  - reuse       - thereafter changes require a revision so we can preserve
+   *                  the original content
+   */
+  $developmentMilestone = strtotime('1 month ago');
+  $reuseMilestone = strtotime('1 year ago');
+
+  /*
+   * When was the node created?
+   */
+  if (isset($form_state['node']->nid)) {
+    $created = $form_state['node']->created;
+  }
+  else {
+    $created = time();
+  }
+
+  /*
+   * Are there any reasons to enforce a revision?
+   */
+  $reason = [];
+
+  $revision = $form_state['input']['revision'] ?? false;
+  $log = $form_state['input']['log'] ?? '';
+
+  if ($revision && $log) {
+    // There is already a valid revision
+  }
+  else if ($created < $reuseMilestone) {
+    $reason[] = 'This node is more than 1 year old so the original content should be preserved';
+  }
+  else if ($created < $developmentMilestone) {
+    /*
+     * After development there are some cases when a revision is required
+     */
+    if ($form_state['node']->type == 'activity') {
+      $reason[] = 'This node is an Activity';
+    }
+
+    foreach ($form_state['input'] as $input) {
+      if (is_array($input)) {
+        $input = reset($input);
+        if (is_array($input)) {
+          $input = reset($input);
+          $input = $input['format'] ?? '';
+          if (strpos($input, 'shortcodes') !== false) {
+            $reason[] = 'This node uses Dynamic Shortcodes';
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  $warning = true;
+  if (!empty($reason)) {
+    if ($warning) {
+      drupal_set_message(
+        'Soon you will be required to create a revision since: '
+          . implode(', ', $reason)
+          . '. The revision will be required to have a log message.',
+        'warning');
+    }
+    else {
+      form_set_error('revision', 'Need to create a revision: ' . implode(', ', $reason));
+      form_set_error('log', 'Need a revision log message: see the <em>Revision information</em> tab just above the <em>Save</em> button at the bottom of the screen');
     }
   }
 }
