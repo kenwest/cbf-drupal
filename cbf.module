@@ -3233,6 +3233,68 @@ function _cbf_convert_banner_to_city_tid($banner) {
 }
 
 /*
+ * Convert Article Topics supplied as a URL query such as "topic=my-topic" to a
+ * list of +-separated TIDs.
+ */
+function cbf_convert_article_topics_to_tids_with_depth() {
+  /*
+   * The topics are presented in the 'topic' query parameter, separated by
+   * either commas or plus characters. '+' is converted to a space, so do the
+   * same for commas. Ensure the topics are lowercase and terminated by a
+   * space.
+   */
+  $query = drupal_get_query_parameters();
+  $topics = $query['topic'] ?? '';
+  $topics = str_replace(',', ' ', $topics);
+  $topics = strtolower($topics) . ' ';
+
+  /*
+   * Find the $supplied topics among the Article Topics
+   * As we're doing that, build up a list of $children of topics
+   */
+  $vocabulary = taxonomy_vocabulary_machine_name_load('article_topic');
+  $taxonomy = taxonomy_get_tree($vocabulary->vid);
+  $supplied = [];
+  $children = [];
+  foreach ($taxonomy as $topic) {
+    $t = str_replace(' ', '-', $topic->name);
+    $t = strtolower($t) . ' ';
+    if (strpos($topics, $t) !== false) {
+      $supplied[$topic->tid] = $topic->tid;
+    }
+    foreach ($topic->parents as $parent) {
+      if (isset($children[$parent])) {
+        $children[$parent][$topic->tid] = $topic->tid;
+      }
+      else {
+        $children[$parent] = [$topic->tid => $topic->tid];
+      }
+    }
+  }
+
+  /*
+   * Add any $children of the $supplied topics
+   */
+  $parents = $supplied;
+  do {
+    $added = [];
+    foreach ($parents as $parent) {
+      if (isset($children[$parent])) {
+        foreach ($children[$parent] as $child) {
+          if (!isset($supplied[$child])) {
+            $added[$child] = $child;
+            $supplied[$child] = $child;
+          }
+        }
+      }
+    }
+    $parents = $added;
+  } while (!empty($parents));
+
+  return implode('+', $supplied);
+}
+
+/*
  * Implement a cache of views content which is required to be unique.
  *
  * If the argument is false then clear the cache (for use in another view).
