@@ -56,4 +56,28 @@ function cbf_views_query_alter(&$view, &$query) {
     $query->add_relationship($filter_table, $join, $query->base_table);
     $query->add_where(1, "{$filter_table}.{$filter_tid}", reset($city)->tid, '=');
   }
+
+  /*
+   * The cbf2019_rated_content view supplies a 'More by' block ('block_1') and
+   * a 'More on' block ('block_2'). We need to exclude the article on whose
+   * page this block is being displayed.
+   */
+  if ($view->name == 'cbf2019_rated_content'
+      && ($view->current_display == 'block_1'
+          || $view->current_display == 'block_2')
+      && is_numeric($view->args[0])
+      && $view->args[0] > 0
+  ) {
+    $view->query->where[] = [
+      'conditions' => [
+        [
+          'field' => 'node.nid',
+          'value' => $view->args[0],
+          'operator' => '!=',
+        ],
+      ],
+      'args' => [],
+      'type' => 'AND',
+    ];
+  }
 }
