@@ -3250,18 +3250,29 @@ function cbf_convert_article_topics_to_tids_with_depth() {
 
   /*
    * Find the $supplied topics among the Article Topics
+   * Try to match on name, and then on field_title
    * As we're doing that, build up a list of $children of topics
    */
   $vocabulary = taxonomy_vocabulary_machine_name_load('article_topic');
-  $taxonomy = taxonomy_get_tree($vocabulary->vid);
+  $taxonomy = taxonomy_get_tree($vocabulary->vid, 0, null, true);
   $supplied = [];
   $children = [];
   foreach ($taxonomy as $topic) {
-    $t = str_replace(' ', '-', $topic->name);
-    $t = strtolower($t) . ' ';
-    if (strpos($topics, $t) !== false) {
-      $supplied[$topic->tid] = $topic->tid;
+    $names = [
+      $topic->name,
+      cbf_field_get_items('taxonomy_term', $topic, 'field_title', 'value')
+    ];
+    foreach ($names as $name) {
+      if ($name) {
+        $name = str_replace(' ', '-', $name);
+        $name = strtolower($name) . ' ';
+        if (strpos($topics, $name) !== false) {
+          $supplied[$topic->tid] = $topic->tid;
+          break;
+        }
+      }
     }
+
     foreach ($topic->parents as $parent) {
       if (isset($children[$parent])) {
         $children[$parent][$topic->tid] = $topic->tid;
