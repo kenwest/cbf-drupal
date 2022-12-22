@@ -3233,10 +3233,16 @@ function _cbf_convert_banner_to_city_tid($banner) {
 }
 
 /*
- * Convert Article Topics supplied as a URL query such as "topic=my-topic" to a
- * list of +-separated TIDs.
+ * Common code for use when converting Article Topics supplied as a URL query
+ * parameter, such as "topic=my-topic" or "topic=this-topic+that-topic"
  */
-function cbf_convert_article_topics_to_tids_with_depth() {
+function _cbf_convert_article_topics_url_query() {
+
+  $result = &drupal_static(__FUNCTION__);
+  if ($result) {
+    return $result;
+  }
+
   /*
    * The topics are presented in the 'topic' query parameter, separated by
    * either commas or plus characters. '+' is converted to a space, so do the
@@ -3257,6 +3263,7 @@ function cbf_convert_article_topics_to_tids_with_depth() {
   $taxonomy = taxonomy_get_tree($vocabulary->vid, 0, null, true);
   $supplied = [];
   $children = [];
+  $titles = [];
   foreach ($taxonomy as $topic) {
     $names = [
       $topic->name,
@@ -3268,6 +3275,7 @@ function cbf_convert_article_topics_to_tids_with_depth() {
         $name = strtolower($name) . ' ';
         if (strpos($topics, $name) !== false) {
           $supplied[$topic->tid] = $topic->tid;
+          $titles[] = $topic->name;
           break;
         }
       }
@@ -3302,7 +3310,39 @@ function cbf_convert_article_topics_to_tids_with_depth() {
     $parents = $added;
   } while (!empty($parents));
 
-  return implode('+', $supplied);
+  /*
+   * The title shouldn't be empty
+   */
+  if (empty($titles)) {
+    $titles = ['All topics'];
+  }
+
+  $result = [
+    'value' => implode('+', $supplied),
+    'title' => implode(' + ', $titles),
+  ];
+
+  return $result;
+}
+
+/*
+ * Convert Article Topics supplied as a URL query such as "topic=my-topic" to a
+ * list of +-separated TIDs.
+ */
+function cbf_convert_article_topics_to_tids_with_depth() {
+  $topics = _cbf_convert_article_topics_url_query();
+
+  return $topics['value'];
+}
+
+/*
+ * Convert Article Topics supplied as a URL query such as "topic=my-topic" to a
+ * title.
+ */
+function cbf_convert_article_topics_to_title() {
+  $topics = _cbf_convert_article_topics_url_query();
+
+  return $topics['title'];
 }
 
 /*
