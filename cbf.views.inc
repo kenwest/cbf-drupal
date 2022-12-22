@@ -80,4 +80,29 @@ function cbf_views_query_alter(&$view, &$query) {
       'type' => 'AND',
     ];
   }
+
+  /*
+   * The cbf2019_article_topics view definition shows only 'general' topics
+   * and this code extends the query to include 'christian' topics when on
+   * the 'christian' site.
+   */
+  if ($view->name == 'cbf2019_article_topics') {
+    $currentDomainId = domain_get_domain()['domain_id'];
+    $christianDomainId = domain_load_domain_id('christian');
+    if ($currentDomainId == $christianDomainId) {
+      // We are on the 'christian' site so we want to see 'christian' topics
+      foreach ($view->query->where as $i => $clause) {
+        foreach ($clause['conditions'] as $j => $condition) {
+          if (
+               stripos($condition['field'], 'taxonomy_vocabulary_3_tid') !== false
+            && $condition['operator'] = '='
+            && $condition['value'] == '48'
+          ) {
+            $view->query->where[$i]['conditions'][$j]['operator'] = 'in';
+            $view->query->where[$i]['conditions'][$j]['value'] = [ '47', '48' ];
+          }
+        }
+      }
+    }
+  }
 }
