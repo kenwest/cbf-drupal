@@ -75,14 +75,32 @@ function cbf_course_node_validate($node, $form, &$form_state) {
 
       // Validate promotional code
       if ($cO['code']) {
-        if (!is_numeric($cO['discounted'])) {
-          $element = "field_course_options][und][$i][field_promotional_price][und][0][value";
-          form_set_error($element, 'Promotional codes require a discount price');
+        // break the field into codes
+        $codes = explode(',', $cO['code']);
+        $discountedNeeded = false;
+
+        foreach ($codes as $code) {
+          // break out the price
+          $codeParts = explode('=', $code, 2);
+
+          if (preg_match('/^[a-z0-9 ]+$/i', trim($codeParts[0])) !== 1) {
+            $element = "field_course_options][und][$i][field_promotional_code][und][0][value";
+            form_set_error($element, "Promotional code '{$codeParts[0]}' contains non-alphanumeric or non-space characters");
+          }
+
+          if (empty($codeParts[1])) {
+            $discountedNeeded = true;
+          }
+          else if (!is_numeric($codeParts[1])) {
+            $discountedNeeded = true;
+            $element = "field_course_options][und][$i][field_promotional_code][und][0][value";
+            form_set_error($element, "Promotional code '{$codeParts[0]}' has an invalid price");
+          }
         }
 
-        if (preg_match('/^[a-z0-9 ]+$/i', $cO['code']) !== 1) {
-          $element = "field_course_options][und][$i][field_promotional_code][und][0][value";
-          form_set_error($element, 'Promotional codes are limited to alphanumeric characters and spaces');
+        if ($discountedNeeded && !is_numeric($cO['discounted'])) {
+          $element = "field_course_options][und][$i][field_promotional_price][und][0][value";
+          form_set_error($element, 'Promotional codes require a discount price');
         }
       }
 
@@ -275,51 +293,70 @@ function cbf_course_entity_presave($entity, $type) {
           ],
         ],
       ];
-      if ($cO['code']) {
-        $promoted[] = $i;
-        // Add a conditional for the promotional price
-        $conditionals[] = $conditional;
-        $conditional = [
-          'nid' => $entity->nid,
-          'rgid' => '' . count($conditionals),
-          'andor' => 'and',
-          'weight' => '' . count($conditionals),
-          'rules' => [
-            [
-              'nid' => $entity->nid,
-              'rgid' => '' . count($conditionals),
-              'rid' => '0',
-              'source_type' => 'component',
-              'source' => '' . $cids['course_selection'],
-              'operator' => 'equal',
-              'value' => '' . $i,
-            ],
-            [
-              'nid' => $entity->nid,
-              'rgid' => '' . count($conditionals),
-              'rid' => '1',
-              'source_type' => 'component',
-              'source' => '' . $cids['promotional_code'],
-              'operator' => 'equal',
-              'value' => '' . check_plain($cO['code']),
-            ],
-          ],
-          'actions' => [
-            [
-              'nid' => $entity->nid,
-              'rgid' => '' . count($conditionals),
-              'aid' => '0',
-              'target_type' => 'component',
-              'target' => '' . $cids['civicrm_1_contribution_1_contribution_total_amount'],
-              'invert' => '0',
-              'action' => 'set',
-              'argument' => number_format(((float) $cO['discounted'])/100, 2),
-            ],
-          ],
-        ];
-      }
       $conditionals[] = $conditional;
+
+      if ($cO['code']) {
+        // This course option is promoted by one-or-more promotional codes
+        $promoted[] = $i;
+
+        // Add a conditional for each promotional code
+        $codes = explode(',', $cO['code']);
+        foreach ($codes as $code) {
+
+          // The promotional code is either in the form 'CODE' or 'CODE = PRICE'
+          $codeParts = explode('=', $code, 2);
+          $codeText = check_plain(trim($codeParts[0]));
+          if (empty($codeParts[1])) {
+            $codePrice = number_format(((float) $cO['discounted'])/100, 2);
+          }
+          else {
+            $codePrice = number_format(((float) $codeParts[1]), 2);
+          }
+
+          // Add a conditional for the promotional code and price
+          $conditional = [
+            'nid' => $entity->nid,
+            'rgid' => '' . count($conditionals),
+            'andor' => 'and',
+            'weight' => '' . count($conditionals),
+            'rules' => [
+              [
+                'nid' => $entity->nid,
+                'rgid' => '' . count($conditionals),
+                'rid' => '0',
+                'source_type' => 'component',
+                'source' => '' . $cids['course_selection'],
+                'operator' => 'equal',
+                'value' => '' . $i,
+              ],
+              [
+                'nid' => $entity->nid,
+                'rgid' => '' . count($conditionals),
+                'rid' => '1',
+                'source_type' => 'component',
+                'source' => '' . $cids['promotional_code'],
+                'operator' => 'equal',
+                'value' => $codeText,
+              ],
+            ],
+            'actions' => [
+              [
+                'nid' => $entity->nid,
+                'rgid' => '' . count($conditionals),
+                'aid' => '0',
+                'target_type' => 'component',
+                'target' => '' . $cids['civicrm_1_contribution_1_contribution_total_amount'],
+                'invert' => '0',
+                'action' => 'set',
+                'argument' => $codePrice,
+              ],
+            ],
+          ];
+          $conditionals[] = $conditional;
+        }
+      }
     }
+
     // Add a conditional to show the promotional code component
     $conditional = [
       'nid' => $entity->nid,
