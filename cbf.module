@@ -3258,11 +3258,11 @@ function _cbf_convert_article_topics_url_query() {
     /*
      * Before looking at the $argument, each '+' has been converted to a space,
      * so do the same for commas. Ensure $argument is lowercase and terminated
-     * by a space (so we can tell between 'topic ' and 'topic1 ' - searching for
-     * 'topic' would match both, but 'topic ' only matches the former).
+     * by a space (so we can tell between ' topic ' and ' 1topic1 ' - searching
+     * for 'topic' would match both, but ' topic ' only matches the former).
      */
     $argument = str_replace(',', ' ', $argument);
-    $argument = strtolower($argument) . ' ';
+    $argument = ' ' . strtolower($argument) . ' ';
 
     /*
      * Find the $topics in $argument among the Article Topics
@@ -3280,7 +3280,7 @@ function _cbf_convert_article_topics_url_query() {
       foreach ($names as $name) {
         if ($name) {
           $name = str_replace(' ', '-', $name);
-          $name = strtolower($name) . ' ';
+          $name = ' ' . strtolower($name) . ' ';
           if (strpos($argument, $name) !== false) {
             $topics[$topic->tid] = $topic->tid;
             $titles[] = $topic->name;
