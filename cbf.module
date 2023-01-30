@@ -3243,72 +3243,81 @@ function _cbf_convert_article_topics_url_query() {
     return $result;
   }
 
+  $topics = [];
+  $titles = [];
+
   /*
    * The topics are presented in the 'topic' query parameter, separated by
-   * either commas or plus characters. '+' is converted to a space, so do the
-   * same for commas. Ensure the topics are lowercase and terminated by a
-   * space.
+   * either commas or plus characters.
    */
   $query = drupal_get_query_parameters();
-  $topics = $query['topic'] ?? '';
-  $topics = str_replace(',', ' ', $topics);
-  $topics = strtolower($topics) . ' ';
+  $argument = $query['topic'] ?? '';
 
-  /*
-   * Find the $supplied topics among the Article Topics
-   * Try to match on name, and then on field_title
-   * As we're doing that, build up a list of $children of topics
-   */
-  $vocabulary = taxonomy_vocabulary_machine_name_load('article_topic');
-  $taxonomy = taxonomy_get_tree($vocabulary->vid, 0, null, true);
-  $supplied = [];
-  $children = [];
-  $titles = [];
-  foreach ($taxonomy as $topic) {
-    $names = [
-      $topic->name,
-      cbf_field_get_items('taxonomy_term', $topic, 'field_title', 'value')
-    ];
-    foreach ($names as $name) {
-      if ($name) {
-        $name = str_replace(' ', '-', $name);
-        $name = strtolower($name) . ' ';
-        if (strpos($topics, $name) !== false) {
-          $supplied[$topic->tid] = $topic->tid;
-          $titles[] = $topic->name;
-          break;
-        }
-      }
-    }
+  if (!empty($argument)) {
 
-    foreach ($topic->parents as $parent) {
-      if (isset($children[$parent])) {
-        $children[$parent][$topic->tid] = $topic->tid;
-      }
-      else {
-        $children[$parent] = [$topic->tid => $topic->tid];
-      }
-    }
-  }
+    /*
+     * Before looking at the $argument, each '+' has been converted to a space,
+     * so do the same for commas. Ensure $argument is lowercase and terminated
+     * by a space (so we can tell between 'topic ' and 'topic1 ' - searching for
+     * 'topic' would match both, but 'topic ' only matches the former).
+     */
+    $argument = str_replace(',', ' ', $argument);
+    $argument = strtolower($argument) . ' ';
 
-  /*
-   * Add any $children of the $supplied topics
-   */
-  $parents = $supplied;
-  do {
-    $added = [];
-    foreach ($parents as $parent) {
-      if (isset($children[$parent])) {
-        foreach ($children[$parent] as $child) {
-          if (!isset($supplied[$child])) {
-            $added[$child] = $child;
-            $supplied[$child] = $child;
+    /*
+     * Find the $topics in $argument among the Article Topics
+     * Try to match on name, and then on field_title
+     * As we're doing that, build up a list of $children of topics
+     */
+    $vocabulary = taxonomy_vocabulary_machine_name_load('article_topic');
+    $taxonomy = taxonomy_get_tree($vocabulary->vid, 0, null, true);
+    $children = [];
+    foreach ($taxonomy as $topic) {
+      $names = [
+        $topic->name,
+        cbf_field_get_items('taxonomy_term', $topic, 'field_title', 'value')
+      ];
+      foreach ($names as $name) {
+        if ($name) {
+          $name = str_replace(' ', '-', $name);
+          $name = strtolower($name) . ' ';
+          if (strpos($argument, $name) !== false) {
+            $topics[$topic->tid] = $topic->tid;
+            $titles[] = $topic->name;
+            break;
           }
         }
       }
+
+      foreach ($topic->parents as $parent) {
+        if (isset($children[$parent])) {
+          $children[$parent][$topic->tid] = $topic->tid;
+        }
+        else {
+          $children[$parent] = [$topic->tid => $topic->tid];
+        }
+      }
     }
-    $parents = $added;
-  } while (!empty($parents));
+
+    /*
+     * Add any $children of the $topics
+     */
+    $parents = $topics;
+    do {
+      $added = [];
+      foreach ($parents as $parent) {
+        if (isset($children[$parent])) {
+          foreach ($children[$parent] as $child) {
+            if (!isset($topics[$child])) {
+              $added[$child] = $child;
+              $topics[$child] = $child;
+            }
+          }
+        }
+      }
+      $parents = $added;
+    } while (!empty($parents));
+  }
 
   /*
    * The title shouldn't be empty
@@ -3318,7 +3327,7 @@ function _cbf_convert_article_topics_url_query() {
   }
 
   $result = [
-    'value' => implode('+', $supplied),
+    'value' => implode('+', $topics),
     'title' => implode(' + ', $titles),
   ];
 
