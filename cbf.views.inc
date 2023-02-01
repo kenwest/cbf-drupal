@@ -95,7 +95,7 @@ function cbf_views_query_alter(&$view, &$query) {
         foreach ($clause['conditions'] as $j => $condition) {
           if (
                stripos($condition['field'], 'taxonomy_vocabulary_3_tid') !== false
-            && $condition['operator'] = '='
+            && $condition['operator'] == '='
             && $condition['value'] == '48'
           ) {
             $view->query->where[$i]['conditions'][$j]['operator'] = 'in';
