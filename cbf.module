@@ -3251,18 +3251,19 @@ function _cbf_convert_article_topics_url_query() {
    * either commas or plus characters.
    */
   $query = drupal_get_query_parameters();
-  $argument = $query['topic'] ?? '';
+  $queryTopic = $query['topic'] ?? '';
 
-  if (!empty($argument)) {
+  if (!empty($queryTopic)) {
 
     /*
-     * Before looking at the $argument, each '+' has been converted to a space,
-     * so do the same for commas. Ensure $argument is lowercase and terminated
-     * by a space (so we can tell between ' topic ' and ' 1topic1 ' - searching
-     * for 'topic' would match both, but ' topic ' only matches the former).
+     * Any '+' characters in $queryTopic will have already been converted to a
+     * space, so do the same for commas. Ensure $queryTopic is lowercase and
+     * surrounded by spaces (so we can tell between ' topic ' and ' 1topic1 '
+     * - searching for 'topic' would match both, but ' topic ' only matches the
+     * former).
      */
-    $argument = str_replace(',', ' ', $argument);
-    $argument = ' ' . strtolower($argument) . ' ';
+    $queryTopic = str_replace(',', ' ', $queryTopic);
+    $queryTopic = ' ' . strtolower($queryTopic) . ' ';
 
     /*
      * Find the $topics in $argument among the Article Topics
@@ -3281,7 +3282,7 @@ function _cbf_convert_article_topics_url_query() {
         if ($name) {
           $name = str_replace(' ', '-', $name);
           $name = ' ' . strtolower($name) . ' ';
-          if (strpos($argument, $name) !== false) {
+          if (strpos($queryTopic, $name) !== false) {
             $topics[$topic->tid] = $topic->tid;
             $titles[] = $topic->name;
             break;
@@ -3327,7 +3328,7 @@ function _cbf_convert_article_topics_url_query() {
   }
 
   $result = [
-    'value' => implode('+', $topics),
+    'tids' => implode('+', $topics),
     'title' => implode(' + ', $titles),
   ];
 
@@ -3341,7 +3342,7 @@ function _cbf_convert_article_topics_url_query() {
 function cbf_convert_article_topics_to_tids_with_depth() {
   $topics = _cbf_convert_article_topics_url_query();
 
-  return $topics['value'];
+  return $topics['tids'];
 }
 
 /*
