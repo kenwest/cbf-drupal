@@ -3234,7 +3234,8 @@ function _cbf_convert_banner_to_city_tid($banner) {
 
 /*
  * Common code for use when converting Article Topics supplied as a URL query
- * parameter, such as "topic=my-topic" or "topic=this-topic+that-topic"
+ * parameter, such as "topic=my-topic" or "topic=this-topic+that-topic" or
+ * "summary=top-level-topic"
  */
 function _cbf_convert_article_topics_url_query() {
 
@@ -3245,25 +3246,35 @@ function _cbf_convert_article_topics_url_query() {
 
   $topics = [];
   $titles = [];
+  $summary = '';
 
   /*
    * The topics are presented in the 'topic' query parameter, separated by
    * either commas or plus characters.
+   *
+   * The 'summary' query parameter is the URL-friendly name of a top-level
+   * Article Topic (ie, alphanumeric plus hyphens).
    */
   $query = drupal_get_query_parameters();
   $queryTopic = $query['topic'] ?? '';
+  $querySummary = $query['summary'] ?? '';
 
-  if (!empty($queryTopic)) {
+  /*
+   * Only load the Article Topic vocabulary if a query argument is present
+   */
+  if (!empty($queryTopic) || !empty($querySummary)) {
 
     /*
      * Any '+' characters in $queryTopic will have already been converted to a
-     * space, so do the same for commas. Ensure $queryTopic is lowercase and
-     * surrounded by spaces (so we can tell between ' topic ' and ' 1topic1 '
-     * - searching for 'topic' would match both, but ' topic ' only matches the
-     * former).
+     * space, so do the same for commas. Ensure $queryTopic is lowercase.
      */
     $queryTopic = str_replace(',', ' ', $queryTopic);
-    $queryTopic = ' ' . strtolower($queryTopic) . ' ';
+    $queryTopic = strtolower($queryTopic);
+
+    /*
+     * Ensure $querySummary is lowercase
+     */
+    $querySummary = strtolower($querySummary);
 
     /*
      * Find the $topics in $argument among the Article Topics
@@ -3281,11 +3292,22 @@ function _cbf_convert_article_topics_url_query() {
       foreach ($names as $name) {
         if ($name) {
           $name = str_replace(' ', '-', $name);
-          $name = ' ' . strtolower($name) . ' ';
-          if (strpos($queryTopic, $name) !== false) {
+          $name = strtolower($name);
+          if (
+               !empty($queryTopic)
+            && strpos(' ' . $queryTopic . ' ', ' ' . $name . ' ') !== false
+            && !isset($topics[$topic->tid])
+          ) {
             $topics[$topic->tid] = $topic->tid;
             $titles[] = $topic->name;
-            break;
+          }
+          if (
+               !empty($querySummary)
+            && strcmp($querySummary, $name) == 0
+            && empty($summary)
+            && $topic->parents[0] == 0 // Is a top-level topic
+          ) {
+            $summary = $name;
           }
         }
       }
@@ -3330,6 +3352,7 @@ function _cbf_convert_article_topics_url_query() {
   $result = [
     'tids' => implode('+', $topics),
     'title' => implode(' + ', $titles),
+    'summary' => $summary,
   ];
 
   return $result;
@@ -3353,6 +3376,16 @@ function cbf_convert_article_topics_to_title() {
   $topics = _cbf_convert_article_topics_url_query();
 
   return $topics['title'];
+}
+
+/*
+ * Convert Article Topics supplied as a URL query such as "summary=my-topic" to
+ * a summary.
+ */
+function cbf_convert_article_topics_to_summary() {
+  $topics = _cbf_convert_article_topics_url_query();
+
+  return $topics['summary'];
 }
 
 /*
