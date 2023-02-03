@@ -3302,13 +3302,14 @@ function _cbf_convert_article_topics_url_query() {
             $topics[$topic->tid] = $topic->tid;
             $titles[] = $topic->name;
           }
-          if (
-               !empty($queryFocus)
-            && strcmp($queryFocus, $name) == 0
-            && empty($focus)
-            && $topic->parents[0] == 0 // Is a top-level topic
-          ) {
-            $focus = $name;
+          if ($topic->parents[0] == 0) { // This is a top-level topic
+            if (
+              !empty($queryFocus)
+              && strcmp($queryFocus, $name) == 0
+              && empty($focus)
+            ) {
+              $focus = $name;
+            }
           }
         }
       }
