@@ -3235,7 +3235,7 @@ function _cbf_convert_banner_to_city_tid($banner) {
 /*
  * Common code for use when converting Article Topics supplied as a URL query
  * parameter, such as "topic=my-topic" or "topic=this-topic+that-topic" or
- * "summary=top-level-topic"
+ * "focus=top-level-topic"
  */
 function _cbf_convert_article_topics_url_query() {
 
@@ -3246,23 +3246,23 @@ function _cbf_convert_article_topics_url_query() {
 
   $topics = [];
   $titles = [];
-  $summary = '';
+  $focus = '';
 
   /*
    * The topics are presented in the 'topic' query parameter, separated by
    * either commas or plus characters.
    *
-   * The 'summary' query parameter is the URL-friendly name of a top-level
+   * The 'focus' query parameter is the URL-friendly name of a top-level
    * Article Topic (ie, alphanumeric plus hyphens).
    */
   $query = drupal_get_query_parameters();
   $queryTopic = $query['topic'] ?? '';
-  $querySummary = $query['summary'] ?? '';
+  $queryFocus = $query['focus'] ?? '';
 
   /*
    * Only load the Article Topic vocabulary if a query argument is present
    */
-  if (!empty($queryTopic) || !empty($querySummary)) {
+  if (!empty($queryTopic) || !empty($queryFocus)) {
 
     /*
      * Any '+' characters in $queryTopic will have already been converted to a
@@ -3272,13 +3272,14 @@ function _cbf_convert_article_topics_url_query() {
     $queryTopic = strtolower($queryTopic);
 
     /*
-     * Ensure $querySummary is lowercase
+     * Ensure $queryFocus is lowercase
      */
-    $querySummary = strtolower($querySummary);
+    $queryFocus = strtolower($queryFocus);
 
     /*
-     * Find the $topics in $argument among the Article Topics
-     * Try to match on name, and then on field_title
+     * Find the $topics in $queryTopic among the Article Topics
+     * Ditto for $focus in $queryFocus
+     * Try to match the topics on name, and then on field_title
      * As we're doing that, build up a list of $children of topics
      */
     $vocabulary = taxonomy_vocabulary_machine_name_load('article_topic');
@@ -3302,12 +3303,12 @@ function _cbf_convert_article_topics_url_query() {
             $titles[] = $topic->name;
           }
           if (
-               !empty($querySummary)
-            && strcmp($querySummary, $name) == 0
-            && empty($summary)
+               !empty($queryFocus)
+            && strcmp($queryFocus, $name) == 0
+            && empty($focus)
             && $topic->parents[0] == 0 // Is a top-level topic
           ) {
-            $summary = $name;
+            $focus = $name;
           }
         }
       }
@@ -3352,7 +3353,7 @@ function _cbf_convert_article_topics_url_query() {
   $result = [
     'tids' => implode('+', $topics),
     'title' => implode(' + ', $titles),
-    'summary' => $summary,
+    'focus' => $focus,
   ];
 
   return $result;
@@ -3379,13 +3380,13 @@ function cbf_convert_article_topics_to_title() {
 }
 
 /*
- * Convert Article Topics supplied as a URL query such as "summary=my-topic" to
- * a summary.
+ * Convert Article Topics supplied as a URL query such as "focus=my-topic" to
+ * a focus topic.
  */
-function cbf_convert_article_topics_to_summary() {
+function cbf_convert_article_topics_to_focus() {
   $topics = _cbf_convert_article_topics_url_query();
 
-  return $topics['summary'];
+  return $topics['focus'];
 }
 
 /*
