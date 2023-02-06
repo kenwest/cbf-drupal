@@ -823,6 +823,9 @@ function cbf_field_with_validate($form, &$form_state) {
 /*
  * If we are editing a node, then check whether we need to enforce creating a
  * revision.
+ *
+ * Note that cbf_form_alter() attaches cbf_form_revision_validate() to the form
+ * when $form['#node_edit_form'] is set.
  */
 function cbf_form_revision_validate($form, &$form_state) {
 
@@ -857,7 +860,12 @@ function cbf_form_revision_validate($form, &$form_state) {
   $revision = $form_state['input']['revision'] ?? false;
   $log = $form_state['input']['log'] ?? '';
 
-  if ($revision && $log) {
+  global $user;
+
+  if ($user->uid == 1) {
+    // The super-user doesn't need to make revisions
+  }
+  else if ($revision && $log) {
     // There is already a valid revision
   }
   else if ($created < $reuseMilestone) {
@@ -886,7 +894,7 @@ function cbf_form_revision_validate($form, &$form_state) {
     }
   }
 
-  $warning = true;
+  $warning = false;
   if (!empty($reason)) {
     if ($warning) {
       drupal_set_message(
