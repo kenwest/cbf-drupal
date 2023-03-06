@@ -769,8 +769,10 @@ function cbf_field_with_validate($form, &$form_state) {
   foreach ($people as $key => $person) {
     if (is_numeric($key)) { // Ignore people who are in the process of being added
       $tid = reset($person['field_speaker']);
+      $name = is_array($tid) ? reset($tid)['name'] ?? '' : '';
       $tid = is_array($tid) ? reset($tid)['tid'] ?? 0 : 0;
-      if (is_numeric($tid)) {
+
+      if (is_numeric($tid)) { // Existing speaker
         if ($tid > 0) {
           $speaker = taxonomy_term_load($tid);
           if (!$person['field_description']['und'][0]['value']) {
@@ -795,9 +797,7 @@ function cbf_field_with_validate($form, &$form_state) {
           }
         }
       }
-      else {
-        $name = reset($person['field_speaker']);
-        $name = is_array($name) ? reset($name)['name'] ?? '' : '';
+      else { // New speaker
         if (!$person['field_description']['und'][0]['value']) {
           form_set_error(
             "field_with][und][$key][field_description][und][0][value",
@@ -810,6 +810,7 @@ function cbf_field_with_validate($form, &$form_state) {
             "'$name' needs an image as there is no existing Speaker record");
             }
       }
+
       $description = $person['field_description']['und'][0]['value'] ?? '';
       if (strlen($description) > $maxDescription) {
         drupal_set_message(
