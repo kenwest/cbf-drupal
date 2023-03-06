@@ -759,7 +759,7 @@ function cbf_field_highlight_validate($form, &$form_state) {
  *  - If this is a new person then require both a bio/description and an image
  *  - Warn if the bio/description of the existing Speaker record is longer than
  *    500 characters
- *  - Limit the bio/description to 500 characters
+ *  - Warn if the bio/description is longer than 500 characters
  */
 function cbf_field_with_validate($form, &$form_state) {
 
@@ -812,9 +812,9 @@ function cbf_field_with_validate($form, &$form_state) {
       }
       $description = $person['field_description']['und'][0]['value'] ?? '';
       if (strlen($description) > $maxDescription) {
-        form_set_error(
-          "field_with][und][$key][field_description][und][0][value",
-          "The description supplied for '$name' is longer than $maxDescription characters (it will overflow the display area)");
+        drupal_set_message(
+          "The description supplied for '$name' is longer than $maxDescription characters (it will overflow the display area)",
+          'warning');
       }
     }
   }
