@@ -2197,6 +2197,31 @@ function cbf_views_post_execute(&$view) {
       }
     }
   }
+
+  if ($view->name == 'cbf2019_rated_content' && $view->current_display == 'page_5') {
+    /*
+     * The 'nothing' field is a Global Text field that holds the text contents
+     * of the view header.
+     *
+     * Get it's value from the query parameters.
+     */
+    $view->field['nothing']->options['alter']['text'] = cbf_convert_article_topics_to_title();
+  }
+
+  if ($view->name == 'cbf2019_rated_content' && $view->current_display == 'page_3') {
+    /*
+     * The 'nothing' field is a Global Text field that holds the text contents
+     * of the view header.
+     *
+     * Overwrite it's value from the query parameters if these are supplied.
+     */
+    $query = drupal_get_query_parameters();
+    $search = $query['search'] ?? '';
+
+    if (!empty($search)) {
+      $view->field['nothing']->options['alter']['text'] = "'$search'";
+    }
+  }
 }
 
 /*
