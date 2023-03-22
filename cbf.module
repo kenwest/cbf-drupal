@@ -3244,7 +3244,7 @@ function _cbf_convert_banner_to_city_tid($banner) {
 /*
  * Common code for use when converting Article Topics supplied as a URL query
  * parameter, such as "topic=my-topic" or "topic=this-topic+that-topic" or
- * "focus=top-level-topic"
+ * "focus=top-level-topic" or "search=words"
  */
 function _cbf_convert_article_topics_url_query() {
 
@@ -3256,6 +3256,7 @@ function _cbf_convert_article_topics_url_query() {
   $topics = [];
   $titles = [];
   $focus = '';
+  $search = '';
 
   /*
    * The topics are presented in the 'topic' query parameter, separated by
@@ -3263,10 +3264,13 @@ function _cbf_convert_article_topics_url_query() {
    *
    * The 'focus' query parameter is the URL-friendly name of a top-level
    * Article Topic (ie, alphanumeric plus hyphens).
+   *
+   * The 'search' query parameter is the search string entered by the user
    */
   $query = drupal_get_query_parameters();
   $queryTopic = $query['topic'] ?? '';
   $queryFocus = $query['focus'] ?? '';
+  $search = $query['search'] ?? '';
 
   /*
    * Only load the Article Topic vocabulary if a query argument is present
@@ -3354,8 +3358,11 @@ function _cbf_convert_article_topics_url_query() {
   }
 
   /*
-   * The title shouldn't be empty
+   * The title shouldn't be empty and should include the search string
    */
+  if ($search) {
+    $titles = ["'$search'", ...$titles];
+  }
   if (empty($titles)) {
     $titles = ['All topics'];
   }
@@ -3364,6 +3371,7 @@ function _cbf_convert_article_topics_url_query() {
     'tids' => implode('+', $topics),
     'title' => implode(' + ', $titles),
     'focus' => $focus,
+    'search' => $search,
   ];
 
   return $result;
