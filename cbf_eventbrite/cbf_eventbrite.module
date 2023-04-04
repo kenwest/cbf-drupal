@@ -1,0 +1,368 @@
+<?php
+
+/******************************************************************************
+ * EXTERNAL FUNCTIONS
+ */
+
+function cbf_eventbrite_registration_buttons($field_registration_buttons) {
+
+  $buttons = count($field_registration_buttons['#items']);
+  $columnCount = [
+    'xs' => min(1, $buttons),
+    'sm' => min(2, $buttons),
+    'md' => min(3, $buttons),
+    'lg' => min(4, $buttons),
+  ];
+  $columnWidth = [
+    1 => 12,
+    2 => 6,
+    3 => 4,
+    4 => 3,
+  ];
+
+  $columnClasses = [];
+  foreach ($columnCount as $size => $count) {
+
+    $columnClasses[] = "col-{$size}-{$columnWidth[$count]}";
+  }
+
+  $columnClasses = implode(' ', $columnClasses);
+  $buttons = [];
+  $out = "<div class=\"row\">";
+
+  foreach ($field_registration_buttons['#items'] as $i) {
+
+    $buttons[] = $i['value'];
+  }
+
+  $buttons = entity_load('paragraphs_item', $buttons);
+
+  foreach ($buttons as $button) {
+
+    $eventId = cbf_field_get_items('paragraphs_item', $button, 'field_event_id', 'value');
+    $title = cbf_field_get_items('paragraphs_item', $button, 'field_title', 'safe_value');
+    $buttonType = cbf_field_get_items('paragraphs_item', $button, 'field_event_registration_type', 'tid');
+    $buttonType = taxonomy_term_load($buttonType);
+    $buttonType = $buttonType->name ?? 'Empty';
+    $b = _cbf_eventbrite_button_type($buttonType, $eventId);
+
+    $out .= "<div class=\"{$columnClasses}\">";
+    $out .= "<a href=\"{$b['url']}\">{$title}</a>";
+    $out .= "</div>";
+  }
+
+  $out .= "</div>";
+  return $out;
+}
+
+/******************************************************************************
+ * HOOK IMPLEMENTATIONS
+ */
+
+/*
+ * Implements hook_node_validate()
+ *
+ * "Perform node validation before a node is created or updated. This hook is
+ * invoked from node_validate(), after a user has finished editing the node and
+ * is previewing or submitting it. It is invoked at the end of all the standard
+ * validation steps, and after the type-specific hook_validate() is invoked. To
+ * indicate a validation error, use form_set_error(). Note: Changes made to the
+ * $node object within your hook implementation will have no effect. The
+ * preferred method to change a node's content is to use hook_node_presave()
+ * instead. If it is really necessary to change the node at the validate stage,
+ * you can use form_set_value()"
+ */
+function cbf_eventbrite_node_validate($node, $form, &$form_state) {
+
+  if ($node->type == 'brite_event') {
+
+    $buttons = cbf_field_get_items('node', $node, 'field_registration_buttons', 'entity', []);
+
+    foreach ($buttons as $i => $button) {
+
+      if (is_object($button) && ($button->removed ?? 0) != 1) {
+
+        $buttonType = cbf_field_get_items('paragraphs_item', $button, 'field_event_registration_type', 'tid');
+        $buttonType = taxonomy_term_load($buttonType);
+        $buttonType = $buttonType->name ?? 'Empty';
+
+        $eventId = cbf_field_get_items('paragraphs_item', $button, 'field_event_id', 'value');
+        $eventId = trim($eventId);
+
+        $b = _cbf_eventbrite_button_type($buttonType, $eventId);
+
+        if ($b['supported'] == false) {
+
+          $element = "field_registration_buttons][und][$i][field_event_registration_type][und][0][tid";
+          form_set_error($element, "Button type '$buttonType' not supported");
+        }
+
+        $matches = [];
+        preg_match($b['pattern'], $eventId, $matches);
+
+        if (empty($matches) || empty($matches[$b['id match']])) {
+
+          $element = "field_registration_buttons][und][$i][field_event_id][und][0][value";
+          form_set_error($element, $b['message']);
+        }
+      }
+    }
+
+    $locationCount = count($node->locations);
+
+    foreach ($node->locations as $i => $location) {
+
+      if (
+        $location['delete_location'] ?? false
+        ||
+        (
+          empty($location['name']) &&
+          empty($location['street']) &&
+          empty($location['city']) &&
+          empty($location['province']) &&
+          empty($location['postal_code']) &&
+          empty($location['locpick']['user_latitude']) &&
+          empty($location['locpick']['user_longitude'])
+        )
+      ) {
+
+        $locationCount--;
+      }
+    }
+
+    if ($locationCount > 1) {
+
+      $element = "locations][1][street";
+      form_set_error($element, 'Multiple locations for an event are not yet supported');
+    }
+  }
+}
+
+/*
+ * Implements hook_entity_presave
+ *
+ * "Act on an entity before it is about to be created or updated."
+ *
+ */
+function cbf_eventbrite_entity_presave($entity, $type) {
+  /*
+   * If $entity is an event_registration paragraphs_item, convert the Event Id
+   * to a canonical form.
+   */
+  if ($type == 'paragraphs_item' && $entity->bundle == 'event_registration') {
+
+    $eventId = cbf_field_get_items($type, $entity, 'field_event_id', 'value');
+    $eventId = trim($eventId);
+    $canonicalForm = '/^([\d]+)$/';
+    $matches = [];
+    preg_match($canonicalForm, $eventId, $matches);
+
+    if (empty($matches) && $matches[0] != $eventId) {
+
+      $buttonType = cbf_field_get_items($type, $entity, 'field_event_registration_type', 'tid');
+      $buttonType = taxonomy_term_load($buttonType);
+      $buttonType = $buttonType->name ?? 'Empty';
+
+      $b = _cbf_eventbrite_button_type($buttonType, $eventId);
+
+      preg_match($b['pattern'], $eventId, $matches);
+
+      if (!empty($matches[$b['id match']])) {
+
+        $eventId = $matches[$b['id match']];
+      }
+    }
+
+    if (isset($entity->field_event_id['und'][0]['value'])) {
+      $entity->field_event_id['und'][0]['value'] = $eventId;
+    }
+  }
+
+  /*
+   * If $entity is a brite_event node, set the Location from the EventBrite
+   * event venue, unless overridden.
+   */
+  if ($type == 'node' && $entity->type == 'brite_event') {
+
+    $buttons = cbf_field_get_items($type, $entity, 'field_registration_buttons', 'value', []);
+    $buttons = entity_load('paragraphs_item', $buttons);
+    $events = [];
+
+    foreach ($buttons as $button) {
+
+      $buttonType = cbf_field_get_items('paragraphs_item', $button, 'field_event_registration_type', 'tid');
+      $buttonType = taxonomy_term_load($buttonType);
+      $buttonType = $buttonType->name ?? 'Empty';
+
+      if ($buttonType == 'EventBrite event') {
+
+        $eventId = cbf_field_get_items('paragraphs_item', $button, 'field_event_id', 'value');
+        $events[] = _cbf_eventbrite_get_event($eventId);
+      }
+    }
+
+    $overrideLocation = cbf_field_get_items($type, $entity, 'field_override_location', 'value', false);
+
+    if (!$overrideLocation) {
+
+      foreach ($events as $event) {
+
+        if (!empty($event->venue)) {
+
+          $location = [];
+          $location['name'] = $event->venue->name;
+          $location['street'] = $event->venue->address->address_1;
+          $location['additional'] = $event->venue->address->address_2;
+          $location['city'] = $event->venue->address->city;
+          $location['province'] = $event->venue->address->region;
+          $location['postal_code'] = $event->venue->address->postal_code;
+          $location['latitude'] = $event->venue->latitude;
+          $location['longitude'] = $event->venue->longitude;
+
+          foreach ($entity->locations[0] as $locationField => $_) {
+
+            if (isset($location[$locationField])) {
+
+              $entity->locations[0][$locationField] = $location[$locationField];
+            }
+            else if ($locationField == 'locpick') {
+
+              $entity->locations[0]['locpick']['user_latitude'] = $location['latitude'];
+              $entity->locations[0]['locpick']['user_longitude'] = $location['longitude'];
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+}
+
+/******************************************************************************
+ * INTERNAL FUNCTIONS
+ */
+
+function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
+
+  switch ($buttonType) {
+
+    case 'EventBrite event':
+      $supported = true;
+      $pattern = '!^(.+eventbrite.+/e/(.+-)?)?(\d+)$!i';
+      $idMatch = 3;
+      $message = 'Must be an EventBrite event URL or an event number';
+      $url = "https://www.eventbrite.com/e/$eventId";
+      break;
+
+    case 'EventBrite collection':
+      $supported = true;
+      $pattern = '!^(.+eventbrite.+/cc/(.+-)?)?(\d+)$!i';
+      $idMatch = 3;
+      $message = 'Must be an EventBrite collection URL or a collection number';
+      $url = "https://www.eventbrite.com/cc/$eventId";
+      break;
+
+    case 'CiviCRM event':
+      $supported = true;
+      $pattern = '!^(.+/civicrm-event/)?(\d+)$!i';
+      $idMatch = 2;
+      $message = 'Must be an CiviCRM URL or a CiviEvent number';
+      $url = "/civicrm/event/register?reset=1&id=$eventId";
+      break;
+
+    default:
+      $supported = false;
+      $pattern = '!^Cannot check$!i';
+      $idMatch = 0;
+      $message = "Cannot check Event Id '$eventId' as its type is not supported";
+      $url = 'Cannot register for this type of event';
+      break;
+  }
+
+  return [
+    'supported' => $supported,  // Is this button type supported?
+    'pattern' => $pattern,      // What is the pattern accepted for Event ID?
+    'id match' => $idMatch,     // Which part of the pattern is the Event ID?
+    'message' => $message,      // What message if validation fails?
+    'url' => $url,              // What is the registration URL?
+  ];
+}
+
+function _cbf_eventbrite_get_event(string $id) {
+  $steps = [
+    "Get event $id" => [
+      'method' => 'GET',
+      'endpoint' => "events/$id?expand=ticket_availability,venue",
+      '200' => 'success',
+      '404' => 'failure',
+      'result' => 'event',
+    ],
+  ];
+
+  $result = _cbf_eventbrite_use_api($steps);
+
+  return $result['event'] ?? false;
+}
+
+function _cbf_eventbrite_use_api(array $steps) {
+  $api = 'https://www.eventbriteapi.com/v3/';
+  $headers = [
+    'Authorization' => 'Bearer ' . variable_get('cbf_eventbrite_token'),
+    'Content-Type' => 'application/json',
+  ];
+  $result = [
+    'progress' => [],
+  ];
+  $stop = false;
+  $status = WATCHDOG_INFO;
+
+  foreach ($steps as $stepName => $step) {
+    $httpOptions = [
+      'headers' => $headers,
+      'method' => $step['method'],
+    ];
+    if (isset($step['data'])) {
+      $httpOptions['data'] = json_encode($step['data']);
+    }
+    $httpResult = drupal_http_request($api . $step['endpoint'], $httpOptions);
+    $httpResponse = json_decode($httpResult->data);
+
+    $result[$step['result']] = $httpResponse;
+
+    switch ($step[$httpResult->code] ?? $httpResult->code) {
+
+      case 'next':
+        $result['progress'][] = "$stepName succeeded. Continuing...";
+        break;
+
+      case 'success':
+        $result['progress'][] = "$stepName succeeded. Stopping.";
+        $stop = true;
+        break;
+
+      case 'warning':
+        $result['progress'][] = "$stepName had an issue. Continuing...";
+        break;
+
+      case 'failure':
+        $result['progress'][] = "$stepName failed. Stopping.";
+        $stop = true;
+        $status = WATCHDOG_ERROR;
+        break;
+
+      default:  // Unexpected response
+        $result['progress'][] = "$stepName had an unexpected result. Stopping.";
+        $stop = true;
+        $status = WATCHDOG_ERROR;
+        break;
+    }
+
+    watchdog('CBF', 'EventBrite API: ' . implode(' ', $result['progress']), null, $status);
+
+    if ($stop) {
+      break;
+    }
+  }
+
+  return $result;
+}
