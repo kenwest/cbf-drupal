@@ -248,7 +248,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
 
     case 'EventBrite event':
       $supported = true;
-      $pattern = '!^(.+eventbrite.+/e/(.+-)?)?(\d+)$!i';
+      $pattern = '!^(.+eventbrite.+/e/(.+-)?)?(\d+)(/)?$!i';
       $idMatch = 3;
       $message = 'Must be an EventBrite event URL or an event number';
       $url = "https://www.eventbrite.com/e/$eventId";
@@ -256,7 +256,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
 
     case 'EventBrite collection':
       $supported = true;
-      $pattern = '!^(.+eventbrite.+/cc/(.+-)?)?(\d+)$!i';
+      $pattern = '!^(.+eventbrite.+/cc/(.+-)?)?(\d+)(/)?$!i';
       $idMatch = 3;
       $message = 'Must be an EventBrite collection URL or a collection number';
       $url = "https://www.eventbrite.com/cc/$eventId";
