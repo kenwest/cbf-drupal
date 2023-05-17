@@ -1,0 +1,145 @@
+<?php
+
+/******************************************************************************
+ * EXTERNAL FUNCTIONS
+ */
+
+/*
+ * Records HubSpot script for later use
+ */
+function cbf_hubspot_script_cache($script = null) {
+  $cache = &drupal_static(__FUNCTION__);
+  if ($script) {
+    $cache = $script;
+  }
+  return $cache;
+}
+
+/******************************************************************************
+ * HOOK IMPLEMENTATIONS
+ */
+
+/*
+ * Implements hook_node_validate()
+ *
+ * "Perform node validation before a node is created or updated. This hook is
+ * invoked from node_validate(), after a user has finished editing the node and
+ * is previewing or submitting it. It is invoked at the end of all the standard
+ * validation steps, and after the type-specific hook_validate() is invoked. To
+ * indicate a validation error, use form_set_error(). Note: Changes made to the
+ * $node object within your hook implementation will have no effect. The
+ * preferred method to change a node's content is to use hook_node_presave()
+ * instead. If it is really necessary to change the node at the validate stage,
+ * you can use form_set_value()"
+ */
+function cbf_hubspot_node_validate($node, $form, &$form_state) {
+
+  if ($node->type == 'force_fail') {
+
+    $buttons = cbf_field_get_items('node', $node, 'field_registration_buttons', 'entity', []);
+
+    foreach ($buttons as $i => $button) {
+
+      if (is_object($button) && ($button->removed ?? 0) != 1) {
+
+        $buttonType = cbf_field_get_items('paragraphs_item', $button, 'field_event_registration_type', 'tid');
+        $buttonType = taxonomy_term_load($buttonType);
+        $buttonType = $buttonType->name ?? 'Empty';
+
+        $eventId = cbf_field_get_items('paragraphs_item', $button, 'field_event_id', 'value');
+        $eventId = trim($eventId);
+
+        $b = _cbf_eventbrite_button_type($buttonType, $eventId);
+
+        if ($b['supported'] == false) {
+
+          $element = "field_registration_buttons][und][$i][field_event_registration_type][und][0][tid";
+          form_set_error($element, "Button type '$buttonType' not supported");
+        }
+
+        $matches = [];
+        preg_match($b['pattern'], $eventId, $matches);
+
+        if (empty($matches) || empty($matches[$b['id match']])) {
+
+          $element = "field_registration_buttons][und][$i][field_event_id][und][0][value";
+          form_set_error($element, $b['message']);
+        }
+      }
+    }
+
+    $locationCount = count($node->locations);
+
+    foreach ($node->locations as $i => $location) {
+
+      if (
+        $location['delete_location'] ?? false
+        ||
+        (
+          empty($location['name']) &&
+          empty($location['street']) &&
+          empty($location['city']) &&
+          empty($location['province']) &&
+          empty($location['postal_code']) &&
+          empty($location['locpick']['user_latitude']) &&
+          empty($location['locpick']['user_longitude'])
+        )
+      ) {
+
+        $locationCount--;
+      }
+    }
+
+    if ($locationCount > 1) {
+
+      $element = "locations][1][street";
+      form_set_error($element, 'Multiple locations for an event are not yet supported');
+    }
+  }
+}
+
+/*
+ * Implements hook_entity_presave
+ *
+ * "Act on an entity before it is about to be created or updated."
+ *
+ */
+function cbf_hubspot_entity_presave($entity, $type) {
+  /*
+   * If $entity is an event_registration paragraphs_item, convert the Event Id
+   * to a canonical form.
+   */
+  if ($type == 'paragraphs_item' && $entity->bundle == 'hubspot_form' && false) {
+
+    $embedCode = cbf_field_get_items($type, $entity, 'field_description', 'value');
+    $embedCode = trim($embedCode);
+    $formIdPattern = '/formid:[ ]+[\'"]([a-z0-9-]+)[\'"]/i';
+    $matches = [];
+    preg_match($formIdPattern, $embedCode, $matches);
+
+    if (isset($matches[1])) {
+
+      $buttonType = cbf_field_get_items($type, $entity, 'field_event_registration_type', 'tid');
+      $buttonType = taxonomy_term_load($buttonType);
+      $buttonType = $buttonType->name ?? 'Empty';
+
+      $b = _cbf_eventbrite_button_type($buttonType, $embedCode);
+
+      preg_match($b['pattern'], $embedCode, $matches);
+
+      if (!empty($matches[$b['id match']])) {
+
+        $embedCode = $matches[$b['id match']];
+      }
+    }
+
+    if (isset($entity->field_event_id['und'][0]['value'])) {
+      $entity->field_event_id['und'][0]['value'] = $embedCode;
+    }
+  }
+}
+
+/******************************************************************************
+ * INTERNAL FUNCTIONS
+ */
+

@@ -1,0 +1,5 @@
+name = CBF HubSpot
+description = HubSpot integration with CBF website
+core = 7.x
+package = City Bible Forum
+version = "7.x-1.0"
