@@ -36,6 +36,7 @@ function cbf_eventbrite_registration_buttons($field_registration_buttons) {
   }
 
   $buttons = entity_load('paragraphs_item', $buttons);
+  $scripts = [];
 
   foreach ($buttons as $button) {
 
@@ -47,11 +48,18 @@ function cbf_eventbrite_registration_buttons($field_registration_buttons) {
     $b = _cbf_eventbrite_button_type($buttonType, $eventId);
 
     $out .= "<div class=\"field-registration-buttons {$columnClasses}\">";
-    $out .= "<a href=\"{$b['url']}\" class=\"btn btn-mod btn-border btn-medium btn-round\">{$title}</a>";
+    $out .= "<{$b['html element']} id=\"{$b['html id']}\" {$b['href']} class=\"btn btn-mod btn-border btn-medium btn-round\">{$title}</{$b['html element']}>";
     $out .= "</div>";
+
+    $scripts = array_merge($scripts, $b['scripts']);
   }
 
   $out .= "</div>";
+
+  foreach ($scripts as $script) {
+    drupal_add_js($script['data'], $script['options']);
+  }
+
   return $out;
 }
 
@@ -251,7 +259,33 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
       $pattern = '!^(.+eventbrite.+/e/(.+-)?)?(\d+)(/)?$!i';
       $idMatch = 3;
       $message = 'Must be an EventBrite event URL or an event number';
-      $url = "https://www.eventbrite.com/e/$eventId";
+      $element = 'button';
+      $href = '';
+      $htmlId = "cbf-eventbrite-event-$eventId";
+      $scripts = [
+        'EventBrite event' => [
+          'data' => 'https://www.eventbrite.com.au/static/widgets/eb_widgets.js',
+          'options' => ['type' => 'external'],
+        ],
+        $eventId => [
+          'data' =>
+            "var callback{$eventId} = function() {
+              console.log('Order complete!');
+            };
+
+            window.EBWidgets.createWidget({
+              widgetType: 'checkout',
+              eventId: '$eventId',
+              modal: true,
+              modalTriggerElementId: '$htmlId',
+              onOrderComplete: callback{$eventId}
+            });",
+          'options' => [
+            'type' => 'inline',
+            'scope' => 'footer',
+          ],
+        ],
+      ];
       break;
 
     case 'EventBrite collection':
@@ -259,7 +293,10 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
       $pattern = '!^(.+eventbrite.+/cc/(.+-)?)?(\d+)(/)?$!i';
       $idMatch = 3;
       $message = 'Must be an EventBrite collection URL or a collection number';
-      $url = "https://www.eventbrite.com/cc/$eventId";
+      $element = 'a';
+      $href = "href=\"https://www.eventbrite.com/cc/$eventId\"";
+      $htmlId = "cbf-eventbrite-collection-$eventId";
+      $scripts = [];
       break;
 
     case 'CiviCRM event':
@@ -267,7 +304,10 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
       $pattern = '!^(.+/civicrm-event/)?(\d+)$!i';
       $idMatch = 2;
       $message = 'Must be an CiviCRM URL or a CiviEvent number';
-      $url = "/civicrm/event/register?reset=1&id=$eventId";
+      $element = 'a';
+      $href = "href=\"/civicrm/event/register?reset=1&id=$eventId\"";
+      $htmlId = "cbf-eventbrite-civicrm-event-$eventId";
+      $scripts = [];
       break;
 
     default:
@@ -275,7 +315,10 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
       $pattern = '!^Cannot check$!i';
       $idMatch = 0;
       $message = "Cannot check Event Id '$eventId' as its type is not supported";
-      $url = 'Cannot register for this type of event';
+      $element = 'unknown';
+      $href = '';
+      $htmlId = "cbf-eventbrite-unsupported-$eventId";
+      $scripts = [];
       break;
   }
 
@@ -284,7 +327,10 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
     'pattern' => $pattern,      // What is the pattern accepted for Event ID?
     'id match' => $idMatch,     // Which part of the pattern is the Event ID?
     'message' => $message,      // What message if validation fails?
-    'url' => $url,              // What is the registration URL?
+    'html element' => $element, // What HTML element is this?
+    'href' => $href,            // What is the registration URL?
+    'html id' => $htmlId,       // What is the HTML element's Id?
+    'scripts' => $scripts,      // What scripts should be inserted on the page?
   ];
 }
 
