@@ -3833,6 +3833,5 @@ function cbf_webform_submission_insert($node, $submission) {
 
 // @TODO Duplicate view cbf2019 activity event slider (Activity component type = Upcoming events - slider)
 // @TODO Duplicate view cbf2019 event admin view (page)
-// @TODO Duplicate view cbf2019 event promotional slider (content full width, civicrm-event/*)
 // @TODO Duplicate view cbf2019 local events (content top, whats-on)
 // @TODO Duplicate view cbf2019 non-local event slider (content full with, speaker/*)
