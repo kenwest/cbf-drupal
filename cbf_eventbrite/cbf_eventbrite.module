@@ -46,8 +46,8 @@ function cbf_eventbrite_registration_buttons($field_registration_buttons) {
     $buttonType = $buttonType->name ?? 'Empty';
     $b = _cbf_eventbrite_button_type($buttonType, $eventId);
 
-    $out .= "<div class=\"{$columnClasses}\">";
-    $out .= "<a href=\"{$b['url']}\">{$title}</a>";
+    $out .= "<div class=\"field-registration-buttons {$columnClasses}\">";
+    $out .= "<a href=\"{$b['url']}\" class=\"btn btn-mod btn-border btn-medium btn-round\">{$title}</a>";
     $out .= "</div>";
   }
 
