@@ -3840,8 +3840,6 @@ function cbf_webform_submission_insert($node, $submission) {
 // @TODO Duplicate view cbf2019 event price (view = cbf2019 event override price)
 // @TODO Duplicate view cbf2019 event promotional slider (content full width, civicrm-event/*)
 // @TODO Duplicate view cbf2019 event registration (content, civicrm-event/*)
-// @TODO Duplicate view cbf2019 key dates (no longer used)
-// @TODO Duplicate view cbf2019 local event slider (no longer used)
 // @TODO Duplicate view cbf2019 local events (content top, whats-on)
 // @TODO Duplicate view cbf2019 non-local event slider (content full with, speaker/*)
 // @TODO Duplicate view cbf2019 page header - CiviCRM Event (top, civicrm-event/*)
