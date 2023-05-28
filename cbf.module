@@ -168,6 +168,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
         // Find the Cities where there are upcoming CiviCRM Events
         // If the event has no City, then it is visible in all cities
+        // @TODO Extend this to work for brite_event events
         $current_time = strtotime('now');
         $query = new EntityFieldQuery();
         $result = $query
@@ -731,6 +732,8 @@ function cbf_field_title_image_validate($form, &$form_state) {
  *  - only apply this rule to modern articles
  */
 function cbf_field_highlight_validate($form, &$form_state) {
+  // @TODO Extend this to work for brite_event events. Either follow the same logic or use
+  // a default highlight image.
   if ((isset($form_state['entity_type'])
       && $form_state['entity_type'] == 'civicrm_event'
       && $form_state['civicrm_event']->id > 2662)
@@ -958,6 +961,7 @@ function cbf_entity_presave($entity, $type) {
       $entityId = $entity->nid;
       $entityBundle = $entity->type;
       break;
+    // @TODO Extend this to work for brite_event events. Probably works by default but need to test
     case 'civicrm_event':
       $url0 = 'civicrm-event';
       $allDomainBundles = [ ];
@@ -2540,6 +2544,7 @@ function cbf_entity_viewable($entity, $type, $operation) {
         ],
       ],
     ],
+    // @TODO Extend this to work for brite_event events
     'civicrm_event' => [
       'id' => 'id',
       'status' => [
@@ -3086,6 +3091,7 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
    * Special case - if the source $entity is a civicrm_event its location needs
    * to be retrieved
    */
+  // @TODO Extend this to work for brite_event events. Need to see how field_map_location is set
   if ($type == 'civicrm_event' && in_array('field_map_location', $fields)) {
     // We should not map it if its 'next action' is in the past.
     $nextAction = cbf_field_get_items($type, $entity, 'field_next_action', 'value', 0);
@@ -3824,3 +3830,18 @@ function cbf_datalayer_alter(array &$data_layer) {
 function cbf_webform_submission_insert($node, $submission) {
   $_SESSION['City Bible Forum']['Form title'] = $node->title;
 }
+
+// @TODO Duplicate view cbf2019 activity event slider (Activity component type = Upcoming events - slider)
+// @TODO Duplicate view cbf2019 event admin view (page)
+// @TODO Duplicate view cbf2019 event details (view = cbf2019 event details and activity)
+// @TODO Duplicate view cbf2019 event details and activity (content, civicrm-event/*)
+// @TODO Duplicate view cbf2019 event details table (content bottom, civicrm-event/*)
+// @TODO Duplicate view cbf2019 event override price (view = cbf2019 event details)
+// @TODO Duplicate view cbf2019 event price (view = cbf2019 event override price)
+// @TODO Duplicate view cbf2019 event promotional slider (content full width, civicrm-event/*)
+// @TODO Duplicate view cbf2019 event registration (content, civicrm-event/*)
+// @TODO Duplicate view cbf2019 key dates (no longer used)
+// @TODO Duplicate view cbf2019 local event slider (no longer used)
+// @TODO Duplicate view cbf2019 local events (content top, whats-on)
+// @TODO Duplicate view cbf2019 non-local event slider (content full with, speaker/*)
+// @TODO Duplicate view cbf2019 page header - CiviCRM Event (top, civicrm-event/*)
