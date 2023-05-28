@@ -3833,11 +3833,7 @@ function cbf_webform_submission_insert($node, $submission) {
 
 // @TODO Duplicate view cbf2019 activity event slider (Activity component type = Upcoming events - slider)
 // @TODO Duplicate view cbf2019 event admin view (page)
-// @TODO Duplicate view cbf2019 event details (view = cbf2019 event details and activity)
-// @TODO Duplicate view cbf2019 event details and activity (content, civicrm-event/*)
 // @TODO Duplicate view cbf2019 event details table (content bottom, civicrm-event/*)
-// @TODO Duplicate view cbf2019 event override price (view = cbf2019 event details)
-// @TODO Duplicate view cbf2019 event price (view = cbf2019 event override price)
 // @TODO Duplicate view cbf2019 event promotional slider (content full width, civicrm-event/*)
 // @TODO Duplicate view cbf2019 event registration (content, civicrm-event/*)
 // @TODO Duplicate view cbf2019 local events (content top, whats-on)
