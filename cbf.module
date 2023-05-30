@@ -168,7 +168,6 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
         // Find the Cities where there are upcoming CiviCRM Events
         // If the event has no City, then it is visible in all cities
-        // @TODO Extend this to work for brite_event events
         $current_time = strtotime('now');
         $query = new EntityFieldQuery();
         $result = $query
@@ -190,6 +189,32 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
               if ($city === null) {
                 $cities['All'] = 'All';
               }
+            }
+          }
+        }
+
+        // Find the Cities where there are upcoming Events
+        // If the event has no City, then it is visible in all cities
+        $current_time = strtotime('now');
+        $query = new EntityFieldQuery();
+        $result = $query
+        ->entityCondition('entity_type', 'node')
+        ->entityCondition('bundle', 'brite_event')
+        ->fieldCondition('field_in_activity', 'target_id', (int) $node->nid, '=')
+        ->fieldCondition('field_next_action', 'value', $current_time, '>')
+        ->execute();
+        foreach ($result as $entityType => $entityKeys) {
+          $entities = entity_load($entityType, array_keys($entityKeys));
+          foreach ($entities as $entityKey => $entity) {
+            $city = null;
+            $ministryCentres = field_get_items('node', $entity, 'taxonomy_vocabulary_1');
+            if ($ministryCentres === false) $ministryCentres = [];
+            foreach ($ministryCentres as $city) {
+              $i = (int) $city['tid'];
+              $cities[$i] = $i;
+            }
+            if ($city === null) {
+              $cities['All'] = 'All';
             }
           }
         }
