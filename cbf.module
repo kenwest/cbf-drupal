@@ -986,7 +986,6 @@ function cbf_entity_presave($entity, $type) {
       $entityId = $entity->nid;
       $entityBundle = $entity->type;
       break;
-    // @TODO Extend this to work for brite_event events. Probably works by default but need to test
     case 'civicrm_event':
       $url0 = 'civicrm-event';
       $allDomainBundles = [ ];
