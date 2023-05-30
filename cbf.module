@@ -3867,7 +3867,6 @@ function cbf_webform_submission_insert($node, $submission) {
   $_SESSION['City Bible Forum']['Form title'] = $node->title;
 }
 
-// @TODO Duplicate view cbf2019 activity event slider (Activity component type = Upcoming events - slider)
 // @TODO Duplicate view cbf2019 event admin view (page)
 // @TODO Duplicate view cbf2019 local events (content top, whats-on)
 // @TODO Duplicate view cbf2019 non-local event slider (content full with, speaker/*)

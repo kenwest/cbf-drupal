@@ -85,11 +85,10 @@ function cbf_views_query_alter(&$view, &$query) {
    * The cbf2019_article_topics view definition shows only 'general' topics
    * and this code extends the query to include 'christian' topics when on
    * the 'christian' site. Ditto for cbf2019_speaker_listings.
+   *
+   * The tag 'add-christian-content' signals this is needed.
    */
-  if (
-       $view->name == 'cbf2019_article_topics'
-    || $view->name == 'cbf2019_speaker_listings'
-  ) {
+  if (stripos($view->tag, 'add-christian-content') !== false) {
     $currentDomainId = domain_get_domain()['domain_id'];
     $christianDomainId = domain_load_domain_id('christian');
     if ($currentDomainId == $christianDomainId) {
