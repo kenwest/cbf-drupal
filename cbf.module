@@ -3238,7 +3238,7 @@ function cbf_entity_highlightable($entity, $type, $currentForm) {
 }
 
 /*
- * cbf_entity_highlightable() gets the needed $fields from the source $entity
+ * cbf_entity_mappable() gets the needed $fields from the source $entity
  */
 function cbf_entity_mappable($entity, $type, $currentForm) {
   return cbf_entity_viewable_fields(
