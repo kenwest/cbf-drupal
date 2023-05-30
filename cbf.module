@@ -2197,6 +2197,7 @@ function cbf_views_post_execute(&$view) {
   if (
     (
       $view->name == 'cbf2019_national_activity_event_slider' ||
+      $view->name == 'cbf2019_activity_brite_event_slider' ||
       (
         $view->name == 'cbf2019_content_highlight_slider' &&
         $view->current_display == 'block_3') ||
