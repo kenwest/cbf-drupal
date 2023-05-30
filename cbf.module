@@ -2552,6 +2552,11 @@ function cbf_entity_viewable($entity, $type, $operation) {
         'blog' => [
           'highlightable',
         ],
+        'brite_event' => [
+          'dateable',
+          'highlightable',
+          'mappable',
+        ],
         'episode' => [
           'highlightable',
         ],
@@ -2568,7 +2573,6 @@ function cbf_entity_viewable($entity, $type, $operation) {
         ],
       ],
     ],
-    // @TODO Extend this to work for brite_event events
     'civicrm_event' => [
       'id' => 'id',
       'status' => [
@@ -3112,26 +3116,33 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
   }
 
   /*
-   * Special case - if the source $entity is a civicrm_event its location needs
-   * to be retrieved
+   * Special case - if the source $entity is a civicrm_event or a brite_event
+   * then its location needs to be retrieved
    */
-  // @TODO Extend this to work for brite_event events. Need to see how field_map_location is set
-  if ($type == 'civicrm_event' && in_array('field_map_location', $fields)) {
-    // We should not map it if its 'next action' is in the past.
-    $nextAction = cbf_field_get_items($type, $entity, 'field_next_action', 'value', 0);
-    $currentTime = strtotime('now');
-    if ($nextAction < $currentTime) {
-      return [];
-    }
+  if (in_array('field_map_location', $fields)) {
+    if (($type == 'node' && $entity->type == 'brite_event') || $type == 'civicrm_event') {
+      // We should not map an event if its 'next action' is in the past.
+      $nextAction = cbf_field_get_items($type, $entity, 'field_next_action', 'value', 0);
+      $currentTime = strtotime('now');
+      if ($nextAction < $currentTime) {
+        return [];
+      }
 
-    // Get the location from CiviCRM
-    $result['field_map_location'] = cbf_civicrm_civicrm_event_get_location_data($entity->id);
+      if ($type == 'civicrm_event') {
+        // Get the location from CiviCRM
+        $result['field_map_location'] = cbf_civicrm_civicrm_event_get_location_data($entity->id);
+      }
+      else if (!empty($entity->location)) {
+        $result['field_map_location'] = $entity->location;
+        unset($result['field_map_location']['lid']);
+      }
 
-    // If the $currentForm already has a location recycle the Location ID
-    if (!empty($result['field_map_location']) && isset($currentForm)) {
-      $location = cbf_field_get_items('entityform', $currentForm, 'field_map_location', 'lid', 0);
-      if (!empty($location)) {
-        $result['field_map_location']['lid'] = $location;
+      // If the $currentForm already has a location, recycle the Location ID
+      if (!empty($result['field_map_location']) && isset($currentForm)) {
+        $location = cbf_field_get_items('entityform', $currentForm, 'field_map_location', 'lid', 0);
+        if (!empty($location)) {
+          $result['field_map_location']['lid'] = $location;
+        }
       }
     }
   }
