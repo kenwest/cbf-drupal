@@ -3905,4 +3905,3 @@ function cbf_webform_submission_insert($node, $submission) {
 }
 
 // @TODO Duplicate view cbf2019 event admin view (page)
-// @TODO Duplicate view cbf2019 non-local event slider (content full with, speaker/*)
