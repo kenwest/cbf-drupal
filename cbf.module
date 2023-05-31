@@ -1968,6 +1968,43 @@ function cbf_views_post_execute(&$view) {
   }
 
   /*
+   * If the results of this view need to be filtered by Ministry Centre in this
+   * function, then find the Term Id from the exposed filter condition, and if
+   * set, then only keep $view->result items with either an empty or a matching
+   * Term Id.
+   *
+   * This is required because it's too tricky to do it using the $view's filter
+   * criteria.
+   */
+  if (in_array('filter-ministry-centre-post-execute', explode(', ', $view->tag))) {
+    $tid = null;
+    foreach ($view->query->where as $i => $clause) {
+      foreach ($clause['conditions'] as $j => $condition) {
+        if (
+          stripos($condition['field'], 'taxonomy_vocabulary_1_tid') !== false
+          && $condition['operator'] == '='
+        ) {
+          $tid = $condition['value'];
+        }
+      }
+    }
+    if ($tid) {
+      $alteredResults = [];
+      foreach ($view->result as $result) {
+        if (
+          empty($result->taxonomy_term_data_field_data_taxonomy_vocabulary_1_tid)
+          || $result->taxonomy_term_data_field_data_taxonomy_vocabulary_1_tid[0]['rendered']['#markup'] == $tid
+        ) {
+          $alteredResults[] = $result;
+        }
+      }
+      if (count($alteredResults) != count($view->result)) {
+        $view->result = $alteredResults;
+      }
+    }
+  }
+
+  /*
    * This function prevents block displays being crowded out by Events of a single Activity
    * (eg Bible Shots runs 3 events each week). These block displays are indicated by either
    *  1. The view is tagged with 'merge-events'
