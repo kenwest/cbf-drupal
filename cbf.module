@@ -3903,5 +3903,3 @@ function cbf_datalayer_alter(array &$data_layer) {
 function cbf_webform_submission_insert($node, $submission) {
   $_SESSION['City Bible Forum']['Form title'] = $node->title;
 }
-
-// @TODO Duplicate view cbf2019 event admin view (page)
