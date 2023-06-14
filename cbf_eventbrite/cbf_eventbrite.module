@@ -50,7 +50,7 @@ function cbf_eventbrite_registration_buttons($field_registration_buttons) {
     $buttonType = cbf_field_get_items('paragraphs_item', $button, 'field_event_registration_type', 'tid');
     $buttonType = taxonomy_term_load($buttonType);
     $buttonType = $buttonType->name ?? 'Empty';
-    $b = _cbf_eventbrite_button_type($buttonType, $eventId);
+    $b = _cbf_eventbrite_button_type($buttonType, $button->item_id, $eventId);
 
     $out .= "<div class=\"field-registration-buttons {$columnClasses}\">";
     $out .= "<{$b['html element']} id=\"{$b['html id']}\" {$b['href']} class=\"btn btn-mod btn-border btn-medium btn-round\">{$title}</{$b['html element']}>";
@@ -102,7 +102,7 @@ function cbf_eventbrite_node_validate($node, $form, &$form_state) {
         $eventId = cbf_field_get_items('paragraphs_item', $button, 'field_event_id', 'value');
         $eventId = trim($eventId);
 
-        $b = _cbf_eventbrite_button_type($buttonType, $eventId);
+        $b = _cbf_eventbrite_button_type($buttonType, $button->item_id ?? '', $eventId);
 
         if ($b['supported'] == false) {
 
@@ -176,7 +176,7 @@ function cbf_eventbrite_entity_presave($entity, $type) {
       $buttonType = taxonomy_term_load($buttonType);
       $buttonType = $buttonType->name ?? 'Empty';
 
-      $b = _cbf_eventbrite_button_type($buttonType, $eventId);
+      $b = _cbf_eventbrite_button_type($buttonType, $entity->item_id, $eventId);
 
       preg_match($b['pattern'], $eventId, $matches);
 
@@ -255,7 +255,7 @@ function cbf_eventbrite_entity_presave($entity, $type) {
  * INTERNAL FUNCTIONS
  */
 
-function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
+function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, string $eventId) {
 
   switch ($buttonType) {
 
@@ -266,15 +266,15 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
       $message = 'Must be an EventBrite event URL or an event number';
       $element = 'button';
       $href = '';
-      $htmlId = "cbf-eventbrite-event-$eventId";
+      $htmlId = "cbf-eventbrite-event-$buttonId-$eventId";
       $scripts = [
         'EventBrite event' => [
           'data' => 'https://www.eventbrite.com.au/static/widgets/eb_widgets.js',
           'options' => ['type' => 'external'],
         ],
-        $eventId => [
+        "$buttonId-$eventId" => [
           'data' =>
-            "var callback{$eventId} = function() {
+            "var callback_{$buttonId}_{$eventId} = function() {
               console.log('Order complete!');
             };
 
@@ -283,7 +283,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
               eventId: '$eventId',
               modal: true,
               modalTriggerElementId: '$htmlId',
-              onOrderComplete: callback{$eventId}
+              onOrderComplete: callback_{$buttonId}_{$eventId}
             });",
           'options' => [
             'type' => 'inline',
@@ -300,7 +300,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
       $message = 'Must be an EventBrite collection URL or a collection number';
       $element = 'a';
       $href = "href=\"https://www.eventbrite.com/cc/$eventId\"";
-      $htmlId = "cbf-eventbrite-collection-$eventId";
+      $htmlId = "cbf-eventbrite-collection-$buttonId-$eventId";
       $scripts = [];
       break;
 
@@ -311,7 +311,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
       $message = 'Must be a CiviCRM URL or a CiviEvent number';
       $element = 'a';
       $href = "href=\"/civicrm/event/register?reset=1&id=$eventId\"";
-      $htmlId = "cbf-eventbrite-civicrm-event-$eventId";
+      $htmlId = "cbf-eventbrite-civicrm-event-$buttonId-$eventId";
       $scripts = [];
       break;
 
@@ -322,7 +322,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
       $message = "Cannot check Event Id '$eventId' as its type is not supported";
       $element = 'unknown';
       $href = '';
-      $htmlId = "cbf-eventbrite-unsupported-$eventId";
+      $htmlId = "cbf-eventbrite-unsupported-$buttonId-$eventId";
       $scripts = [];
       break;
   }

@@ -118,7 +118,7 @@ function cbf_hubspot_node_validate($node, $form, &$form_state) {
         $eventId = cbf_field_get_items('paragraphs_item', $button, 'field_event_id', 'value');
         $eventId = trim($eventId);
 
-        $b = _cbf_eventbrite_button_type($buttonType, $eventId);
+        $b = _cbf_eventbrite_button_type($buttonType, $button->item_id, $eventId);
 
         if ($b['supported'] == false) {
 
@@ -192,7 +192,7 @@ function cbf_hubspot_entity_presave($entity, $type) {
       $buttonType = taxonomy_term_load($buttonType);
       $buttonType = $buttonType->name ?? 'Empty';
 
-      $b = _cbf_eventbrite_button_type($buttonType, $embedCode);
+      $b = _cbf_eventbrite_button_type($buttonType, $entity->item_id, $embedCode);
 
       preg_match($b['pattern'], $embedCode, $matches);
 
