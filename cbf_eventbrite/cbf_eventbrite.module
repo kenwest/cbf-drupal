@@ -308,7 +308,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $eventId) {
       $supported = true;
       $pattern = '!^(.+/civicrm-event/)?(\d+)$!i';
       $idMatch = 2;
-      $message = 'Must be an CiviCRM URL or a CiviEvent number';
+      $message = 'Must be a CiviCRM URL or a CiviEvent number';
       $element = 'a';
       $href = "href=\"/civicrm/event/register?reset=1&id=$eventId\"";
       $htmlId = "cbf-eventbrite-civicrm-event-$eventId";
