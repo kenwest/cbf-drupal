@@ -293,6 +293,17 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
       ];
       break;
 
+    case 'EventBrite event (new window)':
+      $supported = true;
+      $pattern = '!^(.+eventbrite.+/e/(.+-)?)?(\d+)(/)?$!i';
+      $idMatch = 3;
+      $message = 'Must be an EventBrite event URL or an event number';
+      $element = 'a';
+      $href = "href=\"https://www.eventbrite.com/e/$eventId\"";
+      $htmlId = "cbf-eventbrite-event-$buttonId-$eventId";
+      $scripts = [];
+      break;
+
     case 'EventBrite collection':
       $supported = true;
       $pattern = '!^(.+eventbrite.+/cc/(.+-)?)?(\d+)(/)?$!i';
@@ -312,6 +323,17 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
       $element = 'a';
       $href = "href=\"/civicrm/event/register?reset=1&id=$eventId\"";
       $htmlId = "cbf-eventbrite-civicrm-event-$buttonId-$eventId";
+      $scripts = [];
+      break;
+
+    case 'Other':
+      $supported = true;
+      $pattern = '!^https?://.+$!i';
+      $idMatch = 0;
+      $message = 'Must be an URL';
+      $element = 'a';
+      $href = "href=\"$eventId\"";
+      $htmlId = "cbf-eventbrite-other-$buttonId";
       $scripts = [];
       break;
 
