@@ -166,17 +166,17 @@ function cbf_eventbrite_entity_presave($entity, $type) {
 
     $eventId = cbf_field_get_items($type, $entity, 'field_event_id', 'value');
     $eventId = trim($eventId);
-    $canonicalForm = '/^([\d]+)$/';
+    $canonicalForm = '/^[\d]+$/';
     $matches = [];
     preg_match($canonicalForm, $eventId, $matches);
 
-    if (empty($matches) && $matches[0] != $eventId) {
+    if (empty($matches) || $matches[0] != $eventId) {
 
       $buttonType = cbf_field_get_items($type, $entity, 'field_event_registration_type', 'tid');
       $buttonType = taxonomy_term_load($buttonType);
       $buttonType = $buttonType->name ?? 'Empty';
 
-      $b = _cbf_eventbrite_button_type($buttonType, $entity->item_id, $eventId);
+      $b = _cbf_eventbrite_button_type($buttonType, $entity->item_id ?? '', $eventId);
 
       preg_match($b['pattern'], $eventId, $matches);
 
