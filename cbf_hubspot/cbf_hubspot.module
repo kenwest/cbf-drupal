@@ -103,66 +103,56 @@ function cbf_hubspot_views_post_execute(&$view) {
  */
 function cbf_hubspot_node_validate($node, $form, &$form_state) {
 
-  if ($node->type == 'force_fail') {
+  $hubspotForms = cbf_field_get_items('node', $node, 'field_hubspot_form', 'entity', []);
 
-    $buttons = cbf_field_get_items('node', $node, 'field_registration_buttons', 'entity', []);
+  foreach ($hubspotForms as $i => $hubspotForm) {
 
-    foreach ($buttons as $i => $button) {
+    if (is_object($hubspotForm) && ($hubspotForm->removed ?? 0) != 1) {
 
-      if (is_object($button) && ($button->removed ?? 0) != 1) {
+      /*
+       * If the field_description has content, check that this can fill field_title
+       * and field_hubspot_form_type, otherwise check field_hubspot_form_type and
+       * field_title are set, otherwise throw an error
+       */
+      $formDetailsRequired = true;
 
-        $buttonType = cbf_field_get_items('paragraphs_item', $button, 'field_event_registration_type', 'tid');
-        $buttonType = taxonomy_term_load($buttonType);
-        $buttonType = $buttonType->name ?? 'Empty';
+      $formEmbed = cbf_field_get_items('paragraphs_item', $hubspotForm, 'field_description', 'value', false);
 
-        $eventId = cbf_field_get_items('paragraphs_item', $button, 'field_event_id', 'value');
-        $eventId = trim($eventId);
+      if ($formEmbed) {
 
-        $b = _cbf_eventbrite_button_type($buttonType, $button->item_id, $eventId);
+        $embedded = _cbf_hubspot_form_embed($formEmbed);
 
-        if ($b['supported'] == false) {
+        if ($embedded['form type'] && $embedded['form id']) {
 
-          $element = "field_registration_buttons][und][$i][field_event_registration_type][und][0][tid";
-          form_set_error($element, "Button type '$buttonType' not supported");
-        }
-
-        $matches = [];
-        preg_match($b['pattern'], $eventId, $matches);
-
-        if (empty($matches) || empty($matches[$b['id match']])) {
-
-          $element = "field_registration_buttons][und][$i][field_event_id][und][0][value";
-          form_set_error($element, $b['message']);
+          $formDetailsRequired = false;
         }
       }
-    }
 
-    $locationCount = count($node->locations);
+      if ($formDetailsRequired) {
 
-    foreach ($node->locations as $i => $location) {
+        /*
+         * Since field_description is empty or incomplete, the field_title and
+         * field_hubspot_form_type become mandatory
+         */
+        $formType = cbf_field_get_items('paragraphs_item', $hubspotForm, 'field_hubspot_form_type', 'tid', false);
+        $formType = taxonomy_term_load($formType);
+        $formType = $formType->name;
 
-      if (
-        $location['delete_location'] ?? false
-        ||
-        (
-          empty($location['name']) &&
-          empty($location['street']) &&
-          empty($location['city']) &&
-          empty($location['province']) &&
-          empty($location['postal_code']) &&
-          empty($location['locpick']['user_latitude']) &&
-          empty($location['locpick']['user_longitude'])
-        )
-      ) {
+        if (empty($formType)) {
 
-        $locationCount--;
+          $element = "field_hubspot_form][und][$i][field_hubspot_form_type][und][0][tid";
+          form_set_error($element, 'Need to tell us the form type either explicitly or via the Embed code');
+        }
+
+        $formId = cbf_field_get_items('paragraphs_item', $hubspotForm, 'field_title', 'value', false);
+        $formId = trim($formId);
+
+        if (empty($formId)) {
+
+          $element = "field_hubspot_form][und][$i][field_title][und][0][value";
+          form_set_error($element, 'Need to tell us the form ID either explicitly or via the Embed code');
+        }
       }
-    }
-
-    if ($locationCount > 1) {
-
-      $element = "locations][1][street";
-      form_set_error($element, 'Multiple locations for an event are not yet supported');
     }
   }
 }
@@ -212,3 +202,32 @@ function cbf_hubspot_entity_presave($entity, $type) {
  * INTERNAL FUNCTIONS
  */
 
+function _cbf_hubspot_form_embed(string $formEmbed) {
+
+  $patterns = [
+    'HubSpot' => '!js\.hsforms\.net.+formId: +[\'"]([-0-9a-fA-F]+)[\'"]!is',
+    'DepositFix' => '!widgets\.depositfix\.com.+formId: +[\'"]([-0-9a-fA-F]+)[\'"]!is',
+  ];
+
+  $result = [
+    'form type' => null,
+    'form id' => null,
+  ];
+
+  foreach ($patterns as $type => $pattern) {
+
+    $matches = [];
+    preg_match($pattern, $formEmbed, $matches);
+
+    if (!empty($matches) && !empty($matches[1])) {
+
+      $result = [
+        'form type' => $type,
+        'form id' => $matches[1],
+      ];
+      break;
+    }
+  }
+
+  return $result;
+}
