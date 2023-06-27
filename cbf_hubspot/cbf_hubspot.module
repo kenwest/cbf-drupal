@@ -165,35 +165,30 @@ function cbf_hubspot_node_validate($node, $form, &$form_state) {
  */
 function cbf_hubspot_entity_presave($entity, $type) {
   /*
-   * If $entity is an event_registration paragraphs_item, convert the Event Id
-   * to a canonical form.
+   * If field_description has content, check that it can fill field_title and
+   * field_hubspot_form_type: if so, do it and then empty field_description
    */
-  if ($type == 'paragraphs_item' && $entity->bundle == 'hubspot_form' && false) {
+  if ($type == 'paragraphs_item' && $entity->bundle == 'hubspot_form') {
 
-    $embedCode = cbf_field_get_items($type, $entity, 'field_description', 'value');
-    $embedCode = trim($embedCode);
-    $formIdPattern = '/formid:[ ]+[\'"]([a-z0-9-]+)[\'"]/i';
-    $matches = [];
-    preg_match($formIdPattern, $embedCode, $matches);
+    $formEmbed = cbf_field_get_items($type, $entity, 'field_description', 'value', false);
 
-    if (isset($matches[1])) {
+    if ($formEmbed) {
 
-      $buttonType = cbf_field_get_items($type, $entity, 'field_event_registration_type', 'tid');
-      $buttonType = taxonomy_term_load($buttonType);
-      $buttonType = $buttonType->name ?? 'Empty';
+      $embedded = _cbf_hubspot_form_embed($formEmbed);
 
-      $b = _cbf_eventbrite_button_type($buttonType, $entity->item_id, $embedCode);
+      if ($embedded['form type']) {
 
-      preg_match($b['pattern'], $embedCode, $matches);
-
-      if (!empty($matches[$b['id match']])) {
-
-        $embedCode = $matches[$b['id match']];
+        $formType = taxonomy_get_term_by_name($embedded['form type'], 'hubspot_form_type');
+        $formType = reset($formType);
+        $entity->field_hubspot_form_type['und'][0]['tid'] = $formType->tid;
       }
-    }
 
-    if (isset($entity->field_event_id['und'][0]['value'])) {
-      $entity->field_event_id['und'][0]['value'] = $embedCode;
+      if ($embedded['form id']) {
+
+        $entity->field_title['und'][0]['value'] = $embedded['form id'];
+      }
+
+      $entity->field_description['und'][0]['value'] = '';
     }
   }
 }
