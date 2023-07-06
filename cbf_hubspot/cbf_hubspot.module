@@ -193,6 +193,35 @@ function cbf_hubspot_entity_presave($entity, $type) {
   }
 }
 
+/*
+ * Implements hook_page_alter
+ *
+ * "Perform alterations before a page is rendered.
+ *
+ * Use this hook when you want to remove or alter elements at the page level,
+ * or add elements at the page level that depend on an other module's elements
+ * (this hook runs after hook_page_build())."
+ *
+ */
+function cbf_hubspot_page_alter(&$page) {
+
+  /*
+   * hubspot_page_build() sets $page['page_bottom']['hubspot_code'] for all
+   * users.
+   *
+   * Unset it for Staff who are logged in.
+   * Unset it for Staff who are logging in.
+   */
+
+  $disableHubSpotTracker  = (user_is_anonymous() == false);
+  $disableHubSpotTracker |= (arg(0) == 'user');
+  $disableHubSpotTracker |= (arg(0) == 'system' && arg(1) == 'tfa');
+
+  if ($disableHubSpotTracker) {
+    unset($page['page_bottom']['hubspot_code']);
+  }
+}
+
 /******************************************************************************
  * INTERNAL FUNCTIONS
  */
