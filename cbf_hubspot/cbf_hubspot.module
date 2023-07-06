@@ -209,13 +209,36 @@ function cbf_hubspot_page_alter(&$page) {
    * hubspot_page_build() sets $page['page_bottom']['hubspot_code'] for all
    * users.
    *
+   * Leave it set if there is a HubSpot form on the page
    * Unset it for Staff who are logged in.
    * Unset it for Staff who are logging in.
    */
 
-  $disableHubSpotTracker  = (user_is_anonymous() == false);
-  $disableHubSpotTracker |= (arg(0) == 'user');
-  $disableHubSpotTracker |= (arg(0) == 'system' && arg(1) == 'tfa');
+  if (user_is_anonymous()) {
+
+    /*
+     * For anonymous users, don't disable tracking unless it is needed
+     */
+    $disableHubSpotTracker = false;
+
+    if (
+      (arg(0) == 'user') ||
+      (arg(0) == 'system' && arg(1) == 'tfa')
+    ) {
+      $disableHubSpotTracker = true;
+    }
+  }
+  else {
+
+    /*
+     * For logged in users, disable tracking unless it is needed
+     */
+    $disableHubSpotTracker = true;
+
+    if (cbf_hubspot_script_cache()) {
+      $disableHubSpotTracker = false;
+    }
+  }
 
   if ($disableHubSpotTracker) {
     unset($page['page_bottom']['hubspot_code']);
