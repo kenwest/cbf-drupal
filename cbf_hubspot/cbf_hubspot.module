@@ -194,6 +194,21 @@ function cbf_hubspot_entity_presave($entity, $type) {
 }
 
 /*
+ * Implements hook_form_alter
+ *
+ * "Perform alterations before a form is rendered."
+ */
+function cbf_hubspot_form_alter(&$form, &$form_state, $form_id) {
+
+  $type = $form['#node']->type ?? '';
+  $comment = $form_state['comment'] ?? null;
+
+  if ($type == 'webform' || $comment) {
+    _cbf_hubspot_is_incompatible_form_on_page(true);
+  }
+}
+
+/*
  * Implements hook_page_alter
  *
  * "Perform alterations before a page is rendered.
@@ -212,6 +227,8 @@ function cbf_hubspot_page_alter(&$page) {
    * Leave it set if there is a HubSpot form on the page
    * Unset it for Staff who are logged in.
    * Unset it for Staff who are logging in.
+   * Unset it if there is a Drupal webform on the page
+   * Unset it if there is a Comment form on the page
    */
 
   if (user_is_anonymous()) {
@@ -225,6 +242,10 @@ function cbf_hubspot_page_alter(&$page) {
       (arg(0) == 'user') ||
       (arg(0) == 'system' && arg(1) == 'tfa')
     ) {
+      $disableHubSpotTracker = true;
+    }
+
+    if (_cbf_hubspot_is_incompatible_form_on_page()) {
       $disableHubSpotTracker = true;
     }
   }
@@ -277,4 +298,17 @@ function _cbf_hubspot_form_embed(string $formEmbed) {
   }
 
   return $result;
+}
+
+/*
+ * Records if a form is $present or not
+ * If no argument is supplied you get the answer
+ */
+function _cbf_hubspot_is_incompatible_form_on_page($present = null) {
+
+  $cache = &drupal_static(__FUNCTION__);
+  if (isset($present)) {
+    $cache = $present;
+  }
+  return $cache;
 }
