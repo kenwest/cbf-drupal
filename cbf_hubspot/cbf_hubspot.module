@@ -203,7 +203,7 @@ function cbf_hubspot_form_alter(&$form, &$form_state, $form_id) {
   $type = $form['#node']->type ?? '';
   $comment = $form_state['comment'] ?? null;
 
-  if ($type == 'webform' || $comment) {
+  if ($type == 'webform' || $comment || $form_id == 'contact_site_form') {
     _cbf_hubspot_is_incompatible_form_on_page(true);
   }
 }
