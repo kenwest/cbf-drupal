@@ -96,6 +96,15 @@ function cbf_init() {
     case 'contact-us':
       $isOldForm = true;
       break;
+
+    case 'node':
+      switch (arg(1)) {
+
+        case '3755': // Contact Us
+          $isOldForm = true;
+          break;
+      }
+      break;
   }
   if ($isOldForm) {
 
