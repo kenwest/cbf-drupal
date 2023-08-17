@@ -74,14 +74,41 @@ function cbf_init() {
   /*
    * Redirect people away from old forms
    */
+  $isOldForm = false;
   switch (arg(0)) {
+
     case 'user':
       switch (arg(2)) {
+
         case 'contact':
-          drupal_goto('general-enquiries', [], 301);
+          $isOldForm = true;
           break;
       }
       break;
+
+    case 'contact':
+      if (arg(1)) {
+
+        $isOldForm = true;
+      }
+      break;
+
+    case 'contact-us':
+      $isOldForm = true;
+      break;
+  }
+  if ($isOldForm) {
+
+    $currentDomainId = domain_get_domain()['domain_id'];
+    $christianDomainId = domain_load_domain_id('christian');
+    if ($currentDomainId == $christianDomainId) {
+
+      drupal_goto('domain/christian/chat', [], 301);
+    }
+    else {
+
+      drupal_goto('domain/general/chat', [], 301);
+    }
   }
 
   if (arg(0) == 'node') {
