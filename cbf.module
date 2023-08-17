@@ -71,6 +71,19 @@ function cbf_init() {
     }
   }
 
+  /*
+   * Redirect people away from old forms
+   */
+  switch (arg(0)) {
+    case 'user':
+      switch (arg(2)) {
+        case 'contact':
+          drupal_goto('general-enquiries', [], 301);
+          break;
+      }
+      break;
+  }
+
   if (arg(0) == 'node') {
     if (arg(1) == 'add') {
       /*
