@@ -1,6 +1,90 @@
 <?php
 
-function cbf_pipedream_invoke_workflow(string $method, string $url, $data = null) {
+/******************************************************************************
+ * HOOK IMPLEMENTATIONS
+ */
+
+function cbf_pipedream_entity_insert($entity, $type) {
+  _cbf_pipedream_entity($entity, $type, 'insert');
+}
+
+function cbf_pipedream_entity_update($entity, $type) {
+  _cbf_pipedream_entity($entity, $type, 'update');
+}
+
+function cbf_pipedream_entity_delete($entity, $type) {
+  _cbf_pipedream_entity($entity, $type, 'delete');
+}
+
+/******************************************************************************
+ * INTERNAL FUNCTIONS
+ */
+function _cbf_pipedream_entity($entity, $type, string $action) {
+
+  if ($type == 'node' && $entity->type == 'brite_event') {
+
+    $url = variable_get('cbf_pipedream_event_instrumentation_url');
+    $url = "$url/{$entity->nid}";
+
+    $data = [
+      'action' => $action,
+      'source' => [
+        'title' => $entity->title,
+        'id' => $entity->nid,
+        'hs_company' => null,
+        'hs_region' => null,
+      ],
+      'events' => [],
+    ];
+
+    $activity = cbf_field_get_items($type, $entity, 'field_in_activity', 'target_id', []);
+    $activity = empty($activity) ? false : entity_load('node', $activity);
+    $activity = empty($activity) ? false : reset($activity);
+
+    if (!empty($activity)) {
+
+      $company = cbf_field_get_items('node', $activity, 'field_hubspot_company', 'value');
+      if ($company) {
+        
+        $data['source']['hs_company'] = $company;
+      }
+    }
+
+    $region = cbf_field_get_items($type, $entity, 'taxonomy_vocabulary_1', 'tid');
+    if ($region) {
+
+      $region = taxonomy_term_load($region);
+      $data['source']['hs_region'] = $region->name;
+    }
+
+    $buttons = cbf_field_get_items($type, $entity, 'field_registration_buttons', 'value', []);
+    $buttons = entity_load('paragraphs_item', $buttons);
+    foreach ($buttons as $button) {
+
+      $buttonId = cbf_field_get_items('paragraphs_item', $button, 'field_event_id', 'value');
+      $buttonType = cbf_field_get_items('paragraphs_item', $button, 'field_event_registration_type', 'tid');
+      $buttonType = taxonomy_term_load($buttonType);
+      $buttonType = $buttonType->name ?? 'Empty';
+      
+      if ($buttonType == 'EventBrite event' ||
+          $buttonType == 'EventBrite event (new window)')
+      {
+
+        $data['events'][] = [
+          'system' => 'Eventbrite',
+          'id' => $buttonId,
+        ];
+      }
+    }
+
+    if (!empty($data['events'])) {
+
+      _cbf_pipedream_invoke_workflow('POST', $url, $data);
+    }
+  }
+}
+
+function _cbf_pipedream_invoke_workflow(string $method, string $url, $data = null) {
 
   $result = [
     'result' => null,
@@ -23,7 +107,7 @@ function cbf_pipedream_invoke_workflow(string $method, string $url, $data = null
     'method' => $method,
   ];
   if (isset($data)) {
-    $httpOptions['data'] = json_encode($step['data']);
+    $httpOptions['data'] = json_encode($data);
   }
 
   $result['result'] = drupal_http_request($url, $httpOptions);
