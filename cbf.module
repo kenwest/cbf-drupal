@@ -632,7 +632,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
     $with = $entity->field_with ?? false;
     $field = $form['field_speakers'] ?? false;
     if ($speakers && $with && $field) {
-      if ($form['field_speakers']['und']['#attributes']) {
+      if ($form['field_speakers']['und']['#attributes'] ?? false) {
         $form['field_speakers']['und']['#attributes']['disabled'] = true;
       }
       else {
