@@ -1,0 +1,35 @@
+<?php
+
+function cbf_pipedream_invoke_workflow(string $method, string $url, $data = null) {
+
+  $result = [
+    'result' => null,
+    'response' => null,
+    'code' => null,
+  ];
+
+  $token = variable_get('cbf_pipedream_token');
+  if (!$token) {
+
+    watchdog('CBF', 'Pipedream workflow: variable cbf_pipedream_token is not defined', null, WATCHDOG_ERROR);
+    return $result;
+  }
+
+  $httpOptions = [
+    'headers' => [
+      'Authorization' => 'Bearer ' . variable_get('cbf_pipedream_token'),
+      'Content-Type' => 'application/json',
+    ],
+    'method' => $method,
+  ];
+  if (isset($data)) {
+    $httpOptions['data'] = json_encode($step['data']);
+  }
+
+  $result['result'] = drupal_http_request($url, $httpOptions);
+  $result['response'] = json_decode($result['result']->data);
+  $result['code'] = $result['result']->code;
+
+  watchdog('CBF', "Pipedream workflow: $method $url => {$result['code']}", null, WATCHDOG_INFO);
+  return $result;
+}
