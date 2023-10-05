@@ -45,7 +45,7 @@ function _cbf_pipedream_entity($entity, $type, string $action) {
 
       $company = cbf_field_get_items('node', $activity, 'field_hubspot_company', 'value');
       if ($company) {
-        
+
         $data['source']['hs_company'] = $company;
       }
     }
@@ -65,7 +65,7 @@ function _cbf_pipedream_entity($entity, $type, string $action) {
       $buttonType = cbf_field_get_items('paragraphs_item', $button, 'field_event_registration_type', 'tid');
       $buttonType = taxonomy_term_load($buttonType);
       $buttonType = $buttonType->name ?? 'Empty';
-      
+
       if ($buttonType == 'EventBrite event' ||
           $buttonType == 'EventBrite event (new window)')
       {
