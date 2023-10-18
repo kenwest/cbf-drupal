@@ -31,11 +31,31 @@ function _cbf_pipedream_entity($entity, $type, string $action) {
       'source' => [
         'title' => $entity->title,
         'id' => $entity->nid,
+        'hs_event_name' => $entity->title,
+        'hs_event_subtitle' => null,
+        'hs_event_date' => null,
+        'hs_source_id' => "Drupal {$entity->nid}",
         'hs_company' => null,
         'hs_region' => null,
+        'hs_event_type' => 'Event',
       ],
       'events' => [],
     ];
+
+    $subtitle = cbf_field_get_items($type, $entity, 'field_subtitle', 'value');
+    if ($subtitle) {
+
+      $data['source']['hs_event_subtitle'] = $subtitle;
+    }
+
+    $event_date = cbf_field_get_items($type, $entity, 'field_event_date', null, []);
+    if ($event_date) {
+      $event_date = reset($event_date);
+      if ($event_date['value']) {
+        $event_date = new DateObject($event_date['value'], $event_date['timezone']);
+        $data['source']['hs_event_date'] = $event_date->format('Y-m-d');
+      }
+    }
 
     $activity = cbf_field_get_items($type, $entity, 'field_in_activity', 'target_id', []);
     $activity = empty($activity) ? false : entity_load('node', $activity);
@@ -73,6 +93,7 @@ function _cbf_pipedream_entity($entity, $type, string $action) {
         $data['events'][] = [
           'system' => 'Eventbrite',
           'id' => $buttonId,
+          'hs_event_id' => "Eventbrite {$buttonId}",
         ];
       }
     }
