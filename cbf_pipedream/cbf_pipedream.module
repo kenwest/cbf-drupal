@@ -98,10 +98,7 @@ function _cbf_pipedream_entity($entity, $type, string $action) {
       }
     }
 
-    if (!empty($data['events'])) {
-
-      _cbf_pipedream_invoke_workflow('POST', $url, $data);
-    }
+    _cbf_pipedream_invoke_workflow('POST', $url, $data);
   }
 }
 
