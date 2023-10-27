@@ -26,17 +26,18 @@ function _cbf_pipedream_entity($entity, $type, string $action) {
     $url = variable_get('cbf_pipedream_event_instrumentation_url');
     $url = "$url/{$entity->nid}";
 
+    // Refer to https://developers.hubspot.com/docs/api/crm/properties#clear-a-property-value
     $data = [
       'action' => $action,
       'source' => [
         'title' => $entity->title,
         'id' => $entity->nid,
         'hs_event_name' => $entity->title,
-        'hs_event_subtitle' => null,
-        'hs_event_date' => null,
+        'hs_event_subtitle' => '',
+        'hs_event_date' => '',
         'hs_source_id' => "Drupal {$entity->nid}",
-        'hs_company' => null,
-        'hs_region' => null,
+        'hs_company' => '',
+        'hs_region' => '',
         'hs_event_type' => 'Event',
       ],
       'events' => [],
