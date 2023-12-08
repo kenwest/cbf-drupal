@@ -78,6 +78,23 @@ function _cbf_pipedream_entity($entity, $type, string $action) {
       $data['source']['hs_region'] = $region->name;
     }
 
+    // Get the Event Type from firstly the Event and then it's Activity
+    $event_type = cbf_field_get_items($type, $entity, 'field_hubspot_event_type', 'tid');
+    if ($event_type) {
+
+      $event_type = taxonomy_term_load($event_type);
+      $data['source']['hs_event_type'] = $event_type->name;
+    }
+    else if (!empty($activity)) {
+
+      $event_type = cbf_field_get_items('node', $activity, 'field_hubspot_event_type', 'tid');
+      if ($event_type) {
+
+        $event_type = taxonomy_term_load($event_type);
+        $data['source']['hs_event_type'] = $event_type->name;
+      }
+    }
+
     $buttons = cbf_field_get_items($type, $entity, 'field_registration_buttons', 'value', []);
     $buttons = entity_load('paragraphs_item', $buttons);
     foreach ($buttons as $button) {
