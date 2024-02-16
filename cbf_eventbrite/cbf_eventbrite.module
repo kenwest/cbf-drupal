@@ -512,7 +512,7 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
   $name = cbf_field_get_items('paragraphs_item', $button, 'field_title', 'value');
   $name = "{$node->title} - {$name}";
 
-  $summary = cbf_field_get_items('node', $node, 'field_subtitle', 'value');
+  $summary = cbf_field_get_items('node', $node, 'field_subtitle', 'value', '');
 
   $field_event_date = cbf_field_get_items('node', $node, 'field_event_date', false, []);
 
