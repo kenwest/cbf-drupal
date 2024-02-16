@@ -118,6 +118,10 @@ function cbf_eventbrite_node_validate($node, $form, &$form_state) {
         $template = $template->description ?? '';
         $template = $template + 0;
 
+        $organiser = cbf_field_get_items('paragraphs_item', $button, 'field_event_organiser', 'tid');
+        $organiser = taxonomy_term_load($organiser);
+        $organiser = $organiser->name ?? '';
+
         $price = cbf_field_get_items('paragraphs_item', $button, 'field_event_option_price', 'amount');
 
         if ($b['template']) {
@@ -129,6 +133,12 @@ function cbf_eventbrite_node_validate($node, $form, &$form_state) {
 
             $element = "field_registration_buttons][und][$i][field_event_template][und][0][tid";
             form_set_error($element, 'Need to select an event template if registration button is a template');
+          }
+
+          if (empty($organiser)) {
+
+            $element = "field_registration_buttons][und][$i][field_event_organiser][und][0][tid";
+            form_set_error($element, 'Need to select an event organiser if registration button is a template');
           }
 
           if (!isset($price)) {
@@ -152,6 +162,12 @@ function cbf_eventbrite_node_validate($node, $form, &$form_state) {
 
             $element = "field_registration_buttons][und][$i][field_event_template][und][0][tid";
             form_set_error($element, 'Do not select an event template if registration button is not a template');
+          }
+
+          if (!empty($organiser)) {
+
+            $element = "field_registration_buttons][und][$i][field_event_organiser][und][0][tid";
+            form_set_error($element, 'Do not select an event organiser if registration button is not a template');
           }
 
           if (isset($price)) {
@@ -507,6 +523,10 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
   $template = $template->description ?? '';
   $template = $template + 0;
 
+  $organiser = cbf_field_get_items('paragraphs_item', $button, 'field_event_organiser', 'tid');
+  $organiser = taxonomy_term_load($organiser);
+  $organiser = $organiser->name ?? '';
+
   $price = cbf_field_get_items('paragraphs_item', $button, 'field_event_option_price', 'amount');
 
   $name = cbf_field_get_items('paragraphs_item', $button, 'field_title', 'value');
@@ -517,6 +537,9 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
   $field_event_date = cbf_field_get_items('node', $node, 'field_event_date', false, []);
 
   $fail = [];
+  if (!$organiser) {
+    $fail[] = 'Event organiser not set';
+  }
   if (!isset($field_event_date[0]) || !is_array($field_event_date[0])) {
     $fail[] = 'Event date not set';
   }
@@ -553,6 +576,7 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
       'start_date' => $start,
       'end_date' => $end,
       'timezone' => $timezone,
+      'organiser' => $organiser,
       'price' => $price,
     ]);
 
