@@ -45,18 +45,21 @@ function cbf_eventbrite_registration_buttons($field_registration_buttons) {
 
   foreach ($buttons as $button) {
 
-    $eventId = cbf_field_get_items('paragraphs_item', $button, 'field_event_id', 'value');
+    $eventId = cbf_field_get_items('paragraphs_item', $button, 'field_event_id', 'value') ?? '';
     $title = cbf_field_get_items('paragraphs_item', $button, 'field_title', 'safe_value');
     $buttonType = cbf_field_get_items('paragraphs_item', $button, 'field_event_registration_type', 'tid');
     $buttonType = taxonomy_term_load($buttonType);
     $buttonType = $buttonType->name ?? 'Empty';
     $b = _cbf_eventbrite_button_type($buttonType, $button->item_id, $eventId);
 
-    $out .= "<div class=\"field-registration-buttons {$columnClasses}\">";
-    $out .= "<{$b['html element']} id=\"{$b['html id']}\" {$b['href']} class=\"btn btn-mod btn-border btn-medium btn-round\">{$title}</{$b['html element']}>";
-    $out .= "</div>";
+    if ($b['supported'] && !$b['template']) {
 
-    $scripts = array_merge($scripts, $b['scripts']);
+      $out .= "<div class=\"field-registration-buttons {$columnClasses}\">";
+      $out .= "<{$b['html element']} id=\"{$b['html id']}\" {$b['href']} class=\"btn btn-mod btn-border btn-medium btn-round\">{$title}</{$b['html element']}>";
+      $out .= "</div>";
+
+      $scripts = array_merge($scripts, $b['scripts']);
+    }
   }
 
   $out .= "</div>";
@@ -110,13 +113,52 @@ function cbf_eventbrite_node_validate($node, $form, &$form_state) {
           form_set_error($element, "Button type '$buttonType' not supported");
         }
 
-        $matches = [];
-        preg_match($b['pattern'], $eventId, $matches);
+        $template = cbf_field_get_items('paragraphs_item', $button, 'field_event_template', 'tid');
+        $template = taxonomy_term_load($template);
+        $template = $template->description ?? '';
+        $template = $template + 0;
 
-        if (empty($matches) || empty($matches[$b['id match']])) {
+        $price = cbf_field_get_items('paragraphs_item', $button, 'field_event_option_price', 'amount');
 
-          $element = "field_registration_buttons][und][$i][field_event_id][und][0][value";
-          form_set_error($element, $b['message']);
+        if ($b['template']) {
+
+          $storedNode = &drupal_static('cbf_eventbrite_node_validate');
+          $storedNode = $node;
+
+          if (empty($template)) {
+
+            $element = "field_registration_buttons][und][$i][field_event_template][und][0][tid";
+            form_set_error($element, 'Need to select an event template if registration button is a template');
+          }
+
+          if (!isset($price)) {
+
+            $element = "field_registration_buttons][und][$i][field_event_option_price][und][0][amount";
+            form_set_error($element, 'Need to set a price if registration button is a template');
+          }
+        }
+        else {
+
+          $matches = [];
+          preg_match($b['pattern'], $eventId, $matches);
+
+          if (empty($matches) || empty($matches[$b['id match']])) {
+
+            $element = "field_registration_buttons][und][$i][field_event_id][und][0][value";
+            form_set_error($element, $b['message']);
+          }
+
+          if (!empty($template)) {
+
+            $element = "field_registration_buttons][und][$i][field_event_template][und][0][tid";
+            form_set_error($element, 'Do not select an event template if registration button is not a template');
+          }
+
+          if (isset($price)) {
+
+            $element = "field_registration_buttons][und][$i][field_event_option_price][und][0][amount";
+            form_set_error($element, 'Do not set a price if registration button is not a template');
+          }
         }
       }
     }
@@ -159,35 +201,44 @@ function cbf_eventbrite_node_validate($node, $form, &$form_state) {
  */
 function cbf_eventbrite_entity_presave($entity, $type) {
   /*
-   * If $entity is an event_registration paragraphs_item, convert the Event Id
-   * to a canonical form.
+   * If $entity is an event_registration paragraphs_item, then either convert
+   * the Eventbrite template to an Event Id, or ensure the Event Id is in the
+   * canonical form.
    */
   if ($type == 'paragraphs_item' && $entity->bundle == 'event_registration') {
 
-    $eventId = cbf_field_get_items($type, $entity, 'field_event_id', 'value');
-    $eventId = trim($eventId);
-    $canonicalForm = '/^[\d]+$/';
-    $matches = [];
-    preg_match($canonicalForm, $eventId, $matches);
+    $buttonType = cbf_field_get_items($type, $entity, 'field_event_registration_type', 'tid');
+    $buttonType = taxonomy_term_load($buttonType);
+    $buttonType = $buttonType->name ?? 'Empty';
 
-    if (empty($matches) || $matches[0] != $eventId) {
+    if ($buttonType == 'Eventbrite template') {
 
-      $buttonType = cbf_field_get_items($type, $entity, 'field_event_registration_type', 'tid');
-      $buttonType = taxonomy_term_load($buttonType);
-      $buttonType = $buttonType->name ?? 'Empty';
-
-      $b = _cbf_eventbrite_button_type($buttonType, $entity->item_id ?? '', $eventId);
-
-      preg_match($b['pattern'], $eventId, $matches);
-
-      if (!empty($matches[$b['id match']])) {
-
-        $eventId = $matches[$b['id match']];
-      }
+      $storedNode = &drupal_static('cbf_eventbrite_node_validate');
+      $eventId = _cbf_eventbrite_create_event_from_template($entity, $storedNode);
     }
+    else {
 
-    if (isset($entity->field_event_id['und'][0]['value'])) {
-      $entity->field_event_id['und'][0]['value'] = $eventId;
+      $eventId = cbf_field_get_items($type, $entity, 'field_event_id', 'value');
+      $eventId = trim($eventId);
+      $canonicalForm = '/^[\d]+$/';
+      $matches = [];
+      preg_match($canonicalForm, $eventId, $matches);
+
+      if (empty($matches) || $matches[0] != $eventId) {
+
+        $b = _cbf_eventbrite_button_type($buttonType, $entity->item_id ?? '', $eventId);
+
+        preg_match($b['pattern'], $eventId, $matches);
+
+        if (!empty($matches[$b['id match']])) {
+
+          $eventId = $matches[$b['id match']];
+        }
+      }
+
+      if (isset($entity->field_event_id['und'][0]['value'])) {
+        $entity->field_event_id['und'][0]['value'] = $eventId;
+      }
     }
   }
 
@@ -263,6 +314,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
 
     case 'EventBrite event':
       $supported = true;
+      $template = false;
       $pattern = '!^(.+eventbrite.+/e/(.+-)?)?(\d+)(/)?$!i';
       $idMatch = 3;
       $message = 'Must be an EventBrite event URL or an event number';
@@ -295,8 +347,21 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
       ];
       break;
 
+    case 'Eventbrite template':
+      $supported = true;
+      $template = true;
+      $pattern = '';
+      $idMatch = 0;
+      $message = '';
+      $element = '';
+      $href = '';
+      $htmlId = '';
+      $scripts = [];
+    break;
+
     case 'EventBrite event (new window)':
       $supported = true;
+      $template = false;
       $pattern = '!^(.+eventbrite.+/e/(.+-)?)?(\d+)(/)?$!i';
       $idMatch = 3;
       $message = 'Must be an EventBrite event URL or an event number';
@@ -319,6 +384,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
 
     case 'CiviCRM event':
       $supported = true;
+      $template = false;
       $pattern = '!^(.+/civicrm-event/)?(\d+)$!i';
       $idMatch = 2;
       $message = 'Must be a CiviCRM URL or a CiviEvent number';
@@ -330,6 +396,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
 
     case 'Other':
       $supported = true;
+      $template = false;
       $pattern = '!^https?://.+$!i';
       $idMatch = 0;
       $message = 'Must be an URL';
@@ -341,6 +408,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
 
     default:
       $supported = false;
+      $template = false;
       $pattern = '!^Cannot check$!i';
       $idMatch = 0;
       $message = "Cannot check Event Id '$eventId' as its type is not supported";
@@ -353,6 +421,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
 
   return [
     'supported' => $supported,  // Is this button type supported?
+    'template' => $template,    // Is this button type a template?
     'pattern' => $pattern,      // What is the pattern accepted for Event ID?
     'id match' => $idMatch,     // Which part of the pattern is the Event ID?
     'message' => $message,      // What message if validation fails?
@@ -440,4 +509,48 @@ function _cbf_eventbrite_use_api(array $steps) {
   }
 
   return $result;
+}
+
+function _cbf_eventbrite_create_event_from_template($button, $node) {
+
+  $template = cbf_field_get_items('paragraphs_item', $button, 'field_event_template', 'tid');
+  $template = taxonomy_term_load($template);
+  $template = $template->description ?? '';
+  $template = $template + 0;
+
+  $price = cbf_field_get_items('paragraphs_item', $button, 'field_event_option_price', 'amount');
+
+  $name = cbf_field_get_items('paragraphs_item', $button, 'field_title', 'value');
+  $name = "{$node->title} - {$name}";
+
+  $summary = cbf_field_get_items('node', $node, 'field_subtitle', 'value');
+
+  $field_event_date = cbf_field_get_items('node', $node, 'field_event_date', false, []);
+
+  $fail = 'if date is repeating ($field_event_date[1] is array) or not set (empty($field_event_date))';
+
+  $timezone = $field_event_date[0]['timezone'];
+
+  $time = new DateObject($field_event_date[0]['value'], $timezone);
+  $stamp = strtotime($time->format('Y-m-d H:i:s O'));
+  $time = new DateObject($stamp, 'UTC');
+  $start = $time->format('Y-m-d\TH:i:s\Z');
+
+  $time = new DateObject($field_event_date[0]['value2'], $timezone);
+  $stamp = strtotime($time->format('Y-m-d H:i:s O'));
+  $time = new DateObject($stamp, 'UTC');
+  $end = $time->format('Y-m-d\TH:i:s\Z');
+
+  $result = _cbf_pipedream_invoke_workflow(
+    'POST',
+    variable_get('cbf_pipedream_event_copy_url'),
+    [
+      'template' => $template,
+      'name' => $name,
+      'summary' => $summary,
+      'start_date' => $start,
+      'end_date' => $end,
+      'timezone' => $timezone,
+      'price' => $price,
+    ]);
 }
