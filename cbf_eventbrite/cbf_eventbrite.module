@@ -231,6 +231,15 @@ function cbf_eventbrite_entity_presave($entity, $type) {
 
       $storedNode = &drupal_static('cbf_eventbrite_node_validate');
       $eventId = _cbf_eventbrite_create_event_from_template($entity, $storedNode);
+
+      if ($eventId) {
+
+        $entity->field_event_id['und'] = [ 0 => [ 'value' => $eventId ]];
+        $entity->field_event_registration_type['und'][0]['tid'] = '3217';
+        $entity->field_event_template['und'] = [];
+        $entity->field_event_organiser['und'] = [];
+        $entity->field_event_option_price['und'] = [];
+      }
     }
     else {
 
@@ -253,6 +262,7 @@ function cbf_eventbrite_entity_presave($entity, $type) {
       }
 
       if (isset($entity->field_event_id['und'][0]['value'])) {
+
         $entity->field_event_id['und'][0]['value'] = $eventId;
       }
     }
