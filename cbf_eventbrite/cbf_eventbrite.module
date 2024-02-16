@@ -371,17 +371,6 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
       $scripts = [];
       break;
 
-    case 'EventBrite collection':
-      $supported = true;
-      $pattern = '!^(.+eventbrite.+/cc/(.+-)?)?(\d+)(/)?$!i';
-      $idMatch = 3;
-      $message = 'Must be an EventBrite collection URL or a collection number';
-      $element = 'a';
-      $href = "href=\"https://www.eventbrite.com/cc/$eventId\"";
-      $htmlId = "cbf-eventbrite-collection-$buttonId-$eventId";
-      $scripts = [];
-      break;
-
     case 'CiviCRM event':
       $supported = true;
       $template = false;
