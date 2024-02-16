@@ -516,7 +516,20 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
 
   $field_event_date = cbf_field_get_items('node', $node, 'field_event_date', false, []);
 
-  $fail = 'if date is repeating ($field_event_date[1] is array) or not set (empty($field_event_date))';
+  $fail = [];
+  if (!isset($field_event_date[0]) || !is_array($field_event_date[0])) {
+    $fail[] = 'Event date not set';
+  }
+  if (isset($field_event_date[1]) && is_array($field_event_date[1])) {
+    $fail[] = 'Event date is repeating';
+  }
+
+  if ($fail) {
+    $message = "Can't convert EventBrite Template button to an event: " . implode('; ', $fail);
+    drupal_set_message($message, 'error');
+    watchdog('CBF', $message, null, WATCHDOG_ERROR);
+    return;
+  }
 
   $timezone = $field_event_date[0]['timezone'];
 
