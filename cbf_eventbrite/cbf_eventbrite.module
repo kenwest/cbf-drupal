@@ -555,4 +555,18 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
       'timezone' => $timezone,
       'price' => $price,
     ]);
+
+  if ($result['code'] != '200') {
+    $fail[] = 'Failed to talk to Pipedream';
+  }
+  else if ($result['response']->id == 0) {
+    $fail[] = "Eventbrite says '{$result['response']->error} - {$result['response']->error_description}'";
+  }
+
+  if ($fail) {
+    $message = "Failed when converting EventBrite Template button to an event: " . implode('; ', $fail);
+    drupal_set_message($message, 'error');
+    watchdog('CBF', $message, null, WATCHDOG_ERROR);
+    return;
+  }
 }
