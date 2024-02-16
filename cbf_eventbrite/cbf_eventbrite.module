@@ -525,7 +525,7 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
   }
 
   if ($fail) {
-    $message = "Can't convert EventBrite Template button to an event: " . implode('; ', $fail);
+    $message = 'Not ready to EventBrite Template button to an event: ' . implode('; ', $fail);
     drupal_set_message($message, 'error');
     watchdog('CBF', $message, null, WATCHDOG_ERROR);
     return;
