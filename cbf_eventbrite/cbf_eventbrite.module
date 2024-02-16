@@ -548,10 +548,11 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
   }
 
   if ($fail) {
+
     $message = 'Not ready to EventBrite Template button to an event: ' . implode('; ', $fail);
     drupal_set_message($message, 'error');
     watchdog('CBF', $message, null, WATCHDOG_ERROR);
-    return;
+    return 0;
   }
 
   $timezone = $field_event_date[0]['timezone'];
@@ -588,9 +589,14 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
   }
 
   if ($fail) {
+
     $message = "Failed when converting EventBrite Template button to an event: " . implode('; ', $fail);
     drupal_set_message($message, 'error');
     watchdog('CBF', $message, null, WATCHDOG_ERROR);
-    return;
+    return 0;
+  }
+  else {
+
+    return $result['response']->id;
   }
 }
