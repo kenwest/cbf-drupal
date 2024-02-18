@@ -579,6 +579,50 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
   $time = new DateObject($stamp, 'UTC');
   $end = $time->format('Y-m-d\TH:i:s\Z');
 
+  /*
+   * Find the first valid location on the $node and pass it to the workflow.
+   *
+   * $node was captured during the form valiation stage. Thus we need to skip
+   * over locations that might be being deleted or are empty.
+   */
+  $venue = [];
+  foreach ($node->locations as $i => $location) {
+
+    if (
+      $location['delete_location'] ?? false
+      ||
+      (
+        empty($location['name']) &&
+        empty($location['street']) &&
+        empty($location['city']) &&
+        empty($location['province']) &&
+        empty($location['postal_code']) &&
+        empty($location['locpick']['user_latitude']) &&
+        empty($location['locpick']['user_longitude'])
+        )
+      ) {
+
+      continue;
+    }
+    else {
+
+      $venue = [
+        'name' => $location['name'],
+        'address' => [
+          'address_1' => $location['street'],
+          'address_2' => '',
+          'city' => $location['city'],
+          'region' => $location['province'],
+          'postal_code' => $location['postal_code'],
+          'country' => 'AU',
+          'latitude' => $location['locpick']['user_latitude'],
+          'longitude' => $location['locpick']['user_longitude'],
+        ]
+      ];
+      break;
+    }
+  }
+
   $result = _cbf_pipedream_invoke_workflow(
     'POST',
     variable_get('cbf_pipedream_event_copy_url'),
@@ -591,6 +635,7 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
       'timezone' => $timezone,
       'organiser' => $organiser,
       'price' => $price,
+      'venue' => $venue,
     ]);
 
   if ($result['code'] != '200') {
