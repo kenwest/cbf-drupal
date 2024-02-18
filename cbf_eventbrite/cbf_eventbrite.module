@@ -227,7 +227,7 @@ function cbf_eventbrite_entity_presave($entity, $type) {
     $buttonType = taxonomy_term_load($buttonType);
     $buttonType = $buttonType->name ?? 'Empty';
 
-    if ($buttonType == 'Eventbrite template') {
+    if ($buttonType == 'EventBrite template') {
 
       $storedNode = &drupal_static('cbf_eventbrite_node_validate');
       $eventId = _cbf_eventbrite_create_event_from_template($entity, $storedNode);
@@ -373,7 +373,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
       ];
       break;
 
-    case 'Eventbrite template':
+    case 'EventBrite template':
       $supported = true;
       $template = true;
       $pattern = '';
