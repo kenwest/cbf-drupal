@@ -623,6 +623,22 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
     }
   }
 
+  /*
+   * Find the URL of the 'eventbrite' style of the Highlight image. Highlight
+   * images are mandatory for EventBrite events so we don't need to look for
+   * other images if it is not set (cf more traditional node types).
+   */
+  $fid = cbf_field_get_items('node', $node, 'field_highlight', 'fid', 0);
+  if (!empty($fid)) {
+
+    $imageFile = file_load($fid);
+    $imageStyleUrl = image_style_url('eventbrite', $imageFile->uri);
+  }
+  else {
+
+    $imageStyleUrl = '';
+  }
+
   $result = _cbf_pipedream_invoke_workflow(
     'POST',
     variable_get('cbf_pipedream_event_copy_url'),
@@ -636,6 +652,7 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
       'organiser' => $organiser,
       'price' => $price,
       'venue' => $venue,
+      'image' => $imageStyleUrl,
     ]);
 
   if ($result['code'] != '200') {
