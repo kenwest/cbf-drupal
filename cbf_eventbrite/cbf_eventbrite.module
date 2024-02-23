@@ -115,7 +115,7 @@ function cbf_eventbrite_node_validate($node, $form, &$form_state) {
 
         $template = cbf_field_get_items('paragraphs_item', $button, 'field_event_template', 'tid');
         $template = taxonomy_term_load($template);
-        $template = $template->description ?? '';
+        $template = $template->description ?? '0';
         $template = $template + 0;
 
         $organiser = cbf_field_get_items('paragraphs_item', $button, 'field_event_organiser', 'tid');
@@ -392,7 +392,7 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
 
   $template = cbf_field_get_items('paragraphs_item', $button, 'field_event_template', 'tid');
   $template = taxonomy_term_load($template);
-  $template = $template->description ?? '';
+  $template = $template->description ?? '0';
   $template = $template + 0;
 
   $organiser = cbf_field_get_items('paragraphs_item', $button, 'field_event_organiser', 'tid');
