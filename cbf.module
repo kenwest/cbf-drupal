@@ -150,21 +150,6 @@ function cbf_init() {
   return [];
 }
 
-function _cbf_multi_array_search ($needle, $haystack, $path = '') {
-  $result = [];
-  if (is_array($haystack)) {
-    foreach ($haystack as $key => $straw) {
-      $result = array_merge($result, _cbf_multi_array_search($needle, $straw, $path . "['" . $key . "']"));
-    }
-  }
-  else {
-    if (stristr($haystack, $needle)) {
-      $result[] = $path;
-    }
-  }
-  return $result;
-}
-
 /*
  * Implements Drupal hook_form_alter().
  *
@@ -714,41 +699,6 @@ function cbf_form_comment_form_alter(&$form, &$form_state, $form_id) {
   if (user_is_anonymous()) {
     if (isset($form['author']['homepage']['#access'])) {
       $form['author']['homepage']['#access'] = false;
-    }
-  }
-}
-
-/*
- * This hook is called before a comment is saved
- * 
- * Spam comments are being submitted with a certain subject line. This hook prevents
- * those comments being published in the rare case Mollom doesn't stop it.
- */
-function cbf_comment_presave($comment) {
-  if (user_is_anonymous()) {
-    $subjectPatterns = array(
-      '^Add new comment \\| ',
-    );
-    $bodyPatterns = array();
-    $patterns = array(
-      'viagra',
-      '\\bcialis\\b',
-      '<(br|p)\\/?>',
-    );
-
-    $subject = $comment->subject;
-    $body = $comment->comment_body[LANGUAGE_NONE][0]['value'];
-
-    foreach (array_merge($subjectPatterns, $patterns) as $pattern) {
-      if (preg_match("/$pattern/i", $subject) == 1) {
-        $comment->status = 0;
-      }
-    }
-
-    foreach (array_merge($bodyPatterns, $patterns) as $pattern) {
-      if (preg_match("/$pattern/i", $body) == 1) {
-        $comment->status = 0;
-      }
     }
   }
 }
@@ -2395,42 +2345,6 @@ function cbf_entity_property($variables) {
   $variables['label_hidden'] = true;
 
   return theme_entity_property($variables);
-}
-
-/*
- * If the $output string is being displayed on a page associated with a
- * particular $city, then remove strings of the form ' in $city'.
- *
- * Purpose:
- *    To avoid blocks having repeating references to ' in $city' when
- *    the page context tells us we are ' in $city'.
- *
- * Examples:
- *  - On the page /city/sydney remove the string ' in Sydney' from
- *    the 'node'/'title' of Activities listed in views.
- *  - On the page /city/activity/public-forum don't change the titles
- *    of sub-activities, which are ' in Sydney', ' in Perth' etc.
- *
- * Potential issues:
- *  - May need to restrict logic to blocks.
- *  - $output is HTML so may contain ' in $city' as part of the markup.
- *    This is unlikely given the current conventions for URLs, CSS class
- *    names etc.
- */
-function cbf_trim_in_city_string($output) {
-  $city = cbf_city_string();
-  if ($city !== false) {
-    $output = str_replace(' in ' . ucwords($city), '', $output);
-  }
-  return $output;
-}
-
-function cbf_preprocess_html(&$variables) {
-  // Is this page associated with a city? Add a CSS class accordingly.
-  $city = cbf_city_string();
-  if ($city !== false) {
-    $variables['classes_array'][] = 'city-' . $city;
-  }
 }
 
 /*
