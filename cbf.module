@@ -3500,42 +3500,6 @@ function cbf_entity_view($entity, $type, $view_mode, $langcode) {
 }
 
 /*
- * Implementation of hook_TYPE_alter() for hook_facebook_tracking_pixel_events()
- *
- * The Facebook CompleteRegistration event now requires a value. We arbitrarily
- * set that to $10 as we don't seem to have a hook to modify the value on the fly.
- */
-function cbf_facebook_tracking_pixel_events_alter(&$events) {
-  if (isset($events['registration']['code'])) {
-    $events['registration']['code'] = "fbq('track', 'CompleteRegistration', {value: '10.00', currency: 'AUD'});";
-  }
-}
-
-/**
- * Implements hook_hotjar_access()
- *
- * Modules may implement this hook if they want to disable Hotjar tracking
- * for some reason.
- *
- * @return bool|null
- *   - HOTJAR_ACCESS_ALLOW: If tracking is allowed.
- *   - HOTJAR_ACCESS_DENY: If tracking is disabled.
- *   - HOTJAR_ACCESS_IGNORE: If tracking check is (sic)
- */
-function cbf_hotjar_access() {
-  $currentDomainId = domain_get_domain()['domain_id'];
-  $generalDomainId = domain_load_domain_id('general');
-  if (
-    user_is_anonymous() &&
-    !path_is_admin(current_path()) &&
-    $currentDomainId == $generalDomainId
-  ) {
-    return HOTJAR_ACCESS_ALLOW;
-  }
-    return HOTJAR_ACCESS_DENY;
-}
-
-/*
  * An implementation of hook_views_rss_feed_alter()
  */
 function cbf_views_rss_feed_alter(&$rss_feed) {
