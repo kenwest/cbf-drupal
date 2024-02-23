@@ -1002,7 +1002,6 @@ function cbf_entity_presave($entity, $type) {
       ];
       $skipDomainBundles = [
         'dateable' => true,
-        'highlightable' => true,
         'mappable' => true,
         'title_header' => true,
       ];
@@ -2545,30 +2544,15 @@ function cbf_entity_viewable($entity, $type, $operation) {
       'type' => 'type',
       'status' => 'status',
       'bundles' => [
-        'activity' => [
-          'highlightable',
-        ],
-        'blog' => [
-          'highlightable',
-        ],
         'brite_event' => [
           'dateable',
-          'highlightable',
           'mappable',
-        ],
-        'episode' => [
-          'highlightable',
         ],
         'event' => [
           'dateable',
-          'highlightable',
-        ],
-        'page' => [
-          'highlightable',
         ],
         'story' => [
           'dateable',
-          'highlightable',
         ],
       ],
     ],
@@ -2580,7 +2564,6 @@ function cbf_entity_viewable($entity, $type, $operation) {
       ],
       'viewables' => [
         'dateable',
-        'highlightable',
         'mappable',
       ],
     ],
@@ -3101,30 +3084,6 @@ function cbf_entity_dateable($entity, $type, $currentForm) {
       "field_episode_date",
       "field_thumbnail_image",
       "field_highlight_location",
-      "domain_entityform",
-    ],
-    [ ]
-  );
-}
-
-/*
- * cbf_entity_highlightable() gets the needed $fields from the source $entity
- */
-function cbf_entity_highlightable($entity, $type, $currentForm) {
-  return cbf_entity_viewable_fields(
-    $entity,
-    $type,
-    $currentForm,
-    [
-      "field_title",
-      "field_subtitle",
-      "taxonomy_vocabulary_1",
-      "taxonomy_vocabulary_3",
-      "field_in_activity",
-      "field_highlight",
-      "field_highlight_location",
-      "field_activity_category",
-      "field_highlight_dates",
       "domain_entityform",
     ],
     [ ]
