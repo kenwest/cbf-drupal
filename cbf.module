@@ -997,7 +997,6 @@ function cbf_entity_presave($entity, $type) {
       $url0 = 'entityform';
       $allDomainBundles = [
         'office' => true,
-        'ministry_team' => true,
         'staff' => true,
         'home_page_slider' => true,
       ];
@@ -2585,15 +2584,6 @@ function cbf_entity_viewable($entity, $type, $operation) {
         'mappable',
       ],
     ],
-    'entityform' => [
-      'id' => 'entityform_id',
-      'type' => 'type',
-      'bundles' => [
-        'ministry_team' => [
-          'mappable',
-        ],
-      ],
-    ],
   ];
 
   /*
@@ -2930,86 +2920,6 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
     case 'civicrm_event':
       $fromFields['field_source_entity_bundle']['default'] = $type;
       break;
-  }
-
-  /*
-   * The Ministry Team EntityForms have most of their data in CiviCRM,
-   * so get the field defaults from there.
-   */
-  if (
-    $type == 'entityform'
-    && $entity->type == 'ministry_team'
-  ) {
-    $defaults = [ ];
-    $team = cbf_field_get_items($type, $entity, 'field_ministry_team', 'contact_id', 0);
-    $team = cbf_civicrm_ministry_team_viewable_fields($team);
-    $teamFieldMap = [
-      'nickname' => 'field_title',
-      'meeting day/time' => 'field_summary',
-      'address' => 'field_map_location',
-    ];
-    foreach ($teamFieldMap as $from => $to) {
-      if (in_array($to, $fields) && !empty($team[$from])) {
-        $defaults[$to] = $team[$from];
-      }
-    }
-
-    if (in_array('field_order_url', $fields) && !empty($team['staff contact'])) {
-      $defaults['field_order_url'] = [
-       'url' => '/staff-contact?cid1='. $team['staff contact']['id'],
-       'title' => $team['staff contact']['display_name'],
-       'attributes' => [],
-      ];
-    }
-
-    if (in_array('taxonomy_vocabulary_1', $fields)) {
-      $query = new EntityFieldQuery();
-      $query
-        ->entityCondition('entity_type', 'taxonomy_term')
-        ->entityCondition('bundle', 'vocabulary_1')
-        ->fieldCondition('field_civicrm_tag', 'target_id', $team['tags'], 'in') ;
-      $terms = $query->execute();
-      foreach ($terms as $entityType => $entities) {
-        foreach($entities as $tid => $_) {
-          $defaults['taxonomy_vocabulary_1'] = $tid;
-          break 2;
-        }
-      }
-    }
-
-    if (in_array('taxonomy_vocabulary_3', $fields)) {
-      /*
-       * Hardcoded assumption this is an EPT so Audience is Christian
-       */
-      $defaults['taxonomy_vocabulary_3'] = 47;
-    }
-
-    if (in_array('field_in_activity', $fields)) {
-      /*
-       * Hardcoded assumption this is an EPT so Activity is Prayer Teams
-       */
-      $defaults['field_in_activity'] = 1222;
-    }
-
-    if (in_array('field_map_region', $fields)) {
-      $query = new EntityFieldQuery();
-      $query
-        ->entityCondition('entity_type', 'taxonomy_term')
-        ->entityCondition('bundle', 'region')
-        ->fieldCondition('field_civicrm_tag', 'target_id', $team['tags'], 'in') ;
-      $terms = $query->execute();
-      $defaults['field_map_region'] = [];
-      foreach ($terms as $entityType => $entities) {
-        foreach($entities as $tid => $_) {
-          $defaults['field_map_region'][] = $tid;
-        }
-      }
-    }
-
-    foreach ($defaults as $to => $default) {
-      unset($fromFields[$to]['required']);
-      $fromFields[$to]['default'] = $default;
-    }
   }
 
   $result = [ ];
