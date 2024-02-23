@@ -137,7 +137,7 @@ function _cbf_pipedream_invoke_workflow(string $method, string $url, $data = nul
 
   $httpOptions = [
     'headers' => [
-      'Authorization' => 'Bearer ' . variable_get('cbf_pipedream_token'),
+      'Authorization' => "Bearer $token",
       'Content-Type' => 'application/json',
     ],
     'method' => $method,
