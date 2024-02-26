@@ -1341,28 +1341,6 @@ function cbf_cron() {
     }
 
     /*
-     * Find nodes that were Tweeted using Post to Twitter. Set their status so
-     * they are not tweeted again if any calls are made to node_save().
-     */
-    $query = new EntityFieldQuery();
-    $result =
-      $query
-        ->entityCondition('entity_type', 'node')
-        ->fieldCondition('field_post_to_twitter', 'status', 0, '<>')
-        ->execute();
-    foreach ($result as $entityType => $entities) {
-      $nodes = entity_load('node', array_keys($entities));
-      foreach ($nodes as $node) {
-        // Prevent a post being made again to Twitter
-        $langcode = field_language('node', $node, 'field_post_to_twitter');
-        if (isset($node->field_post_to_twitter[$langcode][0])) {
-          $node->field_post_to_twitter[$langcode][0]['status'] = 0;
-        }
-        node_save($node);
-      }
-    }
-
-    /*
      * Find blogs where field_third_space_restricted is NULL and set it to
      * zero (Off).
      *
