@@ -644,6 +644,7 @@ function cbf_entity_presave($entity, $type) {
       $allDomainBundles = [
         'contact_webform' => true,
         'webform' => true,
+        'office' => true,
       ];
       $skipDomainBundles = [ ];
       $allDomainIds = [
@@ -655,7 +656,6 @@ function cbf_entity_presave($entity, $type) {
     case 'entityform':
       $url0 = 'entityform';
       $allDomainBundles = [
-        'office' => true,
         'staff' => true,
         'home_page_slider' => true,
       ];
