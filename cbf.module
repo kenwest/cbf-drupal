@@ -4,47 +4,26 @@
  * This hook is called at the beginning of a Drupal page request.
  */
 function cbf_init() {
+
   /*
-   * CiviCRM Events don't currently support Domain Source. So URLs might be
-   * created for the wrong Domain. If we are on the wrong Domain, redirect
-   * the visitor to the right one.
+   * Only staff can see 'civicrm/event/info' pages. For laffs.
    */
-  $event = menu_get_object('civicrm_entity_loader');
-  if (!empty($event) && is_object($event) && $event->entityType() == 'civicrm_event') {
-    $audienceTerm = cbf_field_get_items('civicrm_event', $event, 'taxonomy_vocabulary_3', 'tid', '');
-    switch ($audienceTerm) {
-      case '47':
-        $eventAudience = 'christian';
-        break;
-      case '48':
-        $eventAudience = 'general';
-        break;
-      default:
-        $eventAudience = '';
-        break;
-    }
-    if (!empty($eventAudience)) {
-      $currentDomain = domain_get_domain();
-      $eventDomain = domain_list_by_machine_name()[$eventAudience];
-      if (
-        !empty($eventDomain)
-        && $eventDomain['domain_id'] != $currentDomain['domain_id']
-      ) {
-        $redirect = domain_get_uri($eventDomain);
-        drupal_goto($redirect, [], 301);
-      }
+  if (user_is_anonymous()) {
+    $q = $_GET['q'] ?? '';
+    $id = $_GET['id'] ?? '';
+    if ($q == 'civicrm/event/info' && is_numeric($id)) {
+      drupal_not_found();
+      drupal_exit();
     }
   }
 
   /*
-   * Redirect people from /civicrm/event/info?reset=1&id=NNNN to /civicrm-event/NNNN
-   * unless the query parameter 'original' is present
+   * The 2024 SPB is the last civicrm_event. A URL Redirect exists that points
+   * to the corresponding brite_event. All other civicrm_events are not found.
    */
-  $q = $_GET['q'] ?? '';
-  $id = $_GET['id'] ?? '';
-  $original = $_GET['original'] ?? '';
-  if ($q == 'civicrm/event/info' && is_numeric($id) && empty($original)) {
-    drupal_goto('civicrm-event/' . $id, [], 301);
+  if (arg(0) == 'civicrm-event') {
+    drupal_not_found();
+    drupal_exit();
   }
 
   /*
@@ -194,33 +173,6 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
           }
         }
 
-        // Find the Cities where there are upcoming CiviCRM Events
-        // If the event has no City, then it is visible in all cities
-        $current_time = strtotime('now');
-        $query = new EntityFieldQuery();
-        $result = $query
-          ->entityCondition('entity_type', 'civicrm_event')
-          ->fieldCondition('field_in_activity', 'target_id', (int) $node->nid, '=')
-          ->fieldCondition('field_next_action', 'value', $current_time, '>')
-          ->execute();
-        foreach ($result as $entityType => $entityKeys) {
-          $entities = entity_load($entityType, array_keys($entityKeys));
-          foreach ($entities as $entityKey => $entity) {
-            if ($entity->is_active && $entity->is_public) {
-              $city = null;
-              $ministryCentres = field_get_items('civicrm_event', $entity, 'taxonomy_vocabulary_1');
-              if ($ministryCentres === false) $ministryCentres = [];
-              foreach ($ministryCentres as $city) {
-                $i = (int) $city['tid'];
-                $cities[$i] = $i;
-              }
-              if ($city === null) {
-                $cities['All'] = 'All';
-              }
-            }
-          }
-        }
-
         // Find the Cities where there are upcoming Events
         // If the event has no City, then it is visible in all cities
         $current_time = strtotime('now');
@@ -302,9 +254,8 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
         /*
          * The valid options for this filter are those where the corresponding
-         * city has a Regular Venue, Mappable item, upcoming CiviCRM Event or
-         * Staff member. The 'All' option is valid. All options are valid if
-         * any of the upcoming CiviCRM Events are not city-based.
+         * city has an entity as calculated above. The 'All' option is valid.
+         * All options are valid if any of the upcoming events are not city-based.
          */
         $alterations['activity'][$exposedTid] = [];
         foreach ($form[$exposedTid]['#options'] as $tid => $city) {
@@ -343,225 +294,13 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
   }
 
   /*
-   * Set the text format for CiviCRM Event entity properties
-   * which are presented in an HTML editor.
+   * The domain_entityform on an -entityform-event-form is calculated when the
+   * form is saved. Avoid the user having to enter a value that is immediately
+   * overridden, by setting the #default_value to not be empty.
    */
-  if ($form['#id'] == 'civicrm-event-form') {
-    $formatTextFields = array(
-      'Textarea' => array(
-        'fields' => array(
-          'summary',
-          'pay_later_text',
-        ),
-        'actions' => array(
-          '#type' => 'textarea',
-          '#format' => null,
-        ),
-      ),
-      'Full HTML' => array(
-        'fields' => array(
-          'description',
-          'event_full_text',
-          'intro_text',
-          'footer_text',
-          'confirm_text',
-          'confirm_footer_text',
-          'thankyou_text',
-          'thankyou_footer_text',
-        ),
-        'actions' => array(
-          'format' => 'full_html',
-          '#format' => null,
-        ),
-      ),
-    );
-    foreach ($formatTextFields as $step) {
-      foreach ($step['fields'] as $field) {
-        foreach ($step['actions'] as $key => $value) {
-          if ($value === null) {
-            unset($form[$field][$key]);
-          }
-          else {
-            $form[$field][$key] = $value;
-          }
-        }
-      }
-    }
-  }
-
-  /*
-   * When editing a CiviCRM Event entity we need to keep the Drupal and CiviCRM
-   * staff contact fields in sync. If there is a Drupal field, this takes
-   * precedence.
-   *
-   * The CiviCRM custom field for the staff contact is displayed as the text
-   * the text name of the contact, but when the form is saved, the contact
-   * Id is expected.
-   */
-  if ($form['#id'] == 'civicrm-event-form') {
-    $staffContactId = null;
-    $drupalContact = null;
-    $civicrmContact = null;
-    $matches = null;
-
-    /* Try getting the contact Id from the Drupal field for the staff contact */
-    $drupalContact = $form['field_staff_contact']['und'][0]['contact_id']['#default_value'];
-    if (preg_match('!(.+) \[cid:([0-9]+)\]!', $drupalContact, $matches) === 1) {
-      $staffContactId = $matches[2];
-    }
-
-    /* Try getting the contact from CiviCRM */
-    if (empty($staffContactId)) {
-      $civicrmContact = _cbf_civicrm_civicrm_event_staff_contact($form_state['civicrm_event']->id);
-      if (!empty($civicrmContact)) {
-        $staffContactId = $civicrmContact['id'];
-      }
-    }
-
-    if (!empty($staffContactId)) {
-      $form['custom_62']['#default_value'] = $staffContactId;
-      if (empty($drupalContact) && !empty($civicrmContact)) {
-        $form['field_staff_contact']['und'][0]['contact_id']['#default_value']
-          = $civicrmContact['name'] . ' [cid:' . $staffContactId . ']';
-      }
-    }
-  }
-
-  /*
-   * When editing a CiviCRM Event entity we need to keep the Drupal and CiviCRM
-   * ministry centre fields in sync. If there is a Drupal field, this takes
-   * precedence.
-   */
-  if ($form['#id'] == 'civicrm-event-form') {
-    $drupalId = null;
-
-    /* Try getting the ministry centre from the Drupal field for the staff contact */
-    if (!empty($form['taxonomy_vocabulary_1']['und']['#default_value'][0])) {
-      $drupalId = $form['taxonomy_vocabulary_1']['und']['#default_value'][0];
-    }
-
-    /* Try getting the ministry centre from CiviCRM */
-    if (empty($drupalId)) {
-      list($civicrmId, $civicrmCentre) = _cbf_civicrm_civicrm_event_ministry_centre($form_state['civicrm_event']->id);
-
-      if (!empty($civicrmId)) {
-        $form['taxonomy_vocabulary_1']['und']['#default_value'][0] = array_flip($form['taxonomy_vocabulary_1']['und']['#options'])[$civicrmCentre];
-      }
-    }
-  }
-
-  /*
-   * When editing a CiviCRM Event entity we need to keep the Drupal and CiviCRM
-   * event dates in sync. If there is a Drupal field, this takes precedence.
-   */
-  if ($form['#id'] == 'civicrm-event-form') {
-    $drupalDate = null;
-
-    /* Try getting the date from the Drupal date field */
-    if (!empty($form['field_event_date']['und'][0]['#default_value'])) {
-      $drupalDate = $form['field_event_date']['und'][0]['#default_value'];
-    }
-
-    /* Try getting the dates from CiviCRM */
-    if (empty($drupalDate)) {
-      if (!empty($form['taxonomy_vocabulary_1']['und']['#default_value'])) {
-        $ministryCentre =
-          $form['taxonomy_vocabulary_1']['und']['#options'][
-            $form['taxonomy_vocabulary_1']['und']['#default_value'][0]
-          ];
-      }
-      else {
-        $ministryCentre = _cbf_civicrm_civicrm_contact_ministry_centre($staffContactId);
-        if ($ministryCentre === false) {
-          $ministryCentre = 'Sydney';
-        }
-      }
-
-      $form['field_event_date']['und'][0]['#default_value'] = [];
-      $form['field_event_date']['und'][0]['#default_value']['value']
-      = str_replace(' ', 'T', $form['start_date']['#default_value']);
-      $form['field_event_date']['und'][0]['#default_value']['value2']
-        = str_replace(' ', 'T', $form['end_date']['#default_value']);
-      $form['field_event_date']['und'][0]['#default_value']['timezone']
-        = $form['field_event_date']['und'][0]['timezone']['#default_value']
-        = 'Australia/' . $ministryCentre;
-    }
-  }
-
-  /*
-   * Add a callback to ensure when the form is submitted that CiviCRM variables are
-   * overwritten by their Drupal equivalent.
-   */
-  if ($form['#id'] == 'civicrm-event-form') {
-    $form['actions']['submit']['#submit'] = array_merge(
-      array('cbf__civicrm_entity_form_submit'),
-      $form['actions']['submit']['#submit']
-    );
-  }
-
-  /*
-   * The payment_processor field on the civicrm-event-form doesn't support
-   * multiselect, but we want people to be able to choose to pay via credit
-   * card or PayPal.
-   *
-   * Until this is resolved, prevent users accessing this field. They would
-   * need to use the CiviCRM admin interface to set payment processors.
-   */
-  if ($form['#id'] == 'civicrm-event-form') {
-    $form['payment_processor']['#access'] = false;
-  }
-
-  /*
-   * The field_domain on the civicrm-event-form is calculated when the form
-   * is saved. To avoid the user having to enter a value that is immediately
-   * overridden, prevent the #default_value being empty.
-   */
-  if ($form['#id'] == 'civicrm-event-form') {
-    if (empty($form['field_domain']['und']['domain_id']['#default_value'])) {
-      $form['field_domain']['und']['domain_id']['#default_value'] = array(1 => 1);
-    }
-  }
-
-  /* Ditto when editing EntityForms except the field is domain_entityform */
   if (stripos($form['#id'], '-entityform-edit-form') !== false) {
     if (empty($form['domain_entityform']['und']['domain_id']['#default_value'])) {
       $form['domain_entityform']['und']['domain_id']['#default_value'] = array(1 => 1);
-    }
-  }
-
-  /*
-   * Grab the mailing list default from the arguments
-   */
-  if (strpos($form['#id'], 'webform-client-form-') === 0) {
-    if (
-      isset($form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#attributes']['class'])
-      && in_array(
-        'default-via-parameter',
-        $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#attributes']['class']
-      )
-    ) {
-      $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#size'] = 10;
-      $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#options'] =
-        array(
-          'National' => array(
-            2677 => '40 Rockets 2019 by email',
-            2678 => '40 Rockets 2019 by SMS (East coast)',
-            2679 => '40 Rockets 2019 by SMS (West coast)',
-          ),
-          'Sydney' => array(
-            1 => 'Newsletter',
-            1756 => 'The Edge',
-            1658 => 'Bible Shots',
-            1671 => 'Tho Luu Foundation',
-          ),
-          'Melbourne' => array(
-            1813 => 'Melbourne Christians - Life@Work Prayer Network',
-          ),
-        );
-      $params = drupal_get_query_parameters();
-      if (isset($params['gid']) && filter_var($params['gid'], FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)))) {
-        $form['submitted']['mailing_list']['civicrm_1_contact_1_other_group']['#default_value'] = array($params['gid']);
-      }
     }
   }
 
@@ -622,67 +361,6 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 }
 
 /*
- * Callback for Entity form submission.
- *
- * Overwrite CiviCRM variables with their Drupal equivalents
- *  - Staff contact (overwrite custom_62)
- *  - Ministry centre (overwrite custom_25)
- *  - Event date (set the CiviEvent to start on the first date of a repeating
- *    event and to finish on the last date of a repeating event)
- *  - Number of sessions (count of dates overwrites custom_47)
- *
- * Prevent Drupal values overwriting their CiviCRM equivalents
- *  - Payment processor (Drupal form doesn't support multiselect)
- */
-function cbf__civicrm_entity_form_submit(&$form, &$form_state) {
-  if ($form['#id'] == 'civicrm-event-form') {
-    $form_state['values']['custom_62'] = $form_state['values']['field_staff_contact']['und'][0]['contact_id'];
-    if (!empty($form_state['values']['taxonomy_vocabulary_1']['und'][0]['tid'])) {
-      $form_state['values']['custom_25'] = _cbf_civicrm_civicrm_event_ministry_centre_id(
-        $form['taxonomy_vocabulary_1']['und']['#options'][
-          $form_state['values']['taxonomy_vocabulary_1']['und'][0]['tid']
-        ]
-      );
-    }
-    else {
-      $form_state['values']['custom_25'] = '';
-    }
-
-    for ($i = 0; ; $i++) {
-      if (!isset($form_state['values']['field_event_date']['und'][$i])) {
-        break;
-      }
-      $last = $form_state['values']['field_event_date']['und'][$i];
-      if (!isset($first)) {
-        $first = $last;
-      }
-    }
-
-    $date = new DateObject($first['value'], $first['timezone']);
-    $form_state['values']['start_date'] = $date->format('Y-m-d H:i');
-
-    $date = new DateObject($last['value2'], $last['timezone']);
-    $form_state['values']['end_date'] = $date->format('Y-m-d H:i');
-
-    $form_state['values']['custom_47'] = $i;
-
-    /*
-     * The payment_processor field on the civicrm-event-form doesn't support
-     * multiselect, but we want people to be able to choose to pay via credit
-     * card or PayPal.
-     *
-     * Until this is resolved, prevent users changing this field. To do this we
-     * send a signal to cbf_civicrm_civicrm_pre() that input from this field on
-     * this form should be ignored. We do this by setting the payment_processor
-     * to be one that is never used. It's name is 'Hack for CiviCRM Event
-     * entities' and its number is 15.
-     */
-    $dummyPaymentProcessor = '15';
-    $form_state['values']['payment_processor'] = $dummyPaymentProcessor;
-  }
-}
-
-/*
  * This hook is called to alter Drupal comment forms.
  *
  * This change prevents anonymous users accessing the 'homepage' field.
@@ -700,7 +378,7 @@ function cbf_form_comment_form_alter(&$form, &$form_state, $form_id) {
 /*
  * Validate field_event_date elements on forms.
  *  - an event can't last longer than 5 days. This prevents staff misusing
- *    Events and CiviCRM Events when they should be using a News Story.
+ *    Events when they should be using a News Story.
  */
 function cbf_field_event_date_validate($form, &$form_state) {
   if (isset($form_state['values']['field_event_date'])) {
@@ -746,20 +424,19 @@ function cbf_field_title_image_validate($form, &$form_state) {
 
 /*
  * Validate field_highlight elements on forms.
- *  - Highlight images are mandatory for non-Unlisted events, episodes & blogs
+ *  - Highlight images are mandatory for non-Unlisted episodes & blogs
  *  - only apply this rule to modern articles
+ * Highlight images are required for brite_events so no special processing is
+ * required for those.  
  */
 function cbf_field_highlight_validate($form, &$form_state) {
-  // @TODO Extend this to work for brite_event events. Either follow the same logic or use
-  // a default highlight image.
-  if ((isset($form_state['entity_type'])
-      && $form_state['entity_type'] == 'civicrm_event'
-      && $form_state['civicrm_event']->id > 2662)
-    || (isset($form_state['node'])
+  if (
+    (isset($form_state['node'])
       && ($form_state['node']->type == 'episode'
         || $form_state['node']->type == 'blog')
       && (!isset($form_state['node']->nid)
-        || $form_state['node']->nid > 5898))) {
+        || $form_state['node']->nid > 5898))
+  ) {
     $unlisted = '1957';
     $fid = reset($form_state['values']['field_highlight']);
     $fid = is_array($fid) ? reset($fid)['fid'] ?? '0' : '0';
@@ -959,10 +636,6 @@ function cbf_form_revision_validate($form, &$form_state) {
  *     domains       contains an entry for each domain that matches a rule
  *     domain_source DOMAIN_SOURCE_USE_ACTIVE (don't change domain to a cardinal
  *                   domain) EXCEPT when the node appears in only one domain
- *
- * The rules have the following effects on CiviCRM Events...
- *
- *     field_domain  false (content is not available in all affiliates)
  */
 function cbf_entity_presave($entity, $type) {
   switch ($type) {
@@ -978,14 +651,6 @@ function cbf_entity_presave($entity, $type) {
       ];
       $entityId = $entity->nid;
       $entityBundle = $entity->type;
-      break;
-    case 'civicrm_event':
-      $url0 = 'civicrm-event';
-      $allDomainBundles = [ ];
-      $skipDomainBundles = [ ];
-      $allDomainIds = [ ];
-      $entityId = $entity->id;
-      $entityBundle = $type;
       break;
     case 'entityform':
       $url0 = 'entityform';
@@ -1139,14 +804,6 @@ function cbf_entity_presave($entity, $type) {
         }
         break;
 
-      case 'civicrm_event':
-        $lang = field_language($type, $entity, 'field_domain');
-        $entity->field_domain[$lang] = [ ];
-        foreach ($matches as $value) {
-          $entity->field_domain[$lang][] = $value;
-        }
-        break;
-
       case 'entityform':
         $lang = field_language($type, $entity, 'domain_entityform');
         $entity->domain_entityform[$lang] = [ ];
@@ -1278,12 +935,6 @@ function cbf_cron() {
     $user = user_load(1);
 
     /*
-     * Initialize CiviCRM. This is a precaution now that CiviCRM and Drupal are
-     * becoming more tightly coupled.
-     */
-    civicrm_initialize();
-
-    /*
      * Find entities with field_next_action due. Order them so the most recent
      * are processed first, so entities that get stuck don't mask later ones.
      */
@@ -1299,27 +950,6 @@ function cbf_cron() {
         switch ($entityType) {
           case 'node':
             node_save($entity);
-            break;
-
-          case 'civicrm_event':
-            /*
-             * The payment_processor field on the civicrm-event-form doesn't support
-             * multiselect, but we want people to be able to choose to pay via credit
-             * card or PayPal.
-             *
-             * Until this is resolved, prevent users changing this field. To do this we
-             * send a signal to cbf_civicrm_civicrm_pre() that input from this field on
-             * this form should be ignored. We do this by setting the payment_processor
-             * to be one that is never used. It's name is 'Hack for CiviCRM Event
-             * entities' and its number is 15.
-             */
-            if (isset($entity->payment_processor)) {
-              $dummyPaymentProcessor = '15';
-              $entity->payment_processor = $dummyPaymentProcessor;
-            }
-
-            $entity->custom_62 = $entity->custom_62_id;
-            entity_save($entityType, $entity);
             break;
         }
         unset($entityKeys[$entityKey]);
@@ -1566,7 +1196,7 @@ function cbf_visitor_city_string() {
  */
 function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
   $entity = null;
-  $entityTypes = ['node', 'civicrm_event'];
+  $entityTypes = ['node'];
 
   foreach ($entityTypes as $entityType) {
     if (isset($types[$entityType])) {
@@ -1660,9 +1290,8 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
  * For SEO purposes, content that appears on both the 'general' and the
  * 'christian' site should have a canonical URL pointing to the 'general' site.
  *
- * So, if this is a Node or a CiviCRM Event, whose Audience is not 'christian',
- * and we are on the 'christian' site, modify the canonical URL to point to the
- * 'general' site.
+ * So, if this is a Node whose Audience is not 'christian', and we are on the
+ * 'christian' site, modify the canonical URL to point to the 'general' site.
  *
  * For SEO, give /library/topic the same Canonical URL as /library
  *
@@ -1676,7 +1305,7 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
  *   All of the options used to generate the meta tags.
  */
 function cbf_metatag_metatags_view_alter(&$output, $instance, $options) {
-  if (stripos($instance, 'node:') === 0 || stripos($instance, 'civicrm_event:') === 0) {
+  if (stripos($instance, 'node:') === 0) {
     $audience = cbf_field_get_items($options['entity_type'], $options['entity'], 'taxonomy_vocabulary_3', 'tid', '');
     if (!empty($audience) && $audience != '47') {
       // There is an audience and it is not 'christian'
@@ -1763,27 +1392,6 @@ function cbf_views_pre_render(&$view) {
       $macro = $view->display[$view->current_display]->handler->view->style_plugin->options['macro'];
       if ( !strstr('|center=', $macro) ) {
         $latlong = "{$view->result[0]->gmap_lat},{$view->result[0]->gmap_lon}";
-
-        $macro  = str_replace(']', ' |center=' . $latlong . ']', $macro);
-        $view->display[$view->current_display]->handler->view->style_plugin->options['macro'] = $macro;
-      }
-    }
-  }
-
-  $watch = array('reaching_city_civicrm_event_gmap');
-  $displays = array('block_address');
-
-  if (in_array($view->name, $watch)) {
-
-    // Modifies the GMap Macro to ensure that the map gets properly centered.
-    if (
-      in_array($view->current_display, $displays)
-      && isset($view->result[0]->civicrm_address_geo_code_1)
-      && isset($view->result[0]->civicrm_address_geo_code_2)
-    ) {
-      $macro = $view->display[$view->current_display]->handler->view->style_plugin->options['macro'];
-      if ( !strstr('|center=', $macro) ) {
-        $latlong = "{$view->result[0]->civicrm_address_geo_code_1},{$view->result[0]->civicrm_address_geo_code_2}";
 
         $macro  = str_replace(']', ' |center=' . $latlong . ']', $macro);
         $view->display[$view->current_display]->handler->view->style_plugin->options['macro'] = $macro;
@@ -2023,7 +1631,6 @@ function cbf_views_post_execute(&$view) {
        * Get the title
        */
       $name = $result->node_title
-        ?? $result->civicrm_event_title
         ?? $result->field_field_title[0]['rendered']['#markup']
         ?? false;
       if (empty($name)) {
@@ -2117,17 +1724,6 @@ function cbf_views_post_execute(&$view) {
   }
 
   /*
-   * If a field_field_source_entity_type is (say) 'civicrm_event' then any
-   * URL built from it needs to contain 'civicrm-event'.
-   */
-  foreach ($view->result as $r => $result) {
-    if (isset($result->field_field_source_entity_type)) {
-      $result->field_field_source_entity_type[0]['rendered']['#markup']
-        = str_replace('_', '-', $result->field_field_source_entity_type[0]['rendered']['#markup']);
-    }
-  }
-
-  /*
    * Titles for the Bigger Questions iTunes feed need to include the Speaker
    * names.
    */
@@ -2184,9 +1780,12 @@ function cbf_views_post_execute(&$view) {
     }
     if ($contactEmailPattern) {
       foreach ($view->result as $i => $_) {
-        $e = $view->result[$i]->civicrm_contact_field_data_field_organisation_contact__civic_11;
-        $f = preg_replace($contactEmailPattern, $contactEmailReplacement, $e) ?? $e;
-        $view->result[$i]->civicrm_contact_field_data_field_organisation_contact__civic_11 = $f;
+        /*
+         * TODO: Redevelop Office entity to not use CiviCRM
+         */
+//         $e = $view->result[$i]->civicrm_contact_field_data_field_organisation_contact__civic_11;
+//         $f = preg_replace($contactEmailPattern, $contactEmailReplacement, $e) ?? $e;
+//         $view->result[$i]->civicrm_contact_field_data_field_organisation_contact__civic_11 = $f;
       }
     }
   }
@@ -2302,15 +1901,7 @@ function cbf_contextual_links_view_alter(&$element, $items) {
  * are encoded. In these cases, decode them.
  */
 function cbf_entity_property($variables) {
-  switch ($variables['elements']['#entity_type']) {
-    case 'civicrm_event':
-      switch ($variables['elements']['#property_name']) {
-        case 'description':
-          $variables['content'] = decode_entities($variables['content']);
-          break;
-      }
-      break;
-  }
+
   $variables['label_hidden'] = true;
 
   return theme_entity_property($variables);
@@ -2414,50 +2005,6 @@ function cbf_breadcrumb($variables, $structure) {
 }
 
 /**
- * Implements hook_webform_validation_validators()
- */
-function cbf_webform_validation_validators() {
-  return array(
-    'existing_contact_id' => array(
-      'name' => 'Existing Contact Id',
-      'description' => "Validate the Contact already exists",
-      'component_types' => array(
-        'civicrm_contact',
-      ),
-    )
-  );
-}
-
-/**
- * Implements hook_webform_validation_validate()
- *
- * Validates that Webform CiviCRM components of type 'civicrm_contact' already exist.
- * If an existing contact is chosen the value captured is a string containing a
- * positive integer. If the component is empty the value captured is empty. Otherwise
- * the value captured is a hyphen followed by the content typed by the user.
- */
-function cbf_webform_validation_validate($validator_name, $items, $components, $rule) {
-  if ($items) {
-    switch ($validator_name) {
-      case 'existing_contact_id':
-        $errors = array();
-        $filterOptions = array(
-          'options' => array(
-            'min_range' => 1,
-          ),
-        );
-        foreach ($items as $key => $value) {
-          if (filter_var($value, FILTER_VALIDATE_INT, $filterOptions) === false) {
-            $errors[$key] = t('%item is not a valid contact', array('%item' => $components[$key]['name']));
-          }
-        }
-        return $errors;
-        break;
-    }
-  }
-}
-
-/**
  * Modify an iCal event's raw data. If the event is derived from a viewable
  * EntityForm which has a field_field_source_entity_alias then use that field
  * for the iCal event's URL.
@@ -2526,17 +2073,6 @@ function cbf_entity_viewable($entity, $type, $operation) {
         'story' => [
           'dateable',
         ],
-      ],
-    ],
-    'civicrm_event' => [
-      'id' => 'id',
-      'status' => [
-        'is_public',
-        'is_active',
-      ],
-      'viewables' => [
-        'dateable',
-        'mappable',
       ],
     ],
   ];
@@ -2871,10 +2407,6 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
     case 'entityform':
       $fromFields['field_source_entity_bundle']['default'] = $entity->type;
       break;
-
-    case 'civicrm_event':
-      $fromFields['field_source_entity_bundle']['default'] = $type;
-      break;
   }
 
   $result = [ ];
@@ -2950,15 +2482,6 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
   }
 
   /*
-   * Special case - if the source $entity is a civicrm_event its subtitle will
-   * be found in the 'summary' attribute.
-   * A field_subtitle is limited to 128 characters in length.
-   */
-  if (in_array('field_subtitle', $fields) && !empty($entity->summary)) {
-    $result['field_subtitle'] = substr($entity->summary, 0, 128);
-  }
-
-  /*
    * Special case - if the source $entity is a node the 'domains' attribute
    * holds the domain values
    */
@@ -2978,11 +2501,11 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
   }
 
   /*
-   * Special case - if the source $entity is a civicrm_event or a brite_event
-   * then its location needs to be retrieved
+   * Special case - if the source $entity is a brite_event then its location
+   * needs to be retrieved
    */
   if (in_array('field_map_location', $fields)) {
-    if (($type == 'node' && $entity->type == 'brite_event') || $type == 'civicrm_event') {
+    if ($type == 'node' && $entity->type == 'brite_event') {
       // We should not map an event if its 'next action' is in the past.
       $nextAction = cbf_field_get_items($type, $entity, 'field_next_action', 'value', 0);
       $currentTime = strtotime('now');
@@ -2990,11 +2513,7 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
         return [];
       }
 
-      if ($type == 'civicrm_event') {
-        // Get the location from CiviCRM
-        $result['field_map_location'] = cbf_civicrm_civicrm_event_get_location_data($entity->id);
-      }
-      else if (!empty($entity->location)) {
+      if (!empty($entity->location)) {
         $result['field_map_location'] = $entity->location;
         unset($result['field_map_location']['lid']);
       }
@@ -3025,14 +2544,6 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
         $result['taxonomy_vocabulary_1'] = $term->tid;
       }
     }
-  }
-
-  /*
-   * Special case - if the source $entity is a civicrm_event then its 
-   * field_order_url should be ignored (it is a non-CiviCRM registration link)
-   */
-  if ($type == 'civicrm_event' && in_array('field_order_url', $fields)) {
-    $result['field_order_url'] = null;
   }
 
   return $result;
@@ -3096,13 +2607,10 @@ function cbf_entity_mappable($entity, $type, $currentForm) {
 function cbf_admin_paths() {
   $paths = [
     /*
-     * When 'civicrm-event/NNNN/edit' is not an admin path, the call to
+     * When 'entityform/NNNN/edit' is not an admin path, the call to
      * entity_load() in cbf_entity_viewable() fails to return entities
      * which are not visible in this domain.
-     *
-     * Ditto for Entity Forms.
      */
-    'civicrm-event/*/edit' => true,
     'entityform/*/edit' => true,
   ];
   return $paths;
@@ -3397,81 +2905,6 @@ function cbf_get_last_item_in_path() {
 }
 
 /*
- * Implements hook_entity_view: "act on entities being assembled before
- * rendering"
- */
-function cbf_entity_view($entity, $type, $view_mode, $langcode) {
-  if ($type == 'node' && $view_mode == 'full' && $entity->type == 'webform') {
-    /*
-     * CiviCRM Entity will pick up a random staff member if none is
-     * specified or if the one specified is not a current staff member. If this
-     * occurs on the /staff-contact form, transfer the request to a generic
-     * contact form.
-     */
-    if ($entity->nid == '2972') { // Staff Contact form
-      $staff = $entity->content['webform']['#form']['submitted']
-        ['civicrm_1_contact_1_fieldset_fieldset']['civicrm_1_contact_1_contact_existing']
-        ['#value'] ?? '';
-      $requested = drupal_get_query_parameters()['cid1'] ?? '';
-      $contactable = _cbf_civicrm_staff_is_contactable($staff);
-      if ($staff && $requested && $staff == $requested && $contactable['contactable'])
-      {
-        /*
-         * Adjust the visibility of staff information to suit the staff record
-         */
-        $map = [
-          'email' => 'civicrm_1_contact_1_email_email',
-          'mobile' => 'civicrm_1_contact_1_phone_phone',
-          'phone' => 'civicrm_1_contact_2_phone_phone',
-        ];
-        foreach ($map as $key => $value) {
-          $field = $entity->content['webform']['#form']['submitted']
-          ['civicrm_1_contact_1_fieldset_fieldset']
-          [$value]['#value'] ?? '';
-          $readonly = $entity->content['webform']['#form']['submitted']
-          ['civicrm_1_contact_1_fieldset_fieldset']
-          [$value]['#attributes']['readonly'] ?? '';
-          if ($field && $readonly == 'readonly' && !$contactable[$key]) {
-            $entity->content['webform']['#form']['submitted']
-            ['civicrm_1_contact_1_fieldset_fieldset']
-            [$value]['#value']
-              = '';
-          }
-        }
-      }
-      else {
-        drupal_goto('contact-us', ['query' => []]);
-      }
-    }
-    /*
-     * Modify staff emails on forms to be Third Space when appropriate. The
-     * Staff email address has a default, is read-only and is attached to
-     * Contact 1.
-     */
-    $email = $entity->content['webform']['#form']['submitted']
-      ['civicrm_1_contact_1_fieldset_fieldset']
-      ['civicrm_1_contact_1_email_email']
-      ['#value'] ?? '';
-    $readonly = $entity->content['webform']['#form']['submitted']
-      ['civicrm_1_contact_1_fieldset_fieldset']
-      ['civicrm_1_contact_1_email_email']
-      ['#attributes']['readonly'] ?? '';
-    if ($email && $readonly == 'readonly') {
-      $currentDomainId = domain_get_domain()['domain_id'];
-      $generalDomainId = domain_load_domain_id('general');
-      if ($currentDomainId == $generalDomainId) {
-        $email = preg_replace('!@.*("|$)!i', '@thirdspace.org.au$1', $email) ?? $email;
-        $entity->content['webform']['#form']['submitted']
-        ['civicrm_1_contact_1_fieldset_fieldset']
-        ['civicrm_1_contact_1_email_email']
-        ['#value']
-          = $email;
-      }
-    }
-  }
-}
-
-/*
  * An implementation of hook_views_rss_feed_alter()
  */
 function cbf_views_rss_feed_alter(&$rss_feed) {
@@ -3585,12 +3018,12 @@ function cbf_field_get_items($entity_type, $entity, $field_name, $field_value, $
 }
 
 /*
- * Find the $node, $event and $activity related to the current page's
+ * Find the $node and $activity related to the current page's
  * menu_get_object()
  */
 function _cbf_find_object_and_activity_for_page() {
 
-  $node = $event = $activity = null;
+  $node = $activity = null;
 
   $node = menu_get_object('node');
   if (!empty($node) && is_object($node)) {
@@ -3605,20 +3038,10 @@ function _cbf_find_object_and_activity_for_page() {
   }
   else {
     $node = false;
-    $event = menu_get_object('civicrm_entity_loader');
-    if (!empty($event) && is_object($event) && $event->entityType() == 'civicrm_event') {
-      $activity = cbf_field_get_items('civicrm_event', $event, 'field_in_activity', 'target_id', []);
-      $activity = empty($activity) ? false : entity_load('node', $activity);
-      $activity = empty($activity) ? false : reset($activity);
-    }
-    else {
-      $event = false;
-    }
   }
 
   return [
     'node' => $node,
-    'event' => $event,
     'activity' => $activity,
   ];
 }
