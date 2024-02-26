@@ -87,12 +87,6 @@ function cbf_init() {
       break;
 
     case 'contact':
-      if (arg(1)) {
-
-        $isOldForm = true;
-      }
-      break;
-
     case 'contact-us':
       $isOldForm = true;
       break;
