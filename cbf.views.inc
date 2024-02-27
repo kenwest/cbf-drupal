@@ -7,7 +7,7 @@ function cbf_views_query_alter(&$view, &$query) {
    */
   $filter_vocabulary = null;
   switch ($view->name) {
-    case 'cbf2019_local_office':
+    case 'cbf2019_local_offices':
       $filter_vocabulary = 'office';
       $filter_table = 'field_data_field_office';
       $filter_tid = 'field_office_tid';

@@ -2160,19 +2160,24 @@ function cbf_views_post_execute(&$view) {
   }
 
   /*
-   * If the view is 'cbf2019_local_office' and the current Domain is
+   * If the view is 'cbf2019_local_offices' and the current Domain is
    * legacy Third Space, then overwrite the email address with the Third
    * Space public email address. If the site is the General content site
    * then use the corresponding Third Space address.
    */
-  if ($view->name == 'cbf2019_local_office') {
+  if ($view->name == 'cbf2019_local_offices') {
     $currentDomainId = domain_get_domain()['domain_id'];
     $generalDomainId = domain_load_domain_id('general');
+    $christianDomainId = domain_load_domain_id('christian');
     $legacyThirdSpaceDomainId = domain_load_domain_id('thirdspace');
     switch ($currentDomainId) {
       case $generalDomainId:
         $contactEmailPattern = '/@.*$/';
         $contactEmailReplacement = '@thirdspace.org.au';
+        break;
+      case $christianDomainId:
+        $contactEmailPattern = '/@.*$/';
+        $contactEmailReplacement = '@citybibleforum.org';
         break;
       case $legacyThirdSpaceDomainId:
         $contactEmailPattern = '/^.*$/';
@@ -2184,9 +2189,10 @@ function cbf_views_post_execute(&$view) {
     }
     if ($contactEmailPattern) {
       foreach ($view->result as $i => $_) {
-        $e = $view->result[$i]->civicrm_contact_field_data_field_organisation_contact__civic_11;
-        $f = preg_replace($contactEmailPattern, $contactEmailReplacement, $e) ?? $e;
-        $view->result[$i]->civicrm_contact_field_data_field_organisation_contact__civic_11 = $f;
+
+        $e = $view->result[$i]->field_field_subtitle[0]['rendered']['#markup'];
+         $f = preg_replace($contactEmailPattern, $contactEmailReplacement, $e) ?? $e;
+         $view->result[$i]->field_field_subtitle[0]['rendered']['#markup'] = $f;
       }
     }
   }
