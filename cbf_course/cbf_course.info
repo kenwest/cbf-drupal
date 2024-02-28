@@ -1,6 +1,0 @@
-name = CBF Course
-description = Courses used by CBF website
-core = 7.x
-package = City Bible Forum
-dependencies[] = webform
-version = "7.x-1.0"
