@@ -1691,30 +1691,6 @@ function cbf_civicrm_civicrm_pre($op, $objectName, $id, &$params) {
           break;
       }
       break;
-
-    case 'Event':
-
-      switch ($op) {
-        case 'create':
-        case 'edit':
-
-          /*
-           * The payment_processor field on the civicrm-event-form doesn't support
-           * multiselect, but we want people to be able to choose to pay via credit
-           * card or PayPal.
-           *
-           * Until this is resolved, ignore input from this field on this form. This
-           * is signalled by cbf__civicrm_entity_form_submit() which sets the
-           * payment_processor to be one that is never used. It's name is 'Hack for
-           * CiviCRM Event entities' and its number is 15.
-           */
-          $dummyPaymentProcessor = '15';
-          if (($params['payment_processor'] ?? '') == $dummyPaymentProcessor) {
-            unset($params['payment_processor']);
-          }
-          break;
-      }
-      break;
   }
 }
 
@@ -2195,48 +2171,6 @@ function cbf_civicrm_civicrm_fieldOptions($entity, $field, &$options, $params) {
   }
 }
 
-function _cbf_civicrm_civicrm_event_staff_contact($event_id) {
-  try {
-    $contact = civicrm_api3('Event', 'get', [
-      'sequential' => 1,
-      'return' => ['custom_62'],
-      'id' => $event_id,
-    ]);
-
-    if (count($contact['values']) == 1 && !empty($contact['values'][0]['custom_62'])) {
-      return [
-        'id' => $contact['values'][0]['custom_62_id'],
-        'name' => $contact['values'][0]['custom_62'],
-      ];
-    }
-  } catch (CiviCRM_API3_Exception $e) {
-    ;
-  }
-
-  return false;
-}
-
-function _cbf_civicrm_civicrm_event_ministry_centre_id($name) {
-  $ministry_centre_group_id = 326;
-
-  try {
-    $tag = civicrm_api3('OptionValue', 'get', array(
-      'sequential' => 1,
-      'label' => $name,
-      'option_group_id' => $ministry_centre_group_id,
-      'return' => 'value',
-    ));
-
-    if (count($tag['values']) == 1) {
-      return $tag['values'][0]['value'];
-    }
-  } catch (CiviCRM_API3_Exception $e) {
-    ;
-  }
-
-  return false;
-}
-
 /*
  * Track the CiviCRM form which we are currently processing
  */
@@ -2299,102 +2233,6 @@ function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
       }
     }
   }
-}
-
-function _cbf_civicrm_civicrm_address_get_location_data($id) {
-  $result = [];
-
-  try {
-    // Get the Address
-    $record = civicrm_api3('Address', 'get', [
-      'sequential' => 1,
-      'return' => [
-        "name",
-        "supplemental_address_1",
-        "street_address",
-        "city",
-        "state_province_id",
-        "postal_code",
-        "country_id",
-        "geo_code_1",
-        "geo_code_2",
-      ],
-      'id' => $id,
-    ]);
-    if (!isset($record['values'][0]['state_province_id'])) {
-      return $result;
-    }
-    else {
-      $result['name'] = empty($record['values'][0]['supplemental_address_1'])
-        ? $record['values'][0]['name']
-        : $record['values'][0]['supplemental_address_1'];
-      $result['street'] = $record['values'][0]['street_address'];
-      $result['city'] = $record['values'][0]['city'];
-      $result['postal_code'] = $record['values'][0]['postal_code'];
-      $result['latitude']	= $record['values'][0]['geo_code_1'];
-      $result['longitude'] = $record['values'][0]['geo_code_2'];
-      $result['country'] = "au";
-      $result['country_name'] = "Australia";
-
-      // Get the State/Province
-      $record = civicrm_api3('StateProvince', 'get', [
-        'sequential' => 1,
-        'return' => ["name", "abbreviation"],
-        'id' => $record['values'][0]['state_province_id'],
-      ]);
-      if (!isset($record['values'][0]['name'])) {
-        return $result;
-      }
-      else {
-        $result['province'] = $record['values'][0]['abbreviation'];
-        $result['province_name'] = $record['values'][0]['name'];
-      }
-    }
-  } catch (CiviCRM_API3_Exception $e) {
-    ;
-  }
-
-  return $result;
-}
-
-function cbf_civicrm_civicrm_event_get_location_data($id) {
-  $result = [];
-
-  try {
-    // Get the Event
-    $record = civicrm_api3('Event', 'get', [
-      'sequential' => 1,
-      'return' => ["loc_block_id"],
-      'id' => $id,
-    ]);
-    if (!isset($record['values'][0]['loc_block_id'])) {
-      return $result;
-    }
-    else {
-      $id = $record['values'][0]['loc_block_id'];
-    }
-
-    // Get the Location Block
-    $record = civicrm_api3('LocBlock', 'get', [
-      'sequential' => 1,
-      'return' => ["address_id"],
-      'id' => $id,
-    ]);
-    if (!isset($record['values'][0]['address_id'])) {
-      return $result;
-    }
-    else {
-      $id = $record['values'][0]['address_id'];
-    }
-
-    // Get the location data from the Address
-    $result = _cbf_civicrm_civicrm_address_get_location_data($id);
-
-  } catch (CiviCRM_API3_Exception $e) {
-    ;
-  }
-
-  return $result;
 }
 
 /*
@@ -2788,57 +2626,6 @@ function _cbf_civicrm_staff_is_contactable($id) {
     'mobile' => $contact[$mobile] ?? false,
     'phone' => $contact[$phone] ?? false,
   ];
-}
-
-/*
- * Implements hook_cbf_course_node_validate()
- */
-function cbf_civicrm_cbf_course_node_validate($node, $form, $form_state, $courseOptions) {
-  civicrm_initialize();
-  $valid = [];
-  foreach ($courseOptions as $i => $cO) {
-    if ($cO['id'] && !($valid[$cO['id']] ?? false)) {
-      $valid[$cO['id']] = false;
-      $optionValues = \Civi\Api4\OptionValue::get(false)
-      ->addSelect('id')
-      ->addWhere('option_group_id:name', '=', 'course_20210917103625')
-      ->addWhere('value', '=', $cO['id'])
-      ->setLimit(1)
-      ->execute();
-      foreach ($optionValues as $optionValue) {
-        $valid[$cO['id']] = true;
-      }
-      if (!$valid[$cO['id']]) {
-        $element = "field_course_options][und][$i][field_thinkific_course_id][und][0][value";
-        form_set_error($element, 'This Course Id is not set up in CiviCRM');
-      }
-    }
-  }
-}
-
-/*
- * Sends an email using the named message template
- */
-function cbf_civicrm_send_email($from, $toName, $toEmail, $subject, $template, $args) {
-  $messageTemplates = \Civi\Api4\MessageTemplate::get(false)
-    ->addSelect('msg_html')
-    ->addWhere('msg_title', '=', $template)
-    ->setLimit(1)
-    ->execute();
-  foreach ($messageTemplates as $messageTemplate) {
-    $html = format_string($messageTemplate['msg_html'], $args);
-    $params = [
-      'from' => $from,
-      'toName' => $toName,
-      'toEmail' => $toEmail,
-      'html' => $html,
-      'subject' => $subject,
-      'workflow' => 'cbf_civicrm_send_email',
-    ];
-    return CRM_Utils_Mail::send($params);
-  }
-
-  return false;
 }
 
 /*
