@@ -945,8 +945,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
 
   switch ($formName) {
 
-    case 'CRM_Contribute_Form_Contribution': // Offline contribution
-    case 'CRM_Contribute_Form_Contribution_Main': // Online contribution
     case 'CRM_Event_Form_Participant': // Offline event registration
     case 'CRM_Event_Form_Registration_Register': // Online event registration
     case 'CRM_Financial_Form_Payment': // Invoked when changing payment processors etc
@@ -1076,19 +1074,12 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         }
       }
 
-      if ($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->elementExists('buttons') ) {
-        $buttons = $form->getElement('buttons');
-        $submit = $buttons->getElements();
-        $submit[0]->setContent('<i class="crm-i fa-chevron-right" aria-hidden="true"></i> Next');
-      }
-
       /*
        * Prevent the user from editing their name, email or phone during
        * online donations or registrations, in the case when the form has
        * defaults for these.
        */
       switch ($formName) {
-        case 'CRM_Contribute_Form_Contribution_Main': // Online contribution
         case 'CRM_Event_Form_Registration_Register': // Online event registration
           $protect = array(
             'first_name',
@@ -1107,8 +1098,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
 
       break;
 
-    case 'CRM_Contribute_Form_Contribution_Confirm':
-    case 'CRM_Contribute_Form_Contribution_ThankYou':
     case 'CRM_Event_Form_Registration_Confirm':
     case 'CRM_Event_Form_Registration_ThankYou':
       /*
@@ -1156,27 +1145,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
         }
       }
       break;
-
-    case 'CRM_Mailing_Form_Upload':
-      /*
-       * For CiviMails, unset the From email address when the Subject is empty.
-       * This is a roundabout way of unsetting the CiviMail default, to force
-       * the user to enter an From address.
-       */
-      if ( $form->getElementValue('subject') == null ) {
-        $fromAddress = $form->getElement('from_email_address');
-        $fromAddress->setSelected(0);
-      }
-      break;
-
-    case 'CRM_Note_Form_Note':
-      /*
-       * Supply a note_date to prevent an unhandled exception in CiviCRM 5.47.0
-       */
-      if ($form->elementExists('note_date') && empty($form->getElementValue('note_date'))) {
-        $date = new DateObject();
-        $form->_submitValues['note_date'] = $date->format('Y-m-d H:i:s');
-      }
   }
 
   /*
@@ -1188,21 +1156,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
    */
   if (function_exists('_cbf_facebook_pixel_track')) {
     switch ($formName) {
-
-      case 'CRM_Contribute_Form_Contribution_ThankYou':
-        $financialTypeId = $form->_values['financial_type_id'];
-        $financialTypes = \Civi\Api4\FinancialType::get(false)
-        ->addSelect('name')
-        ->addWhere('id', '=', $financialTypeId)
-        ->setLimit(1)
-        ->execute();
-        foreach ($financialTypes as $financialType) {
-          if ($financialType['name'] == 'Donation')
-            _cbf_facebook_pixel_track('Donate', $form->_amount);
-            else
-              _cbf_facebook_pixel_track('Purchase', $form->_amount);
-        }
-        break;
 
       case 'CRM_Event_Form_Registration_Register':
         _cbf_facebook_pixel_track('InitiateCheckout');
@@ -1225,8 +1178,6 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
 function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$errors ) {
   switch ($formName) {
 
-    case 'CRM_Contribute_Form_Contribution':
-    case 'CRM_Contribute_Form_Contribution_Main':
     case 'CRM_Event_Form_Participant':
     case 'CRM_Event_Form_Registration_Register':
       /*
@@ -1287,44 +1238,6 @@ function cbf_civicrm_civicrm_validateForm( $formName, &$fields, &$files, &$form,
             $errors[($publicField === false) ? $submit : $publicField] = ts('No registration options appear to have been selected');
           }
         }
-      }
-      break;
-
-    case 'CRM_Contact_Import_Form_DataSource':
-      // The dedupe rule is needed, except when 'No Duplicate Checking' is selected
-      $onDuplicate = CRM_Utils_Array::value( 'onDuplicate', $fields );
-      foreach ($form->getElement('onDuplicate')->getElements() as $duplicateOption ) {
-        if ($duplicateOption->getValue() == $onDuplicate) {
-          break; // We've found the option that's been selected
-        }
-      }
-      if ($duplicateOption->getText() <> 'No Duplicate Checking') {
-        if (CRM_Utils_Array::value( 'dedupe', $fields ) == '') {
-          $errors['dedupe'] = ts('Dedupe rule must be set, unless there is no duplicate checking');
-        }
-      }
-      break;
-
-    case 'CRM_Event_Form_ManageEvent_EventInfo':
-      // Ensure the End date is set for Events that are not templates
-      $isTemplate = CRM_Utils_Array::value('is_template', $fields);
-      $start = CRM_Utils_Date::processDate(CRM_Utils_Array::value('start_date', $fields), CRM_Utils_Array::value('start_date_time', $fields));
-      $end = CRM_Utils_Date::processDate(CRM_Utils_Array::value('end_date', $fields), CRM_Utils_Array::value('end_date_time', $fields));
-      if (empty($isTemplate)) {
-        if (empty($end)) {
-          $errors['end_date'] = ts('End Date and Time are required fields');
-        }
-        elseif ($end <= $start) {
-          $errors['end_date'] = ts('End date should be after Start date');
-        }
-      }
-      break;
-
-    case 'CRM_Event_Form_ManageEvent_Registration':
-      // Do not allow the Register multiple participants flag to be set
-      $isMultiple = CRM_Utils_Array::value('is_multiple_registrations', $fields);
-      if (!empty($isMultiple)) {
-        $errors['is_multiple_registrations'] = ts('This option is not allowed. It causes too many user errors who a) try to use Price Sets with this option and b) do not fix data quality issues after the event');
       }
       break;
 
@@ -1512,22 +1425,6 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
   }
 
   /*
-   * There is an issue where users being redirected back to our site after making
-   * a PayPal payment are sent an error message because their session has changed.
-   * Redirect them to get a thank you message. The page to which they will be
-   * redirected has no personal information.
-   */
-  if (stripos($vars['message'], 'Could not find a valid session key') !== false
-    && stripos($_SERVER['QUERY_STRING'], '_qf_ThankYou_display') !== false
-    && stripos($_SERVER['HTTP_REFERER'], 'paypal.com') !== false) {
-      CRM_Core_Error::debug_var('PayPal error', $vars, true, true, '', PEAR_LOG_ERR);
-      CRM_Core_Error::debug_var('Cookies', $_COOKIE, true, true, '', PEAR_LOG_ERR);
-      CRM_Core_Error::backtrace('backTrace', true);
-      _cbf_civicrm_redirect_to_session_for_qfKey();
-      CRM_Utils_System::redirect('/paypal-thankyou');
-  }
-
-  /*
    * There are a number of annoying errors that get logged. They seem to be due to
    * robots etc. The $ignore array stores the patterns that should be ignored.
    *
@@ -1628,70 +1525,6 @@ function cbf_civicrm_fatal_error_handler(&$vars) {
   }
 
   return false;
-}
-
-/*
- * Implementation of hook_civicrm_pre() to capture changes before they're saved
-*/
-function cbf_civicrm_civicrm_pre($op, $objectName, $id, &$params) {
-
-  switch ($objectName) {
-
-    case 'Household':
-
-      switch ($op) {
-        case 'create':
-        case 'edit':
-
-          /*
-           * Whenever an Archived_team ("Past team") is created or edited, ensure
-           * its name includes 'No longer meets: ' and its relationships are
-           * inactive.
-           */
-          foreach ($params['contact_sub_type'] as $sub_type) {
-            if ($sub_type == 'Archived_team') {
-              $archived_team_prefix = 'No longer meets: ';
-
-              if (strpos($params['household_name'], $archived_team_prefix) === false) {
-                $params['household_name'] = $archived_team_prefix . $params['household_name'];
-              }
-
-              try {
-                $get_a = civicrm_api3('Relationship', 'get', array(
-                  'sequential' => 1,
-                  'contact_id_a' => $id,
-                  'is_active' => 1,
-                ));
-                $get_b = civicrm_api3('Relationship', 'get', array(
-                  'sequential' => 1,
-                  'contact_id_b' => $id,
-                  'is_active' => 1,
-                ));
-                $get = array_merge($get_a['values'], $get_b['values']);
-
-                foreach ($get as $relationship) {
-                  $arguments = array(
-                    'sequential' => 1,
-                    'id' => $relationship['id'],
-                    'is_active' => 0,
-                  );
-
-                  if (!isset($relationship['end_date'])) {
-                    $arguments['end_date'] = CRM_Utils_Date::getToday();
-                  }
-
-                  $result = civicrm_api3('Relationship', 'create', $arguments);
-                }
-
-              } catch (CiviCRM_API3_Exception $e) {
-                ;
-              }
-            }
-          }
-          break;
-      }
-      break;
-  }
 }
 
 /*
@@ -2210,20 +2043,6 @@ function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
             }
           }
           break;
-
-        case 'civicrm/contribute/transact':
-          if ($currentForm == 'CRM_Contribute_Form_Contribution_ThankYou') {
-            preg_match('![?&;]id=([0-9]+)!i', $_SESSION['CiviCRM']['entryURL'], $matches);
-            $eventId = empty($matches[1]) ? null : $matches[1];
-            if (!empty($path[1]) && $eventId == $path[1]) {
-              /*
-               * Preserve this tracking path
-               * Prevent the default tracking path rule removing it
-               */
-              $unset = false;
-            }
-          }
-          break;
       }
       if ($unset) {
         unset($trackingpaths[$index]);
@@ -2233,399 +2052,6 @@ function cbf_civicrm_facebook_tracking_pixel_alter(&$trackingpaths) {
       }
     }
   }
-}
-
-/*
- * Redirect the visitor to a session that matches the qfKey they specify.
- *
- * If not “we have been here before”, then
- *   If can find the original session, then
- *     Load data from original session into this session
- *     Redirect to try again, marking “we have been here before” to avoid a loop
- *
- * If the redirect doesn't happen for any reason, this function will return false.
- * The calling logic should assume that if this function returns that's a failure.
- */
-function _cbf_civicrm_redirect_to_session_for_qfKey() {
-  $progress = [];
-  $qfKey = CRM_Utils_Request::retrieve('qfKey', 'String') ?? false;
-  $progress[] = 'qfKey = ' . $qfKey;
-  $beenHere = CRM_Utils_Request::retrieve('cbf', 'Boolean') ?? false;
-  $progress[] = 'beenHere = ' . $beenHere;
-
-  if ($qfKey && !$beenHere) { // We have a qfKey and we've not been here before
-    /*
-     * Reproduce the logic for finding a session from _drupal_session_read
-     * But: assume HTTPS;
-     *      search by hostname rather than ssid;
-     *      allow for zero to many results.
-     */
-    $hostname = ip_address();
-    $progress[] = 'hostname = ' . ip_address();
-    $progress[] = 'HTTP_HOST = ' . $_SERVER['HTTP_HOST'];
-    $result =
-      db_query(
-        "SELECT u.*, s.* FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid WHERE s.hostname = :hostname",
-        [':hostname' => $hostname]
-      )->fetchAll();
-    $sessions = [];
-    foreach ($result as $session) {
-      $sessions[] = [
-        'ssid' => $session->ssid,
-        'uid' => $session->uid ?? 0,
-        'session' => $session->session
-      ];
-      $progress[] = 'Found session with ssid = ' . $session->ssid;
-    }
-
-    /*
-     * Reproduce the logic for validating a qfKey from CRM_Core_Key
-     * But: lookup the name of the CiviCRM controller
-     *      Ensure a Drupal session has started as we intend to encode an decode sessions
-     *      preserve the original $_SESSION and restore it even if there is an
-     *      load each session into $_SESSION
-     *      exception
-     *      track the sessions which match the qfKey
-     */
-    $controller = '';
-    $path = drupal_parse_url($_SERVER['REQUEST_URI'])['path'];
-    $progress[] = 'path = ' . $path;
-    switch ($path) {
-      case '/civicrm/contribute/transact':
-        $controller = 'CRM_Contribute_Controller_Contribution';
-        break;
-      case '/civicrm/event/register':
-        $controller = 'CRM_Event_Controller_Registration';
-        break;
-    }
-    $progress[] = 'controller = ' . $controller;
-
-    $matches = [];
-    drupal_session_start();
-    $thisSession = session_encode();
-    $progress[] = 'Current session = ' . $thisSession;
-    try {
-      foreach ($sessions as $session) {
-        $_SESSION = [];
-        $progress[] = 'Trying session with ssid = ' . $session['ssid'];
-        if (session_decode($session['session'])) {
-          list($k, $t) = explode('_', $qfKey);
-          if ($t >= 1 && $t < 10000) {
-            $prefix = preg_replace('/[^a-zA-Z0-9]/', '', $controller);
-            $hashKey = hash_hmac(
-              CRM_Core_Key::HASH_ALGO,
-              $_SESSION['CiviCRM']['qfSessionID'] . chr(0) . $controller,
-              $_SESSION['CiviCRM']['qfPrivateKey']);
-            $hashKey = $prefix . base_convert($hashKey, 16, 36);
-            $progress[] = 'qfSessionID = ' . $_SESSION['CiviCRM']['qfSessionID'];
-            $progress[] = 'qfPrivateKey = ' . $_SESSION['CiviCRM']['qfPrivateKey'];
-            $progress[] = 'hashed key = ' . $hashKey;
-            if (hash_equals($k, $hashKey)) {
-              $matches[] = $session;
-              $progress[] = 'Matched session with ssid = ' . $session['ssid'];
-            }
-          }
-        }
-        else {
-          $progress[] = 'Failed to decode session with ssid = ' . $session['ssid'];
-        }
-      }
-    } catch (Exception $e) {
-      ;
-    }
-
-    if (count($matches) == 1) { // We have found the original session
-      /*
-       * Load data from the original session into this session, borrowing logic
-       * from hybridauth_session_start()
-       */
-      $_SESSION = [];
-      session_decode($matches[0]['session']);
-      $progress[] = 'Loaded session = ' . $matches[0]['session'];
-      db_delete('sessions')->condition('ssid', $matches[0]['ssid'])->execute();
-      $progress[] = 'Deleted row from sessions table with ssid = ' . $matches[0]['ssid'];
-
-      /*
-       * Redirect to try again, marking “we have been here before” to avoid a loop
-       * But: this implements CRM_Utils_System::redirect with response code 307
-       *      this doesn't work if the current URL was redirected internally
-       *      this may not work if the current method is not POST
-       */
-      $uri = $_SERVER['REQUEST_URI'] . '&cbf=1';
-      $progress[] = 'Redirect to URI = ' . $uri;
-      CRM_Core_Error::debug_var('_cbf_civicrm_redirect_to_session_for_qfKey', $progress);
-      http_response_code(307);
-      CRM_Utils_System::redirect($uri);
-    }
-
-    $_SESSION = [];
-    session_decode($thisSession);
-    $progress[] = 'Reloaded the starting session = ' . $thisSession;
-  }
-
-  CRM_Core_Error::debug_var('_cbf_civicrm_redirect_to_session_for_qfKey', $progress);
-  return false;
-}
-
-/*
- * Implements hook_civicrm_dupeQuery
- *
- * This hook is called during the dedupe lookup process, and can be used to
- * alter the parameters and queries used to determine if two contacts are
- * duplicates.
- */
-function cbf_civicrm_civicrm_dupeQuery($obj, $type, &$query) {
-  switch ($type) {
-    case 'table':
-      $testRuleId = '20';
-      if ($obj->id == $testRuleId) {
-        /*
-         * Nickname matching
-         *
-         * Modify the queries for matching Contact first and last names to
-         * also match on nickname.
-         */
-        $schema = ['civicrm_contact' => ['first_name', 'last_name']];
-        foreach ($schema as $table => $columns) {
-          foreach ($columns as $column) {
-            foreach ($query as $i => $sql) {
-              if (preg_match("#^$table\.$column\.[0-9]+$#i", $i)) {
-                $value = $obj->params[$table][$column] ?? '';
-                if (empty($value)) {
-                  /*
-                   * An empty $value means the name query will JOIN the
-                   * contact table to itself.
-                   *
-                   * Here are the steps for extending the name query to also
-                   * use the nickname
-                   *
-                   *  1. Duplicate the SQL so we have 'name' SQL and 'nickname'
-                   *     SQL
-                   *  2. Replace the name column on the 2nd table with nickname
-                   *  3. Replace the 'name equality' test with 2 tests: firstly
-                   *     that the names don't match as that is handled by the
-                   *     'name' SQL; secondly that 1st table's name is found in
-                   *     the 2nd table's nickname (see comment below re how the
-                   *     nickname test works)
-                   *  4. Since the nickname test is not reflexive we need to
-                   *     replace the 'less than' ID test with 'not equal' test
-                   *  5. Since the 'name' SQL delivers results with id1 < id2
-                   *     we need to do that for the 'nickname' SQL
-                   *  6. We UNION the results of the 'name' SQL with that of
-                   *     the 'nickname' SQL, using similar logic to that at the
-                   *     end of CRM_Dedupe_BAO_Rule::sql(), while ensuring any
-                   *     derived tables have different names ('subunion' etc)
-                   */
-                  $nicksql = $sql;
-                  $nicksql = str_ireplace(
-                    "t2.$column",
-                    "t2.nick_name",
-                    $nicksql);
-                  $nicksql = str_ireplace(
-                    "t1.$column = t2.nick_name",
-                    "t1.$column <> t2.$column AND locate(concat(' ', t1.$column, ','), concat(' ', t2.nick_name, ',')) > 0",
-                    $nicksql);
-                  $nicksql = str_ireplace(
-                    "t1.id < t2.id",
-                    "t1.id <> t2.id",
-                    $nicksql);
-                  $nicksql = str_ireplace(
-                    "SELECT t1.id id1, t2.id id2",
-                    "SELECT IF(t1.id < t2.id, t1.id, t2.id) id1, IF(t1.id < t2.id, t2.id, t1.id) id2",
-                    $nicksql);
-                  $nicksql = str_ireplace(
-                    ") subunion",
-                    ") subunion1",
-                    $nicksql);
-                  $sql = "SELECT id1, id2, weight FROM ($sql UNION $nicksql) subunion2";
-                }
-                else {
-                  /*
-                   * A non-empty $value means the name SQL is looking to match
-                   * the name with that $value.
-                   *
-                   * Replace the 'name equality' test with an A OR B test: A is
-                   * the original name test, and B is a test that the $value is
-                   * found in the nickname.
-                   *
-                   * The $value and nickname are book-ended with a space and a
-                   * comma, so that ...
-                   *
-                   * Value   Nickname    Match?
-                   * -----   --------    ------
-                   * Ken     Ken         Yes
-                   * Ken     Ken, Jim    Yes
-                   * Ken     Kenneth     No
-                   * Frazer  nee Frazer  Yes
-                   */
-                  $sql = str_ireplace(
-                    "t1.$column = '$value'",
-                    "(t1.$column = '$value' OR (t1.nick_name IS NOT NULL AND locate(' $value,', concat(' ', t1.nick_name, ',')) > 0))",
-                    $sql);
-                }
-                $query[$i] = $sql;
-                break;
-              }
-            }
-          }
-        }
-
-        /*
-         * Phone matching
-         *
-         * Modify the queries for matching Phone numbers to only look at the
-         * last 9 digits.
-         */
-        $schema = ['civicrm_phone' => ['phone_numeric']];
-        foreach ($schema as $table => $columns) {
-          foreach ($columns as $column) {
-            foreach ($query as $i => $sql) {
-              if (preg_match("#^$table\.$column\.[0-9]+$#i", $i)) {
-                $value = $obj->params[$table][$column] ?? '';
-                if (empty($value)) {
-                  /*
-                   * An empty $value means the phone query will JOIN the
-                   * phone table to itself.
-                   */
-                  $sql = str_ireplace(
-                    "t1.$column = t2.$column",
-                    "((t1.$column - t2.$column) mod 1000000000) = 0",
-                    $sql);
-                }
-                else {
-                  /*
-                   * A non-empty $value means the name SQL is looking to match
-                   * the name with that $value.
-                   */
-                  $sql = str_ireplace(
-                    "t1.$column = '$value'",
-                    "((t1.$column - '$value') mod 1000000000) = 0",
-                    $sql);
-                }
-                $query[$i] = $sql;
-                break;
-              }
-            }
-          }
-        }
-      }
-      break;
-  }
-}
-
-/*
- * This hook is called when contacts are added/updated via profiles, event
- * registration pages, contribution pages etc. When a form is submitted CiviCRM
- * checks if a contact already exists using one of the built-in deduplication
- * rules and returns a contact ID if a match is found.
- *
- * This hook allows you to override the contact matching rules to implement
- * more complex rules.
- */
-function cbf_civicrm_civicrm_findDuplicates($dedupeParams, &$dedupeResults, $contextParams) {
-  $externalId = $dedupeParams['civicrm_contact']['external_identifier'] ?? '';
-  if (!empty($externalId)) {
-    try {
-      $found = [];
-
-      // Find a contact that matches using Contact Id
-      $result = civicrm_api3('Contact', 'get', [
-        'sequential' => 1,
-        'return' => ['id'],
-        'id' => $externalId,
-        'contact_type' => $dedupeParams['contact_type'],
-        'is_deleted' => 0,
-      ]);
-      if ($result['id'] == $externalId) { // $result can't be multiple items
-        $found[] = $externalId;
-      }
-
-      // Find a contact that matches using External Id
-      $result = civicrm_api3('Contact', 'get', [
-        'sequential' => 1,
-        'return' => ['id'],
-        'external_identifier' => ['LIKE' => "%$externalId%"],
-        'contact_type' => $dedupeParams['contact_type'],
-        'is_deleted' => 0,
-      ]);
-      foreach ($result['values'] as $match) {
-        $externalIds = $match['external_identifier'];
-        if (stristr(" $externalIds,", " $externalId,")) {
-          $found[] = $match['id'];
-        }
-      }
-
-      // Find a not-deleted contact that the searched-for contact was merged into
-      if (empty($found)) {
-        $result = civicrm_api3('Activity', 'get', [
-          'sequential' => 1,
-          'return' => ['target_contact_id', 'subject'],
-          'activity_type_id' => 'Contact Merged',
-          'subject' => ['LIKE' => "% $externalId %"],
-        ]);
-        foreach ($result['values'] as $match) {
-          foreach ($match['target_contact_id'] as $i) {
-            $result1 = civicrm_api3('Contact', 'get', [
-              'sequential' => 1,
-              'return' => ['id', 'external_identifier'],
-              'id' => $i,
-              'contact_type' => $dedupeParams['contact_type'],
-              'is_deleted' => 0,
-            ]);
-            if ($result1['id'] == $i) { // $result1 can't be multiple items
-              $found[] = $i;
-
-              // Remember the External Identifier for next time
-              $eid = $result1['values'][0]['external_identifier'];
-              if (empty($eid)) {
-                $eid = $externalId;
-              }
-              else {
-                $eid .= ", $externalId";
-              }
-              $result2 = civicrm_api3('Contact', 'create', [
-                'contact_type' => $dedupeParams['contact_type'],
-                'id' => $i,
-                'external_identifier' => $eid,
-              ]);
-            }
-          }
-        }
-      }
-
-      // Return any found results
-      $dedupeResults['ids'] = $found;
-      $dedupeResults['handled'] = true;
-    } catch (CiviCRM_API3_Exception $e) {
-    }
-  }
-}
-
-/*
- * Advise if this staff member is contactable
- */
-function _cbf_civicrm_staff_is_contactable($id) {
-
-  $contactable = 'Staff.Contactable';
-  $email = 'Staff.Staff_email_on_website';
-  $mobile = 'Staff.Staff_mobile_on_website';
-  $phone = 'Staff.Staff_phone_on_website';
-
-  $contact = \Civi\Api4\Contact::get(false)
-  ->addSelect($contactable, $email, $mobile, $phone)
-    ->addWhere('id', '=', $id)
-    ->addWhere('contact_sub_type', '=', 'Staff')
-    ->setLimit(1)
-    ->setCheckPermissions(FALSE)
-    ->execute()
-    ->first();
-
-  return [
-    'contactable' => $contact[$contactable] ?? false,
-    'email' => $contact[$email] ?? false,
-    'mobile' => $contact[$mobile] ?? false,
-    'phone' => $contact[$phone] ?? false,
-  ];
 }
 
 /*
