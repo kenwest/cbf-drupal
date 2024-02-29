@@ -21,7 +21,7 @@ function cbf_init() {
    * The 2024 SPB is the last civicrm_event. A URL Redirect exists that points
    * to the corresponding brite_event. All other civicrm_events are not found.
    */
-  if (arg(0) == 'civicrm-event') {
+  if (arg(0) == 'civicrm-event' && (empty(arg(1)) || arg(1) != '3046')) {
     drupal_not_found();
     drupal_exit();
   }
