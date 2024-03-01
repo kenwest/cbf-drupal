@@ -1265,27 +1265,6 @@ function cbf_views_pre_render(&$view) {
  *   $view->result"
  */
 function cbf_views_post_execute(&$view) {
-  /*
-   * If the results of this view need to be filtered to only include content
-   * local to the visitor, then remove items that don't match.
-   */
-  if (in_array('local', explode(', ', $view->tag))) {
-    $city = cbf_visitor_city_string();
-    if (!empty($city)) {
-      $alteredResults = [];
-      foreach ($view->result as $result) {
-        if (
-          empty($result->field_taxonomy_vocabulary_1)
-          || stristr($result->field_taxonomy_vocabulary_1[0]['rendered']['#markup'], $city) !== false
-        ) {
-          $alteredResults[] = $result;
-        }
-      }
-      if (count($alteredResults) != count($view->result)) {
-        $view->result = $alteredResults;
-      }
-    }
-  }
 
   /*
    * If the results of this view need to be filtered by Ministry Centre in this
@@ -1321,128 +1300,6 @@ function cbf_views_post_execute(&$view) {
       if (count($alteredResults) != count($view->result)) {
         $view->result = $alteredResults;
       }
-    }
-  }
-
-  /*
-   * This function prevents block displays being crowded out by Events of a single Activity
-   * (eg Bible Shots runs 3 events each week). These block displays are indicated by either
-   *  1. The view is tagged with 'merge-events'
-   *  2. The display is marked with a CSS class 'cbf-merge-events' (useful if merging is not
-   *     appropriate for all displays)
-   *
-   * The display is set to not limit the number of items
-   *  1. By default this is limited by this function to 5
-   *  2. If the display has the CSS class 'show-N-items' then this function limits the number
-   *     to N, where N is an integer
-   *
-   * To prevent this crowding out, we check if there are multiple Events sharing the same
-   * name and Activity. If that's the case, we 'summarise' those Events: we keep the first
-   * and the rest are removed from the results. The Date Text of that first Event is altered
-   * to include a link to a page of events for the Event's Activity.
-   */
-  if (
-    (
-      preg_match(
-        '/(^| )merge-events(,|$)/i',
-        $view->tag) == 1
-      ||
-      preg_match(
-        '/(^| )cbf-merge-events($| )/i',
-        $view->display_handler->get_option('css_class')) == 1
-    ) &&
-    $view->display_handler->plugin_name == 'block'
-  ) {
-    /*
-     * $eventsByActivity is an array of arrays. It maps from Activity Id to Event name to
-     * index of the first element of $view->result that has that Activity Id and name.
-     *
-     * $summarised is an array that maps from the Event that will be summarised to the
-     * Event that summarises it. The keys and values are indexes in $view->result.
-     */
-    $eventsByActivity = array();
-    $summarised = array();
-    foreach ($view->result as $r => $result) {
-      /*
-       * Do not summarise Events that aren't part of an Activity
-       */
-      if (!isset($result->field_field_in_activity[0]['raw']['target_id'])) {
-        continue;
-      }
-      $activity = $result->field_field_in_activity[0]['raw']['target_id'];
-
-      /*
-       * Get the title
-       */
-      $name = $result->node_title
-        ?? $result->field_field_title[0]['rendered']['#markup']
-        ?? false;
-      if (empty($name)) {
-        continue;
-      }
-
-      /*
-       * Find the event which can summarise this one
-       */
-      $summaryEvent = false;
-      if (!isset($eventsByActivity[$activity])) {
-        $eventsByActivity[$activity] = [];
-      }
-      foreach ($eventsByActivity[$activity] as $n => $i) {
-        if ($n == $name) {
-          $summaryEvent = $i;
-          break;
-        }
-      }
-      if ($summaryEvent !== false) {
-        $summarised[$r] = $summaryEvent;
-      }
-      else {
-        $eventsByActivity[$activity][$name] = $r;
-      }
-    }
-
-    /*
-     * If any events are summarised, remove them from the results.
-     * Also stash the node alias of the event's Activity.
-     */
-    if (!empty($summarised)) {
-      $alteredResults = [];
-      foreach ($view->result as $r => $result) {
-        if (!isset($summarised[$r])) {
-          if (in_array($r, $summarised)) {
-            $result->__cbf_merge_events = drupal_get_path_alias("node/" . $result->field_field_in_activity[0]['raw']['target_id']);
-          }
-          $alteredResults[] = $result;
-        }
-      }
-      $view->result = $alteredResults;
-    }
-
-    /*
-     * Since we may have summarised multiple events into one, we can't
-     * rely on the view to limit the number of events displayed.
-     */
-    $maximumDisplayed = 5;
-    $matches = [];
-    if (
-      preg_match(
-        '/(^| )show-([0-9]+)-items($| )/i',
-        $view->display_handler->get_option('css_class'),
-        $matches
-      ) == 1) {
-      $maximumDisplayed = intval($matches[2]);
-    }
-    if (count($view->result) > $maximumDisplayed) {
-      $alteredResults = [];
-      $i = 0;
-      foreach ($view->result as $r => $result) {
-        if ($i++ == $maximumDisplayed) {
-          break;
-        }
-        $alteredResults[] = $result;
-      }
-      $view->result = $alteredResults;
     }
   }
 
@@ -1540,14 +1397,7 @@ function cbf_views_post_execute(&$view) {
    */
   if (
     (
-      $view->name == 'cbf2019_national_activity_event_slider' ||
       $view->name == 'cbf2019_activity_brite_event_slider' ||
-      (
-        $view->name == 'cbf2019_content_highlight_slider' &&
-        $view->current_display == 'block_3') ||
-      (
-        $view->name == 'cbf2019_speakers' &&
-        $view->current_display == 'block_5') ||
       (
         $view->name == 'cbf2019_staff_slider' &&
         $view->current_display == 'block_2')
