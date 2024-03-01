@@ -133,18 +133,14 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
   /*
    * Limit the views_exposed_form on the displays of the
-   * cbf2019_national_activity_contents view and the
    * cbf2019_activity_components view. It should only list locations where this
-   * Activity is active, and there is either a Regular Venue, a Mappable item,
+   * Activity is active, and there is either a Mappable item,
    * an Upcoming Event or a Staff member.
    */
   if (
       $form_id == 'views_exposed_form' &&
       !empty($form_state['view']) &&
-      (
-        $form_state['view']->name == 'cbf2019_national_activity_contents' ||
-        $form_state['view']->name == 'cbf2019_activity_components'
-      )
+      $form_state['view']->name == 'cbf2019_activity_components'
     ) {
     $node = menu_get_object();
     if (!empty($node) && $node->type == 'activity') {
@@ -227,26 +223,14 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
       }
 
       /*
-       * Detect which field is being used as the exposed filter
-       */
-      if (isset($form['field_networks_visibility_tid'])) {
-        $exposedFilter = 'field_networks_visibility';
-        $exposedTid = 'field_networks_visibility_tid';
-      }
-      else {
-        $exposedFilter = 'field_highlight_location';
-        $exposedTid = 'field_highlight_location_tid';
-      }
-
-      /*
        * Find the valid options for this filter
        */
-      if (!isset($alterations['activity'][$exposedTid])) {
+      if (!isset($alterations['activity']['field_highlight_location_tid'])) {
         /*
          * Find the possible options for this filter
          */
         $exposedLocations = [];
-        $locations = cbf_field_get_items('node', $node, $exposedFilter, 'tid', []);
+        $locations = cbf_field_get_items('node', $node, 'field_highlight_location', 'tid', []);
         foreach ($locations as $location) {
           $i = (int) $location;
           $exposedLocations[$i] = $i;
@@ -257,20 +241,20 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
          * city has an entity as calculated above. The 'All' option is valid.
          * All options are valid if any of the upcoming events are not city-based.
          */
-        $alterations['activity'][$exposedTid] = [];
-        foreach ($form[$exposedTid]['#options'] as $tid => $city) {
+        $alterations['activity']['field_highlight_location_tid'] = [];
+        foreach ($form['field_highlight_location_tid']['#options'] as $tid => $city) {
           if (is_numeric($tid)) {
             if (isset($exposedLocations[$tid])) {
               if (
                 isset($alterations['activity']['cities']['All']) ||
                 isset($alterations['activity']['cities'][_cbf_convert_banner_to_city_tid($tid)])
               ) {
-                $alterations['activity'][$exposedTid][$tid] = $city;
+                $alterations['activity']['field_highlight_location_tid'][$tid] = $city;
               }
             }
           }
           else {
-            $alterations['activity'][$exposedTid][$tid] = $city;
+            $alterations['activity']['field_highlight_location_tid'][$tid] = $city;
           }
         }
       }
@@ -282,13 +266,17 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
       if (
         (
           count($alterations['activity']['cities']) == 1 &&
-          isset($alterations['activity']['cities']['All'])) ||
-        count($alterations['activity'][$exposedTid]) <= 2
+          isset($alterations['activity']['cities']['All'])
+        ) ||
+        count($alterations['activity']['field_highlight_location_tid']) <= 2
       ) {
+
         $form['#access'] = false;
       }
       else {
-        $form[$exposedTid]['#options'] = $alterations['activity'][$exposedTid];
+
+        $form['field_highlight_location_tid']['#options']
+          = $alterations['activity']['field_highlight_location_tid'];
       }
     }
   }
