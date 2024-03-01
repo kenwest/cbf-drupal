@@ -149,7 +149,7 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
       }
 
       if (!isset($alterations['activity']['cities'])) {
-        // Find the Cities where there are Regular Venues or Mappable items
+        // Find the Cities where there are Mappable items
         $cities = [];
         $query = new EntityFieldQuery();
         $result = $query
