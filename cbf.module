@@ -688,8 +688,6 @@ function cbf_entity_presave($entity, $type) {
 
     $matches = [];
 
-    $entityActivity = cbf_field_get_items($type, $entity, 'field_in_activity', 'target_id', 0);
-
     $audienceTerm = cbf_field_get_items($type, $entity, 'taxonomy_vocabulary_3', 'tid', '');
     switch ($audienceTerm) {
       case '47':
@@ -705,12 +703,6 @@ function cbf_entity_presave($entity, $type) {
         $entityAudience = '';
         break;
     }
-
-    $field_third_space_category = cbf_field_get_items($type, $entity, 'field_third_space_category', 'tid', '');
-    $entityHasThirdSpaceCategory = !empty($field_third_space_category);
-
-    $field_third_space_exclusive = cbf_field_get_items($type, $entity, 'field_third_space_exclusive', 'value', 0);
-    $entityIsThirdSpaceExclusive = !empty($field_third_space_exclusive);
 
     foreach ($domains as $domain) {
       $match = false;
@@ -730,29 +722,6 @@ function cbf_entity_presave($entity, $type) {
           )
         ) {
           $match = true;
-        }
-
-        foreach ($domain['aliases'] as $alias) {
-          $ruleDomain = stristr($alias['pattern'], '.domain.rule', true);
-          if ($ruleDomain == 'thirdspace') {
-            if ($entityHasThirdSpaceCategory == true && $entityAudience == 'general') {
-              if ($entityIsThirdSpaceExclusive) {
-                $matches = [ $domain['machine_name'] => [ 'domain_id' => $domain['domain_id'] ] ];
-                break 2;
-              }
-              $match = true;
-              break;
-            }
-          }
-
-          $ruleActivity = stristr($alias['pattern'], '.activity.rule', true);
-          if ($ruleActivity !== false) {
-            $ruleActivity = (int) $ruleActivity;
-            if ($entityActivity == $ruleActivity || ($type == 'node' && $entityId == $ruleActivity)) {
-              $match = true;
-              break;
-            }
-          }
         }
       }
 
@@ -781,9 +750,6 @@ function cbf_entity_presave($entity, $type) {
               case 'general':
               case 'christian':
                 $sources[$name] = $domainId['domain_id'];
-                break;
-              case 'thirdspace':
-                // Ignore legacy Thirdspace as a domain source
                 break;
               default:
                 $sources['other'] = DOMAIN_SOURCE_USE_ACTIVE;
@@ -1756,16 +1722,13 @@ function cbf_views_post_execute(&$view) {
   }
 
   /*
-   * If the view is 'cbf2019_local_offices' and the current Domain is
-   * legacy Third Space, then overwrite the email address with the Third
-   * Space public email address. If the site is the General content site
-   * then use the corresponding Third Space address.
+   * If the view is 'cbf2019_local_offices' and the current Domain the General
+   * content site then use the corresponding Third Space address.
    */
   if ($view->name == 'cbf2019_local_offices') {
     $currentDomainId = domain_get_domain()['domain_id'];
     $generalDomainId = domain_load_domain_id('general');
     $christianDomainId = domain_load_domain_id('christian');
-    $legacyThirdSpaceDomainId = domain_load_domain_id('thirdspace');
     switch ($currentDomainId) {
       case $generalDomainId:
         $contactEmailPattern = '/@.*$/';
@@ -1774,10 +1737,6 @@ function cbf_views_post_execute(&$view) {
       case $christianDomainId:
         $contactEmailPattern = '/@.*$/';
         $contactEmailReplacement = '@citybibleforum.org';
-        break;
-      case $legacyThirdSpaceDomainId:
-        $contactEmailPattern = '/^.*$/';
-        $contactEmailReplacement = 'info@thirdspace.org.au';
         break;
       default:
         $contactEmailPattern = false;
