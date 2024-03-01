@@ -1796,11 +1796,6 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
       'value' => 'get timestamp',
       'default' => null,
     ],
-    'field_highlight_dates' => [
-      'field' => 'field_highlight_dates',
-      'value' => 'array',
-      'default' => null,
-    ],
     'field_thumbnail_image' => [
       'field' => 'field_thumbnail_image',
       'value' => 'reset array',
