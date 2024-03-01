@@ -1560,12 +1560,6 @@ function cbf_entity_viewable($entity, $type, $operation) {
           'dateable',
           'mappable',
         ],
-        'event' => [
-          'dateable',
-        ],
-        'story' => [
-          'dateable',
-        ],
       ],
     ],
   ];
