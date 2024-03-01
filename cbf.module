@@ -958,67 +958,6 @@ function cbf_mail_alter(&$message) {
 }
 
 /*
- * Derive the city name from the Drupal arguments or the URL
- */
-function cbf_city_string() {
-  /*
-   * The city name is initially unknown, but only needs to be calculated
-   * once per request
-   */
-  static $cbf_city = null;
-
-  if ( !isset($cbf_city) ) {
-    /*
-     * There is no $city unless specified in the Drupal args or URL
-     */
-    $city = false;
-
-    if (arg(0) == 'city' && arg(1) != '') {
-      $city = arg(1);
-    } else {
-      $uri = explode('/', $_SERVER['REQUEST_URI']);
-      if($uri[1] == 'city' && isset($uri[2]) ){
-        $city = $uri[2];
-      }
-    }
-
-    switch ($city) {
-      // The cities
-      case 'sydney':
-      case 'canberra':
-      case 'melbourne':
-      case 'brisbane':
-      case 'perth':
-      case 'adelaide':
-      case 'hobart':
-        $cbf_city = $city;
-        break;
-
-      // Deprecated: the areas in Sydney
-      case 'sydney-cbd':
-      case 'sydney-cbd-north':
-      case 'sydney-cbd-south':
-      case 'sydney-legal':
-      case 'sydneys-north-shore':
-      case 'north-sydney':
-      case 'st-leonards':
-      case 'chatswood':
-      case 'macquarie-park':
-      case 'parramatta':
-        $cbf_city = 'sydney';
-        break;
-
-      // Anything else is not a city
-      default:
-        $cbf_city = false;
-        break;
-    }
-  }
-
-  return $cbf_city;
-}
-
-/*
  * The visitor city name is initially unknown, but only needs to be calculated
  * once per request
  */
