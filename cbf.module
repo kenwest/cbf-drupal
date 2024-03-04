@@ -602,11 +602,6 @@ function cbf_form_revision_validate($form, &$form_state) {
  *
  * Rules are stored in the domain information ...
  *
- *     alias = NNNN.activity.rule
- *
- *         NNNN is the node Id for the Activity that corresponds to this domain.
- *         This rule matches if the node's nid or its Activity is NNNN.
- *
  *     machine_name = christian
  *     alias = christian.audience.rule |
  *             all.audience.rule
