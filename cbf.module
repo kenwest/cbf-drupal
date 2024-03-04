@@ -1801,11 +1801,6 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
       'value' => 'reset array',
       'default' => null,
     ],
-    'field_highlight_location' => [
-      'field' => 'field_highlight_location',
-      'value' => 'array',
-      'default' => null,
-    ],
     'field_map_location' => [
       'field' => 'field_map_location',
       'value' => 'reset array',
@@ -2043,7 +2038,6 @@ function cbf_entity_dateable($entity, $type, $currentForm) {
       "field_event_date",
       "field_episode_date",
       "field_thumbnail_image",
-      "field_highlight_location",
       "domain_entityform",
     ],
     [ ]
