@@ -1030,7 +1030,7 @@ function cbf_visitor_city_string() {
  * 1  Summary card with large image  Highlight        Image >= 280px x 150px
  *                                   Series image
  *                                   Image
- * 2  Summary card                   Thumbnail image  Image >= 120px x 120px
+ * 2  No longer available
  * 3  Summary card                   Logo             No matching image fields
  *
  * The Facebook Open Graph preferences are ...
@@ -1076,16 +1076,7 @@ function cbf_metatag_pattern_alter(&$pattern, &$types, $tag_name) {
             }
           }
         }
-        /* Try Option 2 */
-        if ($src == '') {
-          $image = field_get_items($entityType, $entity, 'field_thumbnail_image');
-          if ($image !== false && !empty($image)) {
-            if (isset($image[0]['width']) && $image[0]['width'] >= 120 &&
-                isset($image[0]['height']) && $image[0]['height'] >= 120) {
-              $src = "[$entityType:field_thumbnail_image]";
-            }
-          }
-        }
+        /* Option 2 is no longer available*/
         /* Update the tag pattern if changed from the default */
         if ($src != '') {
           switch ($tag_name) {
@@ -1791,11 +1782,6 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
       'value' => 'get timestamp',
       'default' => null,
     ],
-    'field_thumbnail_image' => [
-      'field' => 'field_thumbnail_image',
-      'value' => 'reset array',
-      'default' => null,
-    ],
     'field_highlight' => [
       'field' => 'field_highlight',
       'value' => 'reset array',
@@ -1927,33 +1913,6 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
   }
 
   /*
-   * Special case - the thumbnail image is sourced from the available images in
-   * the following order of preference ...
-   *  - field_thumbnail_image
-   *  - field_series_image
-   *  - field_image
-   *  - field_highlight
-   */
-  if (in_array('field_thumbnail_image', $fields) && empty($result['field_thumbnail_image'])) {
-    $field = field_get_items($type, $entity, 'field_series_image');
-    if (!empty($field)) {
-      $result['field_thumbnail_image'] = reset($field);
-    }
-    else {
-      $field = field_get_items($type, $entity, 'field_image');
-      if (!empty($field)) {
-        $result['field_thumbnail_image'] = reset($field);
-      }
-      else {
-        $field = field_get_items($type, $entity, 'field_highlight');
-        if (!empty($field)) {
-          $result['field_thumbnail_image'] = reset($field);
-        }
-      }
-    }
-  }
-
-  /*
    * Special case - if the source $entity is a node the 'domains' attribute
    * holds the domain values
    */
@@ -2037,7 +1996,6 @@ function cbf_entity_dateable($entity, $type, $currentForm) {
       "field_in_activity",
       "field_event_date",
       "field_episode_date",
-      "field_thumbnail_image",
       "domain_entityform",
     ],
     [ ]
