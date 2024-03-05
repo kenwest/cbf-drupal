@@ -643,7 +643,6 @@ function cbf_entity_presave($entity, $type) {
         'home_page_slider' => true,
       ];
       $skipDomainBundles = [
-        'dateable' => true,
         'mappable' => true,
         'title_header' => true,
       ];
@@ -1543,7 +1542,6 @@ function cbf_entity_viewable($entity, $type, $operation) {
       'status' => 'status',
       'bundles' => [
         'brite_event' => [
-          'dateable',
           'mappable',
         ],
       ],
@@ -1978,28 +1976,6 @@ function cbf_entity_viewable_fields($entity, $type, $currentForm, $fields, $acti
   }
 
   return $result;
-}
-
-/*
- * cbf_entity_dateable() gets the needed $fields from the source $entity
- */
-function cbf_entity_dateable($entity, $type, $currentForm) {
-  return cbf_entity_viewable_fields(
-    $entity,
-    $type,
-    $currentForm,
-    [
-      "field_title",
-      "field_subtitle",
-      "taxonomy_vocabulary_1",
-      "taxonomy_vocabulary_3",
-      "field_in_activity",
-      "field_event_date",
-      "field_episode_date",
-      "domain_entityform",
-    ],
-    [ ]
-  );
 }
 
 /*
