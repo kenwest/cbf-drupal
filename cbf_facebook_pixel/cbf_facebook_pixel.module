@@ -7,7 +7,8 @@
  *   additions to be printed, they have to be placed below a top level array
  *   key of the $page array that has the name of a region of the active theme."
  *
- * Fire a PageView event if
+ * Fire a PageView event (cbf_facebook_pixel_event_cbf_facebook_pixel_event()
+ * implements this) provided ..
  *  - the user is anonymous
  *  - there is a pixel for this domain - for implementation see function
  *    cbf_facebook_pixel_event_cbf_facebook_pixel_event()
@@ -17,10 +18,6 @@
  *    returns a string containing the JS code for the event
  */
 function cbf_facebook_pixel_page_build(&$page) {
-
-  if (!user_is_anonymous()) {
-    return;
-  }
 
   $events = module_invoke_all(
     'cbf_facebook_pixel_event',
@@ -71,6 +68,12 @@ function cbf_facebook_pixel_page_build(&$page) {
  */
 function cbf_facebook_pixel_cbf_facebook_pixel_event($domain, $path) {
 
+  // No pixel for staff access
+  if (!user_is_anonymous()) {
+    return false;
+  }
+
+  // No pixel if not configured for this $domain
   $pixel = variable_get('cbf_facebook_pixel_domain_' . $domain['domain_id'], false);
 
   if (!$pixel) {
