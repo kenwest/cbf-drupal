@@ -19,14 +19,6 @@ function cbf_views_query_alter(&$view, &$query) {
       $filter_table = 'field_data_taxonomy_vocabulary_1';
       $filter_tid = 'taxonomy_vocabulary_1_tid';
       break;
-
-    case 'cbf2019_mappable':
-      if ($view->current_display == 'block_4') {
-        $filter_vocabulary = 'vocabulary_1';
-        $filter_table = 'field_data_taxonomy_vocabulary_1';
-        $filter_tid = 'taxonomy_vocabulary_1_tid';
-      }
-      break;
   }
 
   /*
