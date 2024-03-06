@@ -45,7 +45,7 @@ function cbf_facebook_pixel_page_build(&$page) {
     'https://connect.facebook.net/en_US/fbevents.js');";
 
   sort($events); // Put the fbq init first before any fbq track items
-  $code = $baseCode . implode('', $events) . _cbf_facebook_pixel_track();
+  $code = $baseCode . implode('', $events) . cbf_facebook_pixel_track();
 
   $page['content']['#attached']['js']['cbf_facebook_pixel_script'] = [
     'type' => 'inline',
@@ -104,7 +104,7 @@ function cbf_facebook_pixel_cbf_facebook_pixel_event($domain, $path) {
 function cbf_facebook_pixel_webform_submission_insert($node, $submission) {
   foreach ($node->webform['components'] as $i => $component) {
     if ($component['name'] == 'Facebook Pixel Event') {
-      _cbf_facebook_pixel_track(reset($submission->data[$i]) ?? '');
+      cbf_facebook_pixel_track(reset($submission->data[$i]) ?? '');
     }
   }
 }
@@ -135,7 +135,7 @@ function _cbf_facebook_pixel_add_no_script($pixel) {
  * need to track which events need arguments.
  * To retrieve the code, and clear its value, don't pass in $name
  */
-function _cbf_facebook_pixel_track($name = null, $value = 10) {
+function cbf_facebook_pixel_track($name = null, $value = 10) {
   $code = $_SESSION[__FUNCTION__] ?? '';
 
   if (isset($name)) {

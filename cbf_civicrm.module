@@ -1154,15 +1154,15 @@ function cbf_civicrm_civicrm_buildForm( $formName, &$form ) {
    *  - InitiateCheckout - on register page of Event registrations
    *  - CompleteRegistration - on thankyou page of Event registrations
    */
-  if (function_exists('_cbf_facebook_pixel_track')) {
+  if (function_exists('cbf_facebook_pixel_track')) {
     switch ($formName) {
 
       case 'CRM_Event_Form_Registration_Register':
-        _cbf_facebook_pixel_track('InitiateCheckout');
+        cbf_facebook_pixel_track('InitiateCheckout');
         break;
 
       case 'CRM_Event_Form_Registration_ThankYou':
-        _cbf_facebook_pixel_track('CompleteRegistration', $form->_totalAmount);
+        cbf_facebook_pixel_track('CompleteRegistration', $form->_totalAmount);
         break;
     }
   }
