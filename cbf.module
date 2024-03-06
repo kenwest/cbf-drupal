@@ -1468,9 +1468,9 @@ function cbf_entity_property($variables) {
 function cbf_admin_paths() {
   $paths = [
     /*
-     * When 'entityform/NNNN/edit' is not an admin path, the call to
-     * entity_load() in cbf_entity_viewable() fails to return entities
-     * which are not visible in this domain.
+     * When 'entityform/NNNN/edit' is not an admin path, calls to
+     * entity_load() will fail to return entities that are not visible
+     * in this domain.
      */
     'entityform/*/edit' => true,
   ];
