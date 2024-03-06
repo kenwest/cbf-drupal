@@ -458,29 +458,3 @@ function computed_field_field_is_text_display($field, $entity_field_item, $entit
     return 'No';
   }
 }
-
-/*
- * This function is called by CCK Computed Field to compute the value of Field Path Alias.
- */
-function computed_field_field_source_entity_alias_compute(&$entity_field, $entity_type, $entity, $field, $instance, $langcode, $items) {
-  $field_source_entity_type = field_get_items($entity_type, $entity, 'field_source_entity_type');
-  $field_source_entity_id = field_get_items($entity_type, $entity, 'field_source_entity_id');
-  if (!empty($field_source_entity_type) && !empty($field_source_entity_id)) {
-    $path = str_replace('_', '-', $field_source_entity_type[0]['value']);
-    $path .= "/{$field_source_entity_id[0]['value']}";
-    $entity_field[0]['value'] = drupal_get_path_alias($path);
-  }
-  else {
-    $entity_field[0]['value'] = '';
-  }
-}
-
-/*
- * This function is called by CCK Computed Field to generate the display text of Field Path Alias.
- */
-function computed_field_field_source_entity_alias_display($field, $entity_field_item, $entity_lang, $langcode) {
-  if (empty($entity_field_item['value'])) {
-    return '';
-  }
-  return $entity_field_item['value'];
-}

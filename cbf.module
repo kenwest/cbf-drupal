@@ -1462,46 +1462,6 @@ function cbf_entity_property($variables) {
   return theme_entity_property($variables);
 }
 
-/**
- * Modify an iCal event's raw data. If the event is derived from a viewable
- * EntityForm which has a field_field_source_entity_alias then use that field
- * for the iCal event's URL.
- *
- * This hook is invoked after Date iCal has gathered all the data it will use
- * to build an event object.
- *
- * @param array $event
- *   A reference to an associative array containing the event's raw data.
- * @param object $view
- *   The view object that is being executed to render the iCal feed.
- * @param array $context
- *   Depending on whether this event is being constructed using the Fields or
- *   Entity plugins, this context array will have different keys and values.
- *
- *   Entity Plugin:
- *   - 'entity_type': The type of entity being rendered (e.g. 'node').
- *   - 'entity': The fully loaded entity being rendered.
- *   - 'language': The language code that indicates which translation of field
- *     data should be used.
- *
- *   Fields Plugin:
- *   - 'row': The full Views row object being converted to an event.
- *   - 'row_index': The index into the query results for this view.
- *   - 'language': The language code that indicates which translation of field
- *     data should be used.
- *   - 'options': The Fields plugin options.
- */
-function cbf_date_ical_export_raw_event_alter(&$event, $view, $context) {
-  global $base_url;
-
-  if (!empty($context['row'])) {
-    $row = $context['row'];
-    if (!empty($row->field_field_source_entity_alias[0]['raw']['value'])) {
-      $event['url'] = $base_url . '/' . $row->field_field_source_entity_alias[0]['raw']['value'];
-    }
-  }
-}
-
 /*
  * This hook defines administrative paths.
  */
