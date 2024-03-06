@@ -143,9 +143,12 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
     ) {
     $node = menu_get_object();
     if (!empty($node) && $node->type == 'activity') {
+
       if (!isset($alterations['activity'])) {
         $alterations['activity'] = [];
       }
+
+      if (!isset($alterations['activity']['cities'])) {
 
         // Find the Cities where there are upcoming Events
         // If the event has no City, then it is visible in all cities
