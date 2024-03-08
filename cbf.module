@@ -150,6 +150,8 @@ function cbf_form_alter(&$form, &$form_state, $form_id) {
 
       if (!isset($alterations['activity']['cities'])) {
 
+        $cities = [];
+
         // Find the Cities where there are upcoming Events
         // If the event has no City, then it is visible in all cities
         $current_time = strtotime('now');
