@@ -6,6 +6,14 @@
 function cbf_init() {
 
   /*
+   * The City Bible Forum sites use the current Domain's machine_name
+   * for various purposes. Ensure that the Domain is loaded with it's
+   * machine name. This hacks a bug where some Domain code assumes the
+   * machine_name is stored globally.
+   */
+  domain_set_domain(domain_get_domain()['domain_id']);
+
+  /*
    * Only staff can see 'civicrm/event/info' pages. For laffs.
    */
   if (user_is_anonymous()) {
