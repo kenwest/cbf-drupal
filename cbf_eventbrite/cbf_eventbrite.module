@@ -31,10 +31,9 @@ function cbf_eventbrite_registration_buttons($field_registration_buttons) {
 
     $columnClasses[] = "col-{$size}-{$columnWidth[$count]}";
   }
-
   $columnClasses = implode(' ', $columnClasses);
+
   $buttons = [];
-  $out = "<div class=\"row\">";
 
   foreach ($field_registration_buttons['#items'] ?? [] as $i) {
 
@@ -42,7 +41,9 @@ function cbf_eventbrite_registration_buttons($field_registration_buttons) {
   }
 
   $buttons = entity_load('paragraphs_item', $buttons);
+
   $scripts = [];
+  $out = "<div class=\"row\">";
 
   foreach ($buttons as $button) {
 
