@@ -35,7 +35,7 @@ function cbf_eventbrite_registration_buttons($field_registration_buttons) {
   $buttons = [];
   $out = "<div class=\"row\">";
 
-  foreach ($field_registration_buttons['#items'] as $i) {
+  foreach ($field_registration_buttons['#items'] ?? [] as $i) {
 
     $buttons[] = $i['value'];
   }
