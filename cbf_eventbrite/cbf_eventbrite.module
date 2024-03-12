@@ -7,16 +7,17 @@
 function cbf_eventbrite_registration_buttons($field_registration_buttons) {
 
   $buttons = count($field_registration_buttons['#items']);
+  /*
+   * Originally $columnCount aligned buttons horizontally but then it was
+   * decided to stack them. The horizontal behaviour can be restored by adding
+   * the elements ...
+   *
+   *   'sm' => min(2, $buttons),
+   *   'md' => min(3, $buttons),
+   *   'lg' => min(4, $buttons),
+   */
   $columnCount = [
     'xs' => min(1, $buttons),
-//
-// Positioning the buttons in a 'tower' rather than across the screen, but keeping
-// the original code in case it's ever needed!
-//
-//    'sm' => min(2, $buttons),
-//    'md' => min(3, $buttons),
-//    'lg' => min(4, $buttons),
-//
   ];
   $columnWidth = [
     1 => 12,
