@@ -6,7 +6,12 @@
 
 function cbf_eventbrite_registration_buttons($field_registration_buttons) {
 
-  $buttons = count($field_registration_buttons['#items']);
+  $registrationButtons = $field_registration_buttons['#items'] ?? [];
+
+  if (empty($registrationButtons)) {
+    return '';
+  }
+
   /*
    * Originally $columnCount aligned buttons horizontally but then it was
    * decided to stack them. The horizontal behaviour can be restored by adding
@@ -16,6 +21,7 @@ function cbf_eventbrite_registration_buttons($field_registration_buttons) {
    *   'md' => min(3, $buttons),
    *   'lg' => min(4, $buttons),
    */
+  $buttons = count($registrationButtons);
   $columnCount = [
     'xs' => min(1, $buttons),
   ];
@@ -35,7 +41,7 @@ function cbf_eventbrite_registration_buttons($field_registration_buttons) {
 
   $buttons = [];
 
-  foreach ($field_registration_buttons['#items'] ?? [] as $i) {
+  foreach ($registrationButtons as $i) {
 
     $buttons[] = $i['value'];
   }
