@@ -20,7 +20,7 @@
   * Drupal and CiviCRM can share the same database, or can be installed into separate databases.
   * Backdrop CMS and CiviCRM can also share the same database, or can be installed into separate databases.
   *
-@@ -102,8 +102,13 @@
+@@ -102,7 +102,12 @@
   *
   */
  if (!defined('CIVICRM_DSN')) {
@@ -35,7 +35,6 @@
 +    }
    }
    else {
-     define('CIVICRM_DSN', 'mysql://%%dbUser%%:%%dbPass%%@%%dbHost%%/%%dbName%%?new_link=true%%dbSSL%%');
 @@ -199,6 +204,9 @@
  /**
   * Smarty escape on output.
@@ -46,8 +45,7 @@
   * This tells smarty to pass all variables through the escape function
   * unless they are piped to smarty:nodefaults (eg. {$myScript|smarty:nodefaults}
   * At this stage it should only be enabled on development sites.
-@@ -244,6 +252,26 @@
-   define( 'CIVICRM_UF_BASEURL'      , '%%baseURL%%');
+@@ -245,5 +253,25 @@
  }
  
 +
