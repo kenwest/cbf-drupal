@@ -1,29 +1,98 @@
---- civicrm-5.40.4-drupal/templates/CRM/common/civicrm.settings.php.template	2021-08-07 00:35:31.000000000 +1000
-+++ civicrm-5.47.0-drupal/templates/CRM/common/civicrm.settings.php.template	2022-02-06 13:37:22.000000000 +1100
-@@ -176,5 +176,3 @@
+--- civicrm-5.46.3-drupal/templates/CRM/common/civicrm.settings.php.template	2022-02-06 13:37:22.000000000 +1100
++++ civicrm-5.71.1-drupal/templates/CRM/common/civicrm.settings.php.template	2024-03-09 12:41:26.000000000 +1100
+@@ -41,9 +41,6 @@
+  * Settings for Drupal 7.x:
+  *      define( 'CIVICRM_UF'        , 'Drupal');
+  *
+- * Settings for Drupal 6.x:
+- *      define( 'CIVICRM_UF'        , 'Drupal6');
+- *
+  * Settings for Joomla 1.7.x - 2.5.x:
+  *      define( 'CIVICRM_UF'        , 'Joomla');
+  *
+@@ -85,6 +82,9 @@
+  * Database URL format:
+  *      define( 'CIVICRM_DSN', 'mysql://crm_db_username:crm_db_password@db_server/crm_database?new_link=true');
+  *
++ * See https://docs.civicrm.org/installation/en/latest/general/mysql_tls/#dsn-settings for how to append
++ * ssl options to the Database URL.
++ *
+  * Drupal and CiviCRM can share the same database, or can be installed into separate databases.
+  * Backdrop CMS and CiviCRM can also share the same database, or can be installed into separate databases.
+  *
+@@ -102,8 +102,13 @@
   *
   */
--
--global $civicrm_root;
+ if (!defined('CIVICRM_DSN')) {
+-  if (CIVICRM_UF === 'UnitTests' && isset($GLOBALS['_CV']['TEST_DB_DSN'])) {
+-    define('CIVICRM_DSN', $GLOBALS['_CV']['TEST_DB_DSN']);
++  if (CIVICRM_UF === 'UnitTests') {
++    if (isset($GLOBALS['_CV']['TEST_DB_DSN'])) {
++      define('CIVICRM_DSN', $GLOBALS['_CV']['TEST_DB_DSN']);
++    }
++    else {
++      throw new \Exception('$GLOBALS["_CV"]["TEST_DB_DSN"] is not set');
++    }
+   }
+   else {
+     define('CIVICRM_DSN', 'mysql://%%dbUser%%:%%dbPass%%@%%dbHost%%/%%dbName%%?new_link=true%%dbSSL%%');
+@@ -199,6 +204,9 @@
+ /**
+  * Smarty escape on output.
+  *
++ * This does not currently work if you have a Smarty 3 path defined
++ * (see above).
++ *
+  * This tells smarty to pass all variables through the escape function
+  * unless they are piped to smarty:nodefaults (eg. {$myScript|smarty:nodefaults}
+  * At this stage it should only be enabled on development sites.
+@@ -244,6 +252,26 @@
+   define( 'CIVICRM_UF_BASEURL'      , '%%baseURL%%');
+ }
  
-@@ -195,7 +193,19 @@
-  *
-  */
- //if (!defined('CIVICRM_TEMPLATE_COMPILE_CHECK')) {
--//  define( 'CIVICRM_TEMPLATE_COMPILE_CHECK', FALSE);
-+//  define('CIVICRM_TEMPLATE_COMPILE_CHECK', FALSE);
-+//}
 +
 +/**
-+ * Smarty escape on output.
++ * Specify a Smarty 3 autoload file.
 + *
-+ * This tells smarty to pass all variables through the escape function
-+ * unless they are piped to smarty:nodefaults (eg. {$myScript|smarty:nodefaults}
-+ * At this stage it should only be enabled on development sites.
-+ * @see https://github.com/civicrm/civicrm-core/pull/21935
++ * Smarty3 is the version of Smarty we are in the process of adopting. To enable it
++ * un-comment the line describing the path. Note that this will become always enabled in
++ * the near future - this opt-in setting is transitional.
 + */
-+//if (!defined('CIVICRM_SMARTY_DEFAULT_ESCAPE')) {
-+//  define('CIVICRM_SMARTY_DEFAULT_ESCAPE', TRUE);
- //}
++if (!defined('CIVICRM_SMARTY_AUTOLOAD_PATH')) {
++  // enable by default for dev & demo sites for now - will soon enable by default for all new installs.
++  if (strpos(CIVICRM_UF_BASEURL, 'localhost') !== FALSE || strpos(CIVICRM_UF_BASEURL, 'demo.civicrm.org') !== FALSE) {
++    if (is_dir($civicrm_root . '/packages')) {
++      define('CIVICRM_SMARTY_AUTOLOAD_PATH', $civicrm_root . '/packages/smarty3/vendor/autoload.php');
++    }
++    elseif (is_dir($civicrm_root . '/../civicrm-packages')) {
++      define('CIVICRM_SMARTY_AUTOLOAD_PATH', $civicrm_root . '/../civicrm-packages/smarty3/vendor/autoload.php');
++    }
++  }
++}
++
+ /**
+  * Define any CiviCRM Settings Overrides per https://docs.civicrm.org/sysadmin/en/latest/customize/settings/
+  *
+@@ -333,6 +361,12 @@
+   // Some old installers may not set a decent value, and this extra complexity is a failsafe.
+   // Feel free to simplify post-install.
+ }
++if (!defined('CIVICRM_DEPLOY_ID') ) {
++  define( '_CIVICRM_DEPLOY_ID', '%%deployID%%');
++  define( 'CIVICRM_DEPLOY_ID', _CIVICRM_DEPLOY_ID === '%%' . 'deployID' . '%%' ? '' : _CIVICRM_DEPLOY_ID );
++  // Some old installers may not set a decent value, and this extra complexity is a failsafe.
++  // Feel free to simplify post-install.
++}
  
  /**
+  * The signing key is used to generate and verify shareable tokens.
+@@ -599,9 +633,6 @@
+   }
+ }
+ 
+-// force PHP to auto-detect Mac line endings
+-ini_set('auto_detect_line_endings', '1');
+-
+ // make sure the memory_limit is at least 64 MB
+ $memLimitString = trim(ini_get('memory_limit'));
+ $memLimitUnit   = strtolower(substr($memLimitString, -1));
