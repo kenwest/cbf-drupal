@@ -1,0 +1,13 @@
+
+'Group licence participation webhook progress' should say ...
+
+    groupLicenceToken is 'hellothere'
+    Agent is contact NNNNN
+    Target is contact 10222
+    The Group Licence has expired
+
+
+No CiviCRM activity should have been created
+A failure email should have been sent
+
+
