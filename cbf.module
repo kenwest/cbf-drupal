@@ -25,23 +25,6 @@ function cbf_init() {
     }
   }
 
-  foreach ([57, 28] as $i) {
-
-    $field = field_info_field_by_id($i);
-    if (empty($field)) {
-
-      watchdog('CBF', "Field $i does not exist", [], WATCHDOG_INFO);
-    }
-    else if ($field['deleted'] == 0) {
-
-      watchdog('CBF', "Field {$field['field_name']} is not deleted", [], WATCHDOG_INFO);
-      field_delete_field($field['field_name']);
-    }
-    else {
-
-      watchdog('CBF', "Field {$field['field_name']} is deleted", [], WATCHDOG_INFO);
-    }
-  }
 
   /*
    * The 2024 SPB is the last civicrm_event. A URL Redirect exists that points
