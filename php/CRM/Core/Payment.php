@@ -150,7 +150,7 @@ abstract class CRM_Core_Payment {
    * Note:
    * We normally SHOULD be returning the payment instrument of the payment processor.
    * However there is an outstanding case where this needs overriding, which is
-   * when using CRM_Core_Payment_Manual which uses the pseudoprocessor (id = 0).
+   * when using CRM_Core_Payment_Manual which uses the pseudo-processor (id = 0).
    *
    * i.e. If you're writing a Payment Processor you should NOT be using
    * setPaymentInstrumentID() at all.
@@ -500,8 +500,7 @@ abstract class CRM_Core_Payment {
   /**
    * Default payment instrument validation.
    *
-   * Implement the usual Luhn algorithm via a static function in the CRM_Core_Payment_Form if it's a credit card
-   * Not a static function, because I need to check for payment_type.
+   * Payment processors should override this.
    *
    * @param array $values
    * @param array $errors
@@ -592,6 +591,40 @@ abstract class CRM_Core_Payment {
       case 'contributionPageContinueText':
         return ts('Click the <strong>Make payment</strong> button to proceed with the payment.');
 
+      case 'contributionPageConfirmText':
+        if ($params['amount'] <= 0.0) {
+          return '';
+        }
+        if ((int) $this->_paymentProcessor['billing_mode'] !== 4) {
+          return ts('Your contribution will not be completed until you click the <strong>%1</strong> button. Please click the button one time only.', [1 => ts('Make Contribution')]);
+        }
+        return '';
+
+      case 'contributionPageButtonText':
+        if ($params['amount'] <= 0.0 || (int) $this->_paymentProcessor['billing_mode'] === 4) {
+          return ts('Continue');
+        }
+        if ($params['is_payment_to_existing']) {
+          return ts('Make Payment');
+        }
+        return ts('Make Contribution');
+
+      case 'eventContinueText':
+        // This use of the ts function uses the legacy interpolation of the button name to avoid translations having to be re-done.
+        if ((int) $this->_paymentProcessor['billing_mode'] === self::BILLING_MODE_NOTIFY) {
+          return ts('Click <strong>%1</strong> to checkout with %2.', [1 => ts('Register'), 2 => $this->_paymentProcessor['frontend_title']]);
+        }
+        return ts('Click <strong>%1</strong> to complete your registration.', [1 => ts('Register')]);
+
+      case 'eventConfirmText':
+        if ((int) $this->_paymentProcessor['billing_mode'] === self::BILLING_MODE_NOTIFY) {
+          return ts('Your registration payment has been submitted to %1 for processing', [1 => $this->_paymentProcessor['frontend_title']]);
+        }
+        return '';
+
+      case 'eventConfirmEmailText':
+        return ts('A registration confirmation email will be sent to %1 once the transaction is processed successfully.', [1 => $params['email']]);
+
       case 'cancelRecurDetailText':
         if ($params['mode'] === 'auto_renew') {
           return ts('Click the button below if you want to cancel the auto-renewal option for your %1 membership. This will not cancel your membership. However you will need to arrange payment for renewal when your membership expires.',
@@ -618,6 +651,22 @@ abstract class CRM_Core_Payment {
           return ts('Automatic cancellation is not supported for this payment processor. You or the contributor will need to manually cancel this recurring contribution using the payment processor website.');
         }
         return '';
+
+      case 'agreementTitle':
+        if ($this->getPaymentTypeName() !== 'direct_debit' || $this->_paymentProcessor['billing_mode'] != 1) {
+          return '';
+        }
+        // @todo - 'encourage' processors to override...
+        // CRM_Core_Error::deprecatedWarning('Payment processors should override getText for agreement text');
+        return ts('Agreement');
+
+      case 'agreementText':
+        if ($this->getPaymentTypeName() !== 'direct_debit' || $this->_paymentProcessor['billing_mode'] != 1) {
+          return '';
+        }
+        // @todo - 'encourage' processors to override...
+        // CRM_Core_Error::deprecatedWarning('Payment processors should override getText for agreement text');
+        return ts('Your account data will be used to charge your bank account via direct debit. While submitting this form you agree to the charging of your bank account via direct debit.');
 
     }
     CRM_Core_Error::deprecatedFunctionWarning('Calls to getText must use a supported method');
@@ -677,7 +726,7 @@ abstract class CRM_Core_Payment {
    * @return array
    *   Array of payment fields appropriate to the payment processor.
    *
-   * @throws CiviCRM_API3_Exception
+   * @throws CRM_Core_Exception
    */
   public function getPaymentFormFields() {
     if ($this->_paymentProcessor['billing_mode'] == 4) {
@@ -752,7 +801,7 @@ abstract class CRM_Core_Payment {
    *
    * @return array
    *
-   * @throws \CiviCRM_API3_Exception
+   * @throws \CRM_Core_Exception
    */
   protected function getAllFields() {
     $paymentFields = array_intersect_key($this->getPaymentFormFieldsMetadata(), array_flip($this->getPaymentFormFields()));
@@ -1150,31 +1199,31 @@ abstract class CRM_Core_Payment {
   }
 
   /**
-   * Legacy. Better for a method to work on its own PropertyBag,
-   * but also, this function does not do very much.
+   * Get the submitted amount, padded to 2 decimal places, if needed.
    *
    * @param array $params
    *
    * @return string
-   * @throws \CRM_Core_Exception
    */
   protected function getAmount($params = []) {
     if (!CRM_Utils_Rule::numeric($params['amount'])) {
       CRM_Core_Error::deprecatedWarning('Passing Amount value that is not numeric is deprecated please report this in gitlab');
       return CRM_Utils_Money::formatUSLocaleNumericRounded(filter_var($params['amount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION), 2);
     }
-    return CRM_Utils_Money::formatUSLocaleNumericRounded($params['amount'], 2);
+    // Amount is already formatted to a machine-friendly format but may NOT have
+    // decimal places - eg. it could be 1000.1 so this would return 1000.10.
+    return Civi::format()->machineMoney($params['amount']);
   }
 
   /**
    * Get url to return to after cancelled or failed transaction.
    *
    * @param string $qfKey
-   * @param int $participantID
+   * @param int|NULL $participantID
    *
    * @return string cancel url
    */
-  public function getCancelUrl($qfKey, $participantID) {
+  public function getCancelUrl($qfKey, $participantID = NULL) {
     if (isset($this->cancelUrl)) {
       return $this->cancelUrl;
     }
@@ -1361,14 +1410,12 @@ abstract class CRM_Core_Payment {
   public function doPayment(&$params, $component = 'contribute') {
     $propertyBag = \Civi\Payment\PropertyBag::cast($params);
     $this->_component = $component;
-    $statuses = CRM_Contribute_BAO_Contribution::buildOptions('contribution_status_id', 'validate');
 
     // If we have a $0 amount, skip call to processor and set payment_status to Completed.
     // Conceivably a processor might override this - perhaps for setting up a token - but we don't
     // have an example of that at the moment.
     if ($propertyBag->getAmount() == 0) {
-      $result['payment_status_id'] = array_search('Completed', $statuses);
-      $result['payment_status'] = 'Completed';
+      $result = $this->setStatusPaymentCompleted([]);
       return $result;
     }
 
@@ -1376,8 +1423,7 @@ abstract class CRM_Core_Payment {
       CRM_Core_Error::deprecatedFunctionWarning('doPayment', 'doTransferCheckout');
       $result = $this->doTransferCheckout($params, $component);
       if (is_array($result) && !isset($result['payment_status_id'])) {
-        $result['payment_status_id'] = array_search('Pending', $statuses);
-        $result['payment_status'] = 'Pending';
+        $result = $this->setStatusPaymentPending($result);
       }
     }
     else {
@@ -1386,14 +1432,10 @@ abstract class CRM_Core_Payment {
       if (is_array($result) && !isset($result['payment_status_id'])) {
         if (!empty($params['is_recur'])) {
           // See comment block.
-          CRM_Core_Error::debug_log_message("KW: Payment status not set: set to Pending");
-          $result['payment_status_id'] = array_search('Pending', $statuses);
-          $result['payment_status'] = 'Pending';
+          $result = $this->setStatusPaymentPending($result);
         }
         else {
-          CRM_Core_Error::debug_log_message("KW: Payment status not set: set to Completed");
-          $result['payment_status_id'] = array_search('Completed', $statuses);
-          $result['payment_status'] = 'Completed';
+          $result = $this->setStatusPaymentCompleted($result);
         }
       }
     }
@@ -1402,6 +1444,30 @@ abstract class CRM_Core_Payment {
       throw new PaymentProcessorException(CRM_Core_Error::getMessages($result));
     }
     return $result;
+  }
+
+  /**
+   * Set the payment status to Pending
+   * @param \Civi\Payment\PropertyBag|array $params
+   *
+   * @return array
+   */
+  protected function setStatusPaymentPending($params) {
+    $params['payment_status_id'] = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Pending');
+    $params['payment_status'] = 'Pending';
+    return $params;
+  }
+
+  /**
+   * Set the payment status to Completed
+   * @param \Civi\Payment\PropertyBag|array $params
+   *
+   * @return array
+   */
+  protected function setStatusPaymentCompleted($params) {
+    $params['payment_status_id'] = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Completed');
+    $params['payment_status'] = 'Completed';
+    return $params;
   }
 
   /**
@@ -1441,13 +1507,14 @@ abstract class CRM_Core_Payment {
   /**
    * Refunds payment
    *
-   * Payment processors should set payment_status_id if it set the status to Refunded in case the transaction is successful
-   *
    * @param array $params
    *
-   * @throws \Civi\Payment\Exception\PaymentProcessorException
+   * @return array
+   *   Result array (containing at least the key refund_status)
    */
-  public function doRefund(&$params) {}
+  public function doRefund(&$params) {
+    return ['refund_status' => 'Completed'];
+  }
 
   /**
    * Query payment processor for details about a transaction.
@@ -1473,7 +1540,7 @@ abstract class CRM_Core_Payment {
    * @return string
    *   the error message if any
    */
-  abstract protected function checkConfig();
+  abstract public function checkConfig();
 
   /**
    * Redirect for paypal.
@@ -1489,15 +1556,11 @@ abstract class CRM_Core_Payment {
       return FALSE;
     }
 
-    if (isset($_GET['payment_date']) &&
+    return (isset($_GET['payment_date']) &&
       isset($_GET['merchant_return_link']) &&
-      CRM_Utils_Array::value('payment_status', $_GET) == 'Completed' &&
+      ($_GET['payment_status'] ?? NULL) == 'Completed' &&
       $paymentProcessor['payment_processor_type'] == "PayPal_Standard"
-    ) {
-      return TRUE;
-    }
-
-    return FALSE;
+    );
   }
 
   /**
@@ -1577,7 +1640,7 @@ abstract class CRM_Core_Payment {
       // This is called when processor_name is passed - passing processor_id instead is recommended.
       $sql .= " WHERE ppt.name = %2 AND pp.is_test = %1";
       $args[1] = [
-        (CRM_Utils_Array::value('mode', $params) == 'test') ? 1 : 0,
+        (($params['mode'] ?? NULL) == 'test') ? 1 : 0,
         'Integer',
       ];
       $args[2] = [$params['processor_name'], 'String'];
@@ -1632,7 +1695,7 @@ abstract class CRM_Core_Payment {
     if (!$extension_instance_found) {
       $message = "No extension instances of the '%1' payment processor were found.<br />" .
         "%2 method is unsupported in legacy payment processors.";
-      throw new CRM_Core_Exception(ts($message, [
+      throw new CRM_Core_Exception(_ts($message, [
         1 => $params['processor_name'],
         2 => $method,
       ]));
@@ -1671,8 +1734,7 @@ abstract class CRM_Core_Payment {
    * it is better to standardise to being here.
    *
    * @param int $invoiceId The ID to check.
-   *
-   * @param null $contributionID
+   * @param int|null $contributionID
    *   If a contribution exists pass in the contribution ID.
    *
    * @return bool
@@ -1690,8 +1752,8 @@ abstract class CRM_Core_Payment {
   /**
    * Get url for users to manage this recurring contribution for this processor.
    *
-   * @param int $entityID
-   * @param null $entity
+   * @param int|null $entityID
+   * @param string|null $entity
    * @param string $action
    *
    * @return string|null
@@ -1721,6 +1783,10 @@ abstract class CRM_Core_Payment {
         }
         $url = 'civicrm/contribute/updaterecur';
         break;
+
+      default:
+        $url = '';
+        break;
     }
 
     $userId = CRM_Core_Session::singleton()->get('userID');
@@ -1742,17 +1808,7 @@ abstract class CRM_Core_Payment {
           break;
 
         case 'recur':
-          $sql = "
-    SELECT DISTINCT con.contact_id
-      FROM civicrm_contribution_recur rec
-INNER JOIN civicrm_contribution con ON ( con.contribution_recur_id = rec.id )
-     WHERE rec.id = %1";
-          $contactID = CRM_Core_DAO::singleValueQuery($sql, [
-            1 => [
-              $entityID,
-              'Integer',
-            ],
-          ]);
+          $contactID = CRM_Core_DAO::getFieldValue("CRM_Contribute_DAO_ContributionRecur", $entityID, "contact_id");
           $entityArg = 'crid';
           break;
       }
@@ -1821,6 +1877,20 @@ INNER JOIN civicrm_contribution con ON ( con.contribution_recur_id = rec.id )
    */
   protected function supportsChangeSubscriptionAmount() {
     return method_exists(CRM_Utils_System::getClassName($this), 'changeSubscriptionAmount');
+  }
+
+  /**
+   * Checks if payment processor supports not returning to the form processing.
+   *
+   * The exists to support historical event form logic where emails are sent
+   * & the form postProcess hook is called before redirecting the browser where
+   * the user is redirected.
+   *
+   * @return bool
+   */
+  public function supportsNoReturn(): bool {
+    $billingMode = (int) $this->_paymentProcessor['billing_mode'];
+    return $billingMode === self::BILLING_MODE_NOTIFY || $billingMode === self::BILLING_MODE_BUTTON;
   }
 
   /**

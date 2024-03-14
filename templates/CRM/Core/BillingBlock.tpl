@@ -9,7 +9,7 @@
 *}
 {crmRegion name="billing-block"}
 <div id="payment_information">
-  {if $paymentFields|@count}
+  {if $paymentFields}
     <fieldset class="billing_mode-group {$paymentTypeName}_info-group">
       <legend>
         {$paymentTypeLabel}
@@ -50,6 +50,14 @@
         {/foreach}
       </div>
     </fieldset>
+    {if !$isBackOffice && $paymentAgreementTitle}
+      <div id="payment_notice">
+        <fieldset class="crm-public-form-item crm-group payment_notice-group">
+          <legend>{$paymentAgreementTitle}</legend>
+          {$paymentAgreementText}
+        </fieldset>
+      </div>
+    {/if}
   {/if}
   {* <KW: CRM-3224 /> *}
 </div>
