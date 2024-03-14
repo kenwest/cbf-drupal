@@ -873,27 +873,6 @@ function cbf_cron() {
     $user = user_load(1);
 
     /*
-     * Find civicrm_event field instances and delete them
-     * See https://www.drupal.org/node/3200406
-     */
-    $fields = field_info_field_map();
-    foreach ($fields as $name => $field) {
-
-      foreach ($field['bundles'] as $type => $bundles) {
-
-        foreach ($bundles as $bundle) {
-
-          if ($type == 'civicrm_event') {
-
-            $instance = field_read_instance($type, $name, $bundle, ['include_inactive' => true]);
-            field_delete_instance($instance);
-            watchdog('CBF', 'Instance: ' . print_r($instance, true), [], WATCHDOG_INFO);
-          }
-        }
-      }
-    }
-
-    /*
      * Find entities with field_next_action due. Order them so the most recent
      * are processed first, so entities that get stuck don't mask later ones.
      */
