@@ -1,0 +1,26 @@
+rm -r advanced_help
+rm -r civicrm_entity
+rm -r closure_compiler
+rm -r composer_manager
+rm -r contact_forms
+rm -r content_access
+rm -r context context_condition_theme
+rm -r devel devel_themer
+rm -r drip
+rm -r drupalgap
+echo remove the mobile-application folder
+rm -r facebook_tracking_pixel
+rm -r fb_instant_articles
+rm -r geo_filter
+rm -r hotjar
+rm -r less
+rm -r migrate
+rm -r module_missing_message_fixer
+rm -r mollom
+rm -r panels
+rm -r reaching_the_world
+rm -r securepages
+rm -r twitter oauth services
+rm -r shop_cbf
+rm -r themekey
+rm -r webform_civicrm
