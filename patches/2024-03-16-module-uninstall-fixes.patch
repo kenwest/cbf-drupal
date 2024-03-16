@@ -1,0 +1,17 @@
+diff --git a/var/www/prod/sites/all/modules/less/less.install b/var/www/test/sites/all/modules/less/less.install
+index 28ba812..7cacff3 100644
+--- a/sites/all/modules/less/less.install
++++ b/sites/all/modules/less/less.install
+@@ -12,9 +12,9 @@ function less_uninstall() {
+   
+   variable_del('less_engine');
+   
+-  variable_del(LESS_DEVEL);
+-  variable_del(LESS_WATCH);
+-  variable_del(LESS_SOURCE_MAPS);
++  variable_del('less_devel');
++  variable_del('less_watch');
++  variable_del('less_source_maps');
+   
+   variable_del('less_dir');
+   
