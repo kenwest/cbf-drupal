@@ -11,6 +11,7 @@ rm -r drupalgap
 echo remove the mobile-application folder
 rm -r facebook_tracking_pixel
 rm -r fb_instant_articles
+rm -r fb_messenger_customer_chat_plugin
 rm -r geo_filter
 rm -r hotjar
 rm -r less
@@ -24,4 +25,5 @@ rm -r twitter oauth services
 rm -r shop_cbf
 rm -r themekey
 rm -r webform_civicrm
+rm -r webhook
 drush cc all

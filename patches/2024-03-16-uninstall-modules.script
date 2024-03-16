@@ -30,6 +30,7 @@ drush pm-uninstall -y facebook_tracking_pixel
 drush pm-uninstall -y fb_instant_articles_views
 drush pm-uninstall -y fb_instant_articles_display
 drush pm-uninstall -y fb_instant_articles
+drush pm-uninstall -y fb_messenger_customer_chat_plugin
 drush pm-uninstall -y geo_filter
 drush pm-uninstall -y hotjar
 drush pm-uninstall -y less
@@ -51,4 +52,5 @@ drush pm-uninstall -y themekey_user_profile
 drush pm-uninstall -y themekey_ui
 drush pm-uninstall -y themekey
 drush pm-uninstall -y webform_civicrm
+drush pm-uninstall -y webhook
 drush cc all
