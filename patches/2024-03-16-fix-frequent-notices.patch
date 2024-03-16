@@ -1,0 +1,14 @@
+diff --git a/ctools/includes/context.inc b/var/www/test/sites/all/modules/ctools/includes/context.inc
+index 7cb3ae7..a9bf698 100644
+--- a/ctools/includes/context.inc
++++ b/ctools/includes/context.inc
+@@ -1426,8 +1426,8 @@ function ctools_context_get_context_from_relationships($relationships, &$context
+       continue;
+     }
+ 
++    $rcontexts = [];
+     if (is_array($rdata['context'])) {
+-      $rcontexts = array();
+       foreach ($rdata['context'] as $cid) {
+         if (!empty($contexts[$cid])) {
+           $rcontexts[] = $contexts[$cid];
