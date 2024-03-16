@@ -15,3 +15,33 @@ index 28ba812..7cacff3 100644
    
    variable_del('less_dir');
    
+diff --git a/var/www/prod/sites/all/modules/devel/devel.module b/var/www/test/sites/all/modules/devel/devel.module
+index 2444e1a..8a63912 100644
+--- a/sites/all/modules/devel/devel.module
++++ b/sites/all/modules/devel/devel.module
+@@ -1514,9 +1514,9 @@ function devel_timer() {
+ }
+ 
+ // An alias for drupal_debug().
+-function dd($data, $label = NULL) {
+-  return drupal_debug($data, $label);
+-}
++// function dd($data, $label = NULL) {
++//   return drupal_debug($data, $label);
++// }
+ 
+ // Log any variable to a drupal_debug.log in the site's temp directory.
+ // See http://drupal.org/node/314112
+diff --git a/var/www/prod/sites/all/modules/views/views.module b/var/www/test/sites/all/modules/views/views.module
+index b62e439..df7f490 100644
+--- a/sites/all/modules/views/views.module
++++ b/sites/all/modules/views/views.module
+@@ -1861,7 +1861,7 @@ function views_debug($message, $placeholders = array()) {
+     }
+     elseif ($devel_region == 'drupal_debug') {
+       $output = empty($output) ? t($message, $placeholders) : $output;
+-      dd($output);
++      drupal_debug($output);
+     }
+     else {
+       $output = empty($output) ? t($message, $placeholders) : $output;
