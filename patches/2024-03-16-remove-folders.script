@@ -24,3 +24,4 @@ rm -r twitter oauth services
 rm -r shop_cbf
 rm -r themekey
 rm -r webform_civicrm
+drush cc all

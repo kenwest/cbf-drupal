@@ -5,3 +5,4 @@ drush pm-disable -y composer_manager
 drush pm-disable -y content_migrate
 drush pm-disable -y less
 drush pm-disable -y module_missing_message_fixer
+drush cc all

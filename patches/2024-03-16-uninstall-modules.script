@@ -51,3 +51,4 @@ drush pm-uninstall -y themekey_user_profile
 drush pm-uninstall -y themekey_ui
 drush pm-uninstall -y themekey
 drush pm-uninstall -y webform_civicrm
+drush cc all
