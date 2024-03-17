@@ -14,12 +14,24 @@ function cbf_init() {
   domain_set_domain(domain_get_domain()['domain_id']);
 
   /*
+   * Variables used below.
+   */
+  $q = $_GET['q'] ?? '';
+  $id = $_GET['id'] ?? '';
+
+  /*
+   * If we move CiviCRM to another domain, we will need to redirect PayPal IPN
+   * POSTs. Prior to that, let's try and understand better what is going on.
+   */
+  if ($q == 'civicrm/payment/ipn/13') {
+    watchdog('CBF', "POST /$q - " . print_r($_POST, true), [], WATCHDOG_INFO);
+  }
+
+  /*
    * Only staff can see 'civicrm/event/info' pages. For laffs.
    */
-  if (user_is_anonymous()) {
-    $q = $_GET['q'] ?? '';
-    $id = $_GET['id'] ?? '';
-    if ($q == 'civicrm/event/info' && is_numeric($id)) {
+  if ($q == 'civicrm/event/info' && is_numeric($id)) {
+    if (user_is_anonymous()) {
       drupal_not_found();
       drupal_exit();
     }
