@@ -292,7 +292,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
     case 'EventBrite event':
       $supported = true;
       $template = false;
-      $pattern = '!^(.+eventbrite.+/e/(.+-)?)?(\d+)(/)?$!i';
+      $pattern = '!^(.+eventbrite.+/e/(.+-)?)?(\d+)(/)?(\?.*)?$!i';
       $idMatch = 3;
       $message = 'Must be an EventBrite event URL or an event number';
       $element = 'button';
@@ -339,7 +339,7 @@ function _cbf_eventbrite_button_type(string $buttonType, string $buttonId, strin
     case 'EventBrite event (new window)':
       $supported = true;
       $template = false;
-      $pattern = '!^(.+eventbrite.+/e/(.+-)?)?(\d+)(/)?$!i';
+      $pattern = '!^(.+eventbrite.+/e/(.+-)?)?(\d+)(/)?(\?.*)?$!i';
       $idMatch = 3;
       $message = 'Must be an EventBrite event URL or an event number';
       $element = 'a';
