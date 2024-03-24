@@ -1,0 +1,86 @@
+From 04c3ea673913208a4a71f1ec053c670d42ad3e74 Mon Sep 17 00:00:00 2001
+From: Malcolm Young <25325-malcomio@users.noreply.drupalcode.org>
+Date: Thu, 27 Oct 2022 16:26:25 -0400
+Subject: [PATCH] Issue #3230818 by malcomio, DamienMcKenna: Unsupported
+ operand types.
+
+---
+ video_filter.codecs.inc | 49 +++++++++++++++++++++++++++++------------
+ 1 file changed, 35 insertions(+), 14 deletions(-)
+
+diff --git a/video_filter.codecs.inc b/video_filter.codecs.inc
+index 0407d4a..f204bd0 100644
+--- a/video_filter.codecs.inc
++++ b/video_filter.codecs.inc
+@@ -1048,13 +1048,9 @@ function video_filter_youtube($video) {
+     $attributes['playlist'] = 'playlist=' . $video['codec']['matches'][1];
+   }
+ 
+-  if (preg_match('/[\?|&]t=((?<minutes>\d+m)?(?<seconds>\d+s?)?)/', $video['source'], $matches)) {
+-    $attributes['start'] = 'start=' . (preg_replace("/[^0-9]/", "", $matches['minutes']) * 60 + (preg_replace("/[^0-9]/", "", $matches['seconds'])));
+-  }
+-  if (!empty($video['start'])) {
+-    if (preg_match('/((?<minutes>\d+m)?(?<seconds>\d+s?)?)/', $video['start'], $matches)) {
+-      $attributes['start'] = 'start=' . (preg_replace("/[^0-9]/", "", $matches['minutes']) * 60 + (preg_replace("/[^0-9]/", "", $matches['seconds'])));
+-    }
++  $start = video_filter_youtube_convert_start_time($video);
++  if (!empty($start)) {
++    $attributes['start'] = $start;
+   }
+ 
+   $video['source'] = '//www.youtube.com/embed/' . $video['codec']['matches'][1] . '?' . implode('&amp;', $attributes);
+@@ -1100,13 +1096,9 @@ function video_filter_youtube_html5($video) {
+     $attributes['playlist'] = 'playlist=' . $video['codec']['matches'][1];
+   }
+ 
+-  if (preg_match('/[\?|&]t=((?<minutes>\d+m)?(?<seconds>\d+s?)?)/', $video['source'], $matches)) {
+-    $attributes['start'] = 'start=' . (preg_replace("/[^0-9]/", "", $matches['minutes']) * 60 + (preg_replace("/[^0-9]/", "", $matches['seconds'])));
+-  }
+-  if (!empty($video['start'])) {
+-    if (preg_match('/((?<minutes>\d+m)?(?<seconds>\d+s?)?)/', $video['start'], $matches)) {
+-      $attributes['start'] = 'start=' . (preg_replace("/[^0-9]/", "", $matches['minutes']) * 60 + (preg_replace("/[^0-9]/", "", $matches['seconds'])));
+-    }
++  $start = video_filter_youtube_convert_start_time($video);
++  if (!empty($start)) {
++    $attributes['start'] = $start;
+   }
+ 
+   $video['source'] = '//www.youtube.com/embed/' . $video['codec']['matches'][1] . '?' . implode('&amp;', $attributes);
+@@ -1114,6 +1106,35 @@ function video_filter_youtube_html5($video) {
+   return video_filter_iframe($video);
+ }
+ 
++/**
++ * Extract a start time from a YouTube video URL.
++ *
++ * @param array $video
++ *  The video array.
++ *
++ * @return string
++ *   The start time ready to add as an attribute.
++ */
++function video_filter_youtube_convert_start_time(array $video) {
++  $start = NULL;
++
++  $fields_to_search = array(
++    'source',
++    'start',
++  );
++
++  foreach ($fields_to_search as $field) {
++    if (!empty($video[$field]) && preg_match('/[\?|&]t=((?<minutes>\d+m)?(?<seconds>\d+s?)?)/', $video[$field], $matches)) {
++      $minutes = intval($matches['minutes']);
++      $seconds = intval($matches['seconds']);
++
++      $start = 'start=' . (preg_replace("/[^0-9]/", "", $minutes) * 60 + (preg_replace("/[^0-9]/", "", $seconds)));
++    }
++  }
++
++  return $start;
++}
++
+ /**
+  * HTML5 callback for YouTube (Playlist) codec.
+  *
+-- 
+GitLab
