@@ -401,9 +401,11 @@ function cbf_field_title_image_validate($form, &$form_state) {
   if (isset($form_state['node'])
     && $form_state['node']->type == 'activity') {
           $unlisted = '1957';
-          $fid = reset($form_state['values']['field_title_image'] ?? []);
+          $fid = $form_state['values']['field_title_image'];
+          $fid = is_array($fid) ? reset($fid) : '0';
           $fid = is_array($fid) ? reset($fid)['fid'] ?? '0' : '0';
-          $audience = reset($form_state['values']['taxonomy_vocabulary_3'] ?? []);
+          $audience = $form_state['values']['taxonomy_vocabulary_3'];
+          $audience = is_array($audience) ? reset($audience) : '0';
           $audience = is_array($audience) ? reset($audience)['tid'] ?? '0' : '0';
           if ($audience != $unlisted && $fid == '0') {
             form_set_error(
@@ -429,9 +431,11 @@ function cbf_field_highlight_validate($form, &$form_state) {
         || $form_state['node']->nid > 5898))
   ) {
     $unlisted = '1957';
-    $fid = reset($form_state['values']['field_highlight'] ?? []);
+    $fid = $form_state['values']['field_highlight'];
+    $fid = is_array($fid) ? reset($fid) : '0';
     $fid = is_array($fid) ? reset($fid)['fid'] ?? '0' : '0';
-    $audience = reset($form_state['values']['taxonomy_vocabulary_3'] ?? []);
+    $audience = $form_state['values']['taxonomy_vocabulary_3'];
+    $audience = is_array($audience) ? reset($audience) : '0';
     $audience = is_array($audience) ? reset($audience)['tid'] ?? '0' : '0';
     if ($audience != $unlisted && $fid == '0') {
       form_set_error(
@@ -452,15 +456,18 @@ function cbf_field_highlight_validate($form, &$form_state) {
  */
 function cbf_field_with_validate($form, &$form_state) {
 
-  $people = reset($form_state['values']['field_with'] ?? []);
-  if ($people === false) {
+  if (is_array($form_state['values']['field_with'])) {
+    $people = reset($form_state['values']['field_with']);
+  }
+  else {
     $people = [];
   }
   $maxDescription = 500;
 
   foreach ($people as $key => $person) {
     if (is_numeric($key)) { // Ignore people who are in the process of being added
-      $tid = reset($person['field_speaker'] ?? []);
+      $tid = $person['field_speaker'];
+      $tid = is_array($tid) ? reset($tid) : 0;
       $name = is_array($tid) ? reset($tid)['name'] ?? '' : '';
       $tid = is_array($tid) ? reset($tid)['tid'] ?? 0 : 0;
 
