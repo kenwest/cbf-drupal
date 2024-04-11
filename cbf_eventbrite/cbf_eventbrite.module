@@ -535,7 +535,7 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
     ]);
 
   if ($result['code'] != '200') {
-    $fail[] = 'Failed to talk to Pipedream';
+    $fail[] = "Failed to talk to Pipedream (error = ${$result['code']})";
   }
   else if ($result['response']->id == 0) {
     $fail[] = "Eventbrite says '{$result['response']->error} - {$result['response']->error_description}'";
