@@ -1939,6 +1939,34 @@ function cbf_get_last_item_in_path() {
  * An implementation of hook_views_rss_feed_alter()
  */
 function cbf_views_rss_feed_alter(&$rss_feed) {
+
+  /*
+   * The 'pubDate' attribute of an 'item' may not have a time component.
+   * iTunes and 2 feed validators accept this but Spotify doesn't.
+   *
+   *   Convert: Tue, 01 Feb 2022 +1100
+   *   To:      Tue, 01 Feb 2022 00:00:00 +1100
+   *
+   */
+  foreach ($rss_feed['value'][0]['value'] as $i => $x) {
+
+    if ($x['key'] == 'item') {
+
+      foreach ($x['value'] as $j => $y) {
+
+        if ($y['key'] == 'pubDate') {
+
+          if (strlen($y['value']) == strlen('Tue, 01 Feb 2022 +1100')) {
+            $rss_feed['value'][0]['value'][$i]['value'][$j]['value'] =
+              substr($y['value'], 0, strlen('Tue, 01 Feb 2022 '))
+              . '00:00:00 '
+              . substr($y['value'], -strlen('+1100'));
+          }
+        }
+      }
+    }
+  }
+
   $isWanted = -1;
   $isNotWanted = -2;
 
