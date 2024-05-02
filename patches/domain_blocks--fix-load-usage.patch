@@ -1,0 +1,13 @@
+diff --git a/domain_blocks.module b/domain_blocks.module
+index b87ff85..81d8daa 100644
+--- a/domain_blocks.module
++++ b/domain_blocks.module
+@@ -154,7 +154,7 @@ function domain_blocks_form_alter(&$form, &$form_state, $form_id) {
+       $previous_block_domains = _domain_blocks_load($module, $delta);
+ 
+       $block_domains = array();
+-      if (count($previous_block_domains) > 0) {
++      if (is_array($previous_block_domains) && count($previous_block_domains) > 0) {
+         foreach ($previous_block_domains as $value) {
+           $value == 0 ? $value = -1 : $value = $value;
+           $block_domains[] = $value;
