@@ -1,0 +1,28 @@
+From c4f2e47ddd28ae712449973e8bdc920bc3a0651c Mon Sep 17 00:00:00 2001
+From: joegraduate <joegraduate@789384.no-reply.drupal.org>
+Date: Mon, 1 Jul 2019 11:28:09 +0200
+Subject: [PATCH] Issue #2951390 by joegraduate, salvis, joe_carvajal,
+ AltaGrade, banoodle, COBadger, Berdir, vinmassaro, Anybody, ShaneOnABike,
+ Chris Gillis, gbirch, kreynen: Replace deprecated each() function (PHP 7.2
+ compatibility)
+
+---
+ ParagraphsItemEntity.inc | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/ParagraphsItemEntity.inc b/ParagraphsItemEntity.inc
+index ef6fd512..e32cf802 100644
+--- a/ParagraphsItemEntity.inc
++++ b/ParagraphsItemEntity.inc
+@@ -296,7 +296,8 @@ class ParagraphsItemEntity extends Entity {
+           $query->age(FIELD_LOAD_REVISION);
+         }
+         $result = $query->execute();
+-        list($this->hostEntityType, $data) = each($result);
++        $this->hostEntityType = key($result);
++        $data = current($result);
+ 
+         if ($data) {
+           $data_values = array_shift($data);
+-- 
+GitLab
