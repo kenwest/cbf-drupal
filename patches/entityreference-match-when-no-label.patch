@@ -1,8 +1,8 @@
-diff --git a/entityreference/plugins/selection/EntityReference_SelectionHandler_Generic.class.php b/entityreference/plugins/selection/EntityReference_SelectionHandler_Generic.class.php
-index 6ec28a4..9020a80 100644
---- a/entityreference/plugins/selection/EntityReference_SelectionHandler_Generic.class.php
-+++ b/entityreference/plugins/selection/EntityReference_SelectionHandler_Generic.class.php
-@@ -253,6 +253,11 @@ class EntityReference_SelectionHandler_Generic implements EntityReference_Select
+diff --git a/plugins/selection/EntityReference_SelectionHandler_Generic.class.php b/plugins/selection/EntityReference_SelectionHandler_Generic.class.php
+index 42c6098..f514e6d 100644
+--- a/plugins/selection/EntityReference_SelectionHandler_Generic.class.php
++++ b/plugins/selection/EntityReference_SelectionHandler_Generic.class.php
+@@ -266,6 +266,11 @@ class EntityReference_SelectionHandler_Generic implements EntityReference_Select
        if (isset($entity_info['entity keys']['label'])) {
          $query->propertyCondition($entity_info['entity keys']['label'], $match, $match_operator);
        }

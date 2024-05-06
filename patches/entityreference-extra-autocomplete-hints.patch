@@ -1,6 +1,8 @@
---- a/entityreference.module	2017-08-17 09:14:22.733109822 +1000
-+++ b/entityreference.module	2017-08-17 09:19:31.055807807 +1000
-@@ -1110,20 +1110,20 @@
+diff --git a/entityreference.module b/entityreference.module
+index fab22da..0a7c120 100644
+--- a/entityreference.module
++++ b/entityreference.module
+@@ -1126,13 +1126,13 @@ function entityreference_autocomplete_callback_get_matches($type, $field, $insta
      $entity_labels = $handler->getReferencableEntities($tag_last, $instance['widget']['settings']['match_operator'], 10);
      $denied_label = t(ENTITYREFERENCE_DENIED);
      // Loop through the products and convert them into autocomplete output.
@@ -13,9 +15,10 @@
          }
 -        $key = "$label ($entity_id)";
 +        $key = "$label ($entity_id) [$contentType]";
-         // Strip starting/trailing white spaces, line breaks and tags.
-         $key = preg_replace('/\s\s+/', ' ', str_replace("\n", '', trim(decode_entities(strip_tags($key)))));
-         // Names containing commas or quotes must be wrapped in quotes.
+         if (isset($instance['widget']['settings']['hide_ids'])) {
+           $key = $instance['widget']['settings']['hide_ids'] ? $label : "$label ($entity_id)";
+         }
+@@ -1142,7 +1142,7 @@ function entityreference_autocomplete_callback_get_matches($type, $field, $insta
          if (strpos($key, ',') !== FALSE || strpos($key, '"') !== FALSE) {
            $key = '"' . str_replace('"', '""', $key) . '"';
          }
