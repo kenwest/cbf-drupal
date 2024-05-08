@@ -141,6 +141,7 @@ function _cbf_pipedream_invoke_workflow(string $method, string $url, $data = nul
       'Content-Type' => 'application/json',
     ],
     'method' => $method,
+    'timeout' => 60.0,
   ];
   if (isset($data)) {
     $httpOptions['data'] = json_encode($data);
