@@ -208,15 +208,11 @@ function _computed_field_date_text_compute($entity_type, $entity) {
 
             $nationalTimeText = '';
             foreach ($nationalTime as $tzOffset => $tzTime) {
-              if (strpos($tzTime['state'], ', ') === false) {
-                $city = $tzTime['state'];
-              }
-              else {
-                $city = '&nbsp;';
-              }
               $nationalTimeText .=
-                '<div class="tz-city">' . $city . '</div>' .
-                '<div class="tz-time">' . $tzTime['time'] . '</div>';
+                '<div class="tz">' .
+                '<div class="tz-city">' . $tzTime['state'] . '</div>' .
+                '<div class="tz-time">' . $tzTime['time'] . '</div>' .
+                '</div>';
             }
           }
         }
