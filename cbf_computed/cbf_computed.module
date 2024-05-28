@@ -207,11 +207,23 @@ function _computed_field_date_text_compute($entity_type, $entity) {
             $nationalTime = array_reverse($nationalTime, true);
 
             $nationalTimeText = '';
-            foreach ($nationalTime as $tzOffset => $tzTime) {
+            foreach ($nationalTime as $tzOffset => $tzStateTime) {
+              $tzState = $tzStateTime['state'];
+              $tzTime = $tzStateTime['time'];
+              if (stripos($tzState, ',') !== false) {
+                if (stripos($tzState, 'QLD') !== false) {
+                  $tzState = 'NSW, ACT,<br/>QLD,<br/>VIC, TAS';
+                  $tzTime = "<br/><br/>$tzTime";
+                }
+                else {
+                  $tzState = 'NSW, ACT,<br/>VIC, TAS';
+                  $tzTime = "<br/>$tzTime";
+                }
+              }
               $nationalTimeText .=
                 '<div class="tz">' .
-                '<div class="tz-city">' . $tzTime['state'] . '</div>' .
-                '<div class="tz-time">' . $tzTime['time'] . '</div>' .
+                '<div class="tz-city">' . $tzState . '</div>' .
+                '<div class="tz-time">' . $tzTime . '</div>' .
                 '</div>';
             }
           }
