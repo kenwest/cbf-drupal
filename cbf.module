@@ -2149,7 +2149,7 @@ function cbf_shortcode_info() {
     'process settings callback' => 'cbf_shortcode_typeform_form_settings',
     'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
     'icon' => 'fa fa-bold',
-    'description_field' => 'form_id',
+    'description_field' => 'tf_form',
     'preview' => false,
   );
 
@@ -2157,7 +2157,7 @@ function cbf_shortcode_info() {
 }
 
 function cbf_shortcode_typeform_form($attrs, $text) {
-  $text = $attrs['form_id'] ?? '';
+  $text = $attrs['tf_form'] ?? '';
   if ($text) {
     $text =
     '<div data-tf-live="' .
@@ -2168,10 +2168,10 @@ function cbf_shortcode_typeform_form($attrs, $text) {
 }
 
 function cbf_shortcode_typeform_form_settings($attrs, $text) {
-  $form['form_id'] = array(
+  $form['tf_form'] = array(
     '#title' => t('Typeform Id'),
     '#type' => 'textfield',
-    '#default_value' => $attrs['form_id'] ?? '',
+    '#default_value' => $attrs['tf_form'] ?? '',
     '#attributes' => array('class' => array('form-control')),
   );
   return $form;
