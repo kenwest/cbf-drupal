@@ -372,8 +372,11 @@ function cbf_form_comment_form_alter(&$form, &$form_state, $form_id) {
  *    Events when they should be using a News Story.
  */
 function cbf_field_event_date_validate($form, &$form_state) {
+
   if (isset($form_state['values']['field_event_date'])) {
+
     $duration = 0;
+    $occurrences = 0;
     foreach (reset($form_state['values']['field_event_date']) as $event_occurrence) {
       if (is_array($event_occurrence)) {
         $start_time = new DateObject($event_occurrence['value'], $event_occurrence['timezone']);
@@ -382,13 +385,43 @@ function cbf_field_event_date_validate($form, &$form_state) {
         $end_time = new DateObject($event_occurrence['value2'], $event_occurrence['timezone']);
         $endstamp = strtotime($end_time->format('Y-m-d H:i:s O'));
         $duration += $endstamp - $startstamp;
+        $occurrences++;
       }
     }
+
     if ($duration > 5 * 24 * 60 * 60) {
       form_set_error(
         'field_event_date',
         'The overall duration of this event is greater than 5 days. ' .
         'This doesn\'t seem like an event.');
+    }
+
+    if ($occurrences > 1) {
+
+      $query = new EntityFieldQuery();
+      $query
+        ->entityCondition('entity_type', 'taxonomy_term')
+        ->entityCondition('bundle', 'event_registration_type');
+      $result = $query->execute();
+      foreach ($result as $entityType => $entities) {
+        $terms = taxonomy_term_load_multiple(array_keys($entities));
+        foreach ($terms as $term) {
+          if (stripos($term->name, 'EventBrite') !== false) {
+            $buttons = $form_state['values']['field_registration_buttons'] ?? [[]];
+            foreach (reset($buttons) as $button) {
+              $tid = reset($button['field_event_registration_type']);
+              $tid = $tid ? reset($tid) : $tid;
+              $tid = $tid ? reset($tid) : $tid;
+              if ($tid == $term->tid) {
+                form_set_error(
+                  'field_event_date',
+                  'Cannot mix repeating dates with EventBrite registration');
+                break 3;
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
