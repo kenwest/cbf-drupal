@@ -411,30 +411,41 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
 
   $price = cbf_field_get_items('paragraphs_item', $button, 'field_event_option_price', 'amount');
 
-  $buttons = cbf_field_get_items('node', $node, 'field_registration_buttons', 'entity', []);
+  if ($node) {
+    $summary = cbf_field_get_items('node', $node, 'field_subtitle', 'value', '');
+    $field_event_date = cbf_field_get_items('node', $node, 'field_event_date', false, []);
+    $description = reset(cbf_field_get_items('node', $node, 'body', false, []));
 
-  $buttonCount = 0;
-  foreach ($buttons as $b) {
-    if ($b) {
-      $buttonCount++;
+    $buttons = cbf_field_get_items('node', $node, 'field_registration_buttons', 'entity', []);
+
+    $buttonCount = 0;
+    foreach ($buttons as $b) {
+      if ($b) {
+        $buttonCount++;
+      }
+    }
+
+    if ($buttonCount > 1) {
+      $name = cbf_field_get_items('paragraphs_item', $button, 'field_title', 'value');
+      $name = "{$node->title} - {$name}";
+    }
+    else {
+      $name = $node->title;
     }
   }
-
-  if ($buttonCount > 1) {
-    $name = cbf_field_get_items('paragraphs_item', $button, 'field_title', 'value');
-    $name = "{$node->title} - {$name}";
-  }
   else {
-    $name = $node->title;
+
+    $summary = '';
+    $field_event_date = [];
+    $description = [];
+    $buttons = [];
+    $buttonCount = 0;
   }
-
-  $summary = cbf_field_get_items('node', $node, 'field_subtitle', 'value', '');
-
-  $field_event_date = cbf_field_get_items('node', $node, 'field_event_date', false, []);
-
-  $description = reset(cbf_field_get_items('node', $node, 'body', false, []));
 
   $fail = [];
+  if (!$node) {
+    $fail[] = 'Cannot find node stored by cbf_eventbrite_node_validate';
+  }
   if (!$organiser) {
     $fail[] = 'Event organiser not set';
   }
