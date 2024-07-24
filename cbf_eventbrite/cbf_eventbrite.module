@@ -419,8 +419,8 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
     $buttons = cbf_field_get_items('node', $node, 'field_registration_buttons', 'entity', []);
 
     $buttonCount = 0;
-    foreach ($buttons as $b) {
-      if ($b) {
+    foreach ($buttons as $i => $b) {
+      if (is_numeric($i) && $b) {
         $buttonCount++;
       }
     }
