@@ -421,7 +421,9 @@ function _cbf_eventbrite_create_event_from_template($button, $node) {
     $buttonCount = 0;
     foreach ($buttons as $i => $b) {
       if (is_numeric($i) && $b) {
-        $buttonCount++;
+        if (!isset($b->removed) || !$b->removed) {
+          $buttonCount++;
+        }
       }
     }
 
