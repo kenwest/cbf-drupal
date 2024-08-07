@@ -58,7 +58,16 @@ function _cbf_civicrm_email_audience($params, $context) {
       'context id' => $contextId,
     ];
 
-    foreach (domain_list_by_machine_name() as $domain) {
+    $domains = [
+      'christian' => [
+        'machine_name' => 'christian',
+        'sitename' => 'City Bible Forum',
+        'subdomain' => 'civicrm.citybibleforum.org',
+        'aliases' => [],
+      ],
+    ];
+
+    foreach ($domains as $domain) {
       $domainAudience = $domain['machine_name'];
       if (isset($audienceData['audiences'][$domainAudience])) {
         $audienceData['audiences'][$domainAudience]['name'] = $domain['sitename'];
