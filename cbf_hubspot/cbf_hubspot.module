@@ -229,7 +229,6 @@ function cbf_hubspot_page_alter(&$page) {
    * Unset it for Staff who are logging in.
    * Unset it if there is a Drupal webform on the page
    * Unset it if there is a Comment form on the page
-   * Unset it if this is a CiviCRM page
    */
 
   if (user_is_anonymous()) {
@@ -241,9 +240,7 @@ function cbf_hubspot_page_alter(&$page) {
 
     if (
       (arg(0) == 'user') ||
-      (arg(0) == 'system' && arg(1) == 'tfa') ||
-      (arg(0) == 'civicrm') ||
-      (arg(0) == 'civicrm-event')
+      (arg(0) == 'system' && arg(1) == 'tfa')
     ) {
       $disableHubSpotTracker = true;
     }

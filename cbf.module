@@ -20,31 +20,11 @@ function cbf_init() {
   $id = $_GET['id'] ?? '';
 
   /*
-   * If we move CiviCRM to another domain, we will need to redirect PayPal IPN
-   * POSTs. Prior to that, let's try and understand better what is going on.
+   * We have moved CiviCRM to another domain, so redirect PayPal IPN POSTs
    */
   if ($q == 'civicrm/payment/ipn/13') {
     watchdog('CBF', "POST /$q - " . print_r($_POST, true), [], WATCHDOG_INFO);
     drupal_goto('https://civicrm.citybibleforum.org/civicrm/payment/ipn/13', [], 301);
-  }
-
-  /*
-   * Only staff can see 'civicrm/event/info' pages. For laffs.
-   */
-  if ($q == 'civicrm/event/info' && is_numeric($id)) {
-    if (user_is_anonymous()) {
-      drupal_not_found();
-      drupal_exit();
-    }
-  }
-
-  /*
-   * The 2024 SPB is the last civicrm_event. A URL Redirect exists that points
-   * to the corresponding brite_event. All other civicrm_events are not found.
-   */
-  if (arg(0) == 'civicrm-event' && (empty(arg(1)) || arg(1) != '3046')) {
-    drupal_not_found();
-    drupal_exit();
   }
 
   /*
@@ -900,138 +880,6 @@ function cbf_field_attach_presave($entity_type, $entity) {
 }
 
 /*
- * A copy of field_purge_batch() that will find include_inactive instances but
- * only purge civicrm_event bundles. It will report on the number of entities
- * processed and the number skipped. Typically these should be zero.
- *
- * Though this is only needed for cleaning up the lint left by civicrm_event I
- * am leaving it in place as a canary should any other lint show up. 'Lint'
- * means a field instance that is deleted but also inactive so
- * field_purge_batch() can't purge its data and hence can't purge the instance.
- * Purging fields with no instances is left for field_cron() to handle.
- */
-function _cbf_cron_field_purge_batch() {
-
-  // Limit the entities and bundles we process, to avoid damage
-  $entityBundles = [
-    'civicrm_event' => [ 'civicrm_event' => true ],
-  ];
-
-  // Count items
-  $counter = [
-    'instance data' => [
-      'purged' => 0,
-      'skipped' => 0,
-    ],
-    'instances' => [
-      'purged' => 0,
-      'skipped' => 0,
-    ],
-  ];
-
-  // Retrieve all deleted field instances. We cannot use field_info_instances()
-  // because that function does not return deleted instances.
-  $instances = field_read_instances(
-    [
-      'deleted' => 1,
-    ],
-    [
-      'include_deleted' => 1,
-      'include_inactive' => 1,
-    ]);
-
-  foreach ($instances as $instance) {
-
-    // field_purge_data() will need the field array.
-    $field = field_info_field_by_id($instance['field_id']);
-    // Retrieve some entities.
-    $query = new EntityFieldQuery();
-    $results = $query
-      ->fieldCondition($field)
-      ->entityCondition('bundle', $instance['bundle'])
-      ->deleted(TRUE)
-      ->range(0, 1)
-      ->execute();
-
-    if ($results) {
-
-      /*
-       * The field functions block access to this data because the instance is
-       * inactive. Simulate calling field_sql_storage_field_storage_purge() for
-       * each of $results plus any other, but in a single call.
-       */
-      if (
-        empty($entityBundles[$instance['entity_type']][$instance['bundle']])
-      ) {
-        $counter['instance data']['skipped']++;
-        continue;
-      }
-      else {
-        $counter['instance data']['purged']++;
-      }
-
-      $table_name = _field_sql_storage_tablename($field);
-      $revision_name = _field_sql_storage_revision_tablename($field);
-      db_delete($table_name)
-      ->condition('entity_type', $instance['entity_type'])
-      ->condition('bundle', $instance['bundle'])
-      ->condition('deleted', 1)
-      ->execute();
-      db_delete($revision_name)
-      ->condition('entity_type', $instance['entity_type'])
-      ->condition('bundle', $instance['bundle'])
-      ->condition('deleted', 1)
-      ->execute();
-    }
-    else {
-
-      if (
-        empty($entityBundles[$instance['entity_type']][$instance['bundle']])
-        ) {
-        $counter['instances']['skipped']++;
-        continue;
-      }
-      else {
-        $counter['instances']['purged']++;
-      }
-
-      // No field data remains for the instance, so we can remove it.
-      field_purge_instance($instance);
-    }
-  }
-
-  $message = [];
-  foreach ($counter as $item => $counts) {
-
-    $msg = [];
-    foreach ($counts as $metric => $count) {
-
-      if ($count > 0) {
-
-        $msg[] = "$count $metric";
-      }
-    }
-
-    if (!empty($msg)) {
-
-      $message[] = "$item: " . implode(', ', $msg);
-    }
-  }
-
-  if (empty($message)) {
-
-    $message = 'No inactive fields available to be purged';
-  }
-  else {
-
-    $message = 'Inactive fields available to be purged: ' . implode('; ', $message);
-  }
-
-  watchdog('CBF', $message, [], WATCHDOG_INFO);
-}
-
-
-/*
  * This function is called by Drupal cron.
  *
  * Re-save entities that have a field_next_action which is set to a time between
@@ -1089,12 +937,6 @@ function cbf_cron() {
         );
       }
     }
-
-    /*
-     * Simulate field_cron(). See _cbf_cron_field_purge_batch() for documentation
-     */
-    field_sync_field_status();
-    _cbf_cron_field_purge_batch();
 
   } catch (Exception $e) {
     // Do nothing
