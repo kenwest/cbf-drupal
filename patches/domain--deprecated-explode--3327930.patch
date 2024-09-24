@@ -1,0 +1,13 @@
+diff --git a/settings_custom_url.inc b/settings_custom_url.inc
+index 7febb091..09753bef 100644
+--- a/settings_custom_url.inc
++++ b/settings_custom_url.inc
+@@ -58,7 +58,7 @@ function domain_url_outbound_alter(&$path, &$options, $original_path) {
+     if ($check_nodes) {
+       // Check to see if this is a node or comment link and set $nid accordingly.
+       // We static the $nid results to make this more efficient.
+-      $pattern = explode('/', $original_path);
++      $pattern = explode('/', $original_path ?: '');
+ 
+       // Advanced pattern matching, we find the node id based on token %n in the path string.
+       if (!isset($nodepaths)) {
