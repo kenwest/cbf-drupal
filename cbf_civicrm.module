@@ -46,9 +46,6 @@ function _cbf_civicrm_email_audience($params, $context) {
     $audienceData = [
       'audience' => '',
       'audiences' => [
-        'general' => [
-          'colour' => '#cf2e4f',
-        ],
         'christian' => [
           'colour' => '#1c9cd6',
         ],
