@@ -24,7 +24,7 @@ function cbf_init() {
    */
   if ($q == 'civicrm/payment/ipn/13') {
     watchdog('CBF', "POST /$q - " . print_r($_POST, true), [], WATCHDOG_INFO);
-    drupal_goto('https://civicrm.citybibleforum.org/civicrm/payment/ipn/13', [], 301);
+    drupal_goto('https://civicrm.citybibleforum.org/civicrm/payment/ipn/13', [], 307);
   }
 
   /*
