@@ -14,6 +14,40 @@ function cbf_init() {
   domain_set_domain(domain_get_domain()['domain_id']);
 
   /*
+   * Implement a freeze to prevent staff adding or editing entities
+   */
+  if (!user_is_anonymous()) {
+    $freeze = variable_get('cbf_content_freeze', 0);
+    if ($freeze) {
+      if (arg(0) == 'node') {
+        if (arg(1) == 'add' || arg(2) == 'edit') {
+          drupal_goto('', [], 307);
+        }
+      }
+      if (arg(2) == 'taxonomy') {
+        if (arg(4) == 'add') {
+          drupal_goto('', [], 307);
+        }
+      }
+      if (arg(0) == 'taxonomy') {
+        if (arg(3) == 'edit') {
+          drupal_goto('', [], 307);
+        }
+      }
+      if (arg(0) == 'eform') {
+        if (arg(1) == 'submit') {
+          drupal_goto('', [], 307);
+        }
+      }
+      if (arg(0) == 'entityform') {
+        if (arg(2) == 'edit') {
+          drupal_goto('', [], 307);
+        }
+      }
+    }
+  }
+
+  /*
    * Variables used below.
    */
   $q = $_GET['q'] ?? '';
